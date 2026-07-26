@@ -27,9 +27,11 @@ bool TouchController::isTouched() {
         return true;
     }
     
-    // Only smooth the baseline if untouched AND no interference is happening.
-    // The metal wheel causes spikes up to ~300. We only track true slow drift (< 30).
-    if (delta < 30) {
+    // Update baseline slowly when not touched.
+    // Gate: only update if delta < 500. This allows tracking the natural
+    // resting variance (200-460 range) while still freezing out real touches (700+)
+    // and heavy wheel interference (800+).
+    if (delta < 500) {
         _baseline = (_baseline * 15 + currentVal) / 16;
     }
     return false;

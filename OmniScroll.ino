@@ -32,7 +32,7 @@ USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard Keyboard;
 
-TouchController touch(TOUCH_PIN, 1100); // 1100 rejects max wheel noise (854) but catches all touches (1394+)
+TouchController touch(TOUCH_PIN, 700); // 700: above natural resting noise (500 max) but catches real touches (1400+)
 
 enum Mode { MODE_SCROLL, MODE_VOLUME, MODE_TIMELINE };
 Mode currentMode = MODE_SCROLL;
@@ -181,15 +181,22 @@ void loop() {
       long rawTouch = touch.getLastReading();
       long baseline = touch.getBaseline();
       long delta = abs(rawTouch - baseline);
-      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 1100)\n", rawTouch, baseline, delta);
+      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 700)\n", rawTouch, baseline, delta);
       lastLogTime = millis();
   }
 
-  // Update touch sensor state machine
+  // SCROLL LOCKOUT: reset touch state machine during scroll AND for 400ms after.
+  // This prevents post-spin elevated sensor state from being mistaken as a first tap.
+  bool inLockout = (millis() - lastScrollTime <= 400);
+  if (inLockout) {
+      touch.reset();
+  }
+
+  // Update touch sensor state machine (only runs when not in lockout)
   touch.update();
   
-  // Handle double tap
-  if (touch.isDoubleTapped()) {
+  // Handle double tap - also gate on lockout to prevent any edge case
+  if (touch.isDoubleTapped() && !inLockout) {
       // Only switch modes if the wheel hasn't been moving for the last 300ms
       if (millis() - lastScrollTime > 300) {
           Serial.println("Double Tap Detected!");
@@ -221,8 +228,7 @@ void loop() {
     int8_t dx = (int8_t)mx8650_read(0x03);
     if (dx != 0) {
       accumulationX += dx;
-      lastScrollTime = millis();
-      touch.reset(); // Force reset touch state to ignore finger bouncing
+      lastScrollTime = millis(); // Track last movement for lockout window
       Serial.printf("[Wheel] dx: %d | Accumulator: %d\n", dx, accumulationX);
       
       if (currentMode == MODE_SCROLL) {

@@ -30,8 +30,8 @@ private:
     bool _doubleTappedFlag;
     
     // Configurable timings
-    const unsigned long DOUBLE_TAP_MAX_DELAY = 400; // max ms between taps
-    const unsigned long DEBOUNCE_TIME = 50;         // min ms per tap
+    const unsigned long DOUBLE_TAP_MAX_DELAY = 600; // max ms between taps
+    const unsigned long DEBOUNCE_TIME = 40;          // min ms per tap
 };
 
 #endif // TOUCHCONTROLLER_H
