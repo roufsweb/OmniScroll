@@ -174,6 +174,16 @@ void setup() {
 }
 
 void loop() {
+  // Add periodic telemetry logging to Serial
+  static unsigned long lastLogTime = 0;
+  if (millis() - lastLogTime > 1000) {
+      long rawTouch = touch.getLastReading();
+      long baseline = touch.getBaseline();
+      long delta = abs(rawTouch - baseline);
+      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 120)\n", rawTouch, baseline, delta);
+      lastLogTime = millis();
+  }
+
   // Update touch sensor state machine
   touch.update();
   
@@ -203,9 +213,9 @@ void loop() {
   uint8_t motion = mx8650_read(0x02);
   if (motion & 0x80) { 
     int8_t dx = (int8_t)mx8650_read(0x03);
-    
     if (dx != 0) {
       accumulationX += dx;
+      Serial.printf("[Wheel] dx: %d | Accumulator: %d\n", dx, accumulationX);
       
       if (currentMode == MODE_SCROLL) {
         if (accumulationX >= SCROLL_THRESHOLD) {
