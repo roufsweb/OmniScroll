@@ -20,14 +20,18 @@ void TouchController::begin() {
 
 bool TouchController::isTouched() {
     long currentVal = touchRead(_pin);
+    long delta = abs(currentVal - _baseline);
     
     // If the difference is significant, register as touch
-    if (abs(currentVal - _baseline) > _thresholdDelta) {
+    if (delta > _thresholdDelta) {
         return true;
     }
     
-    // Smooth the baseline if untouched (slow drift compensation)
-    _baseline = (_baseline * 15 + currentVal) / 16;
+    // Only smooth the baseline if untouched AND no interference is happening.
+    // The metal wheel causes spikes up to ~300. We only track true slow drift (< 30).
+    if (delta < 30) {
+        _baseline = (_baseline * 15 + currentVal) / 16;
+    }
     return false;
 }
 
