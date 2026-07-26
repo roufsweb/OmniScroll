@@ -32,7 +32,7 @@ USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard Keyboard;
 
-TouchController touch(TOUCH_PIN, 120); // Increased threshold to reduce accidental touches (less sensitive)
+TouchController touch(TOUCH_PIN, 60); // Reverted to 60 (best feeling sensitivity)
 
 enum Mode { MODE_SCROLL, MODE_VOLUME, MODE_TIMELINE };
 Mode currentMode = MODE_SCROLL;
@@ -180,7 +180,7 @@ void loop() {
       long rawTouch = touch.getLastReading();
       long baseline = touch.getBaseline();
       long delta = abs(rawTouch - baseline);
-      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 120)\n", rawTouch, baseline, delta);
+      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 60)\n", rawTouch, baseline, delta);
       lastLogTime = millis();
   }
 
