@@ -32,7 +32,7 @@ USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard Keyboard;
 
-TouchController touch(TOUCH_PIN, 5000); // Threshold of 5000 units (can be tuned)
+TouchController touch(TOUCH_PIN, 60); // Sensitivity matched to stat-screen project
 
 enum Mode { MODE_SCROLL, MODE_VOLUME, MODE_TIMELINE };
 Mode currentMode = MODE_SCROLL;

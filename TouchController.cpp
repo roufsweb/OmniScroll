@@ -5,7 +5,17 @@ TouchController::TouchController(uint8_t pin, uint16_t thresholdDelta)
       _baseline(0), _state(IDLE), _doubleTappedFlag(false) {}
 
 void TouchController::begin() {
-    _baseline = touchRead(_pin);
+    // Wait for touch peripheral to stabilize and average 25 readings
+    long sum = 0;
+    for (int i = 0; i < 5; i++) {
+        touchRead(_pin);
+        delay(10);
+    }
+    for (int i = 0; i < 25; i++) {
+        sum += touchRead(_pin);
+        delay(10);
+    }
+    _baseline = sum / 25;
 }
 
 bool TouchController::isTouched() {
