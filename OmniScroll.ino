@@ -32,7 +32,7 @@ USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard Keyboard;
 
-TouchController touch(TOUCH_PIN, 700); // 700: above natural resting noise (500 max) but catches real touches (1400+)
+TouchController touch(TOUCH_PIN, 550); // Increased sensitivity (lowered threshold from 700 to 550)
 
 enum Mode { MODE_SCROLL, MODE_VOLUME, MODE_TIMELINE };
 Mode currentMode = MODE_SCROLL;
