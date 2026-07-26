@@ -12,6 +12,8 @@ public:
     bool isDoubleTapped();
     bool isTouched();
     void reset();
+    void setThreshold(long threshold) { _thresholdDelta = threshold; }
+    long getThreshold() const { return _thresholdDelta; }
     long getBaseline() const { return _baseline; }
     long getLastReading() const { return touchRead(_pin); }
 

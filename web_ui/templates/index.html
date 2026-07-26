@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniScroll Live Tuner</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            font-weight: 800;
+            background: -webkit-linear-gradient(45deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+        }
+        .container {
+            display: flex;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .panel {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            flex: 1;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        .controls {
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        input[type=range] {
+            flex: 1;
+            accent-color: #38bdf8;
+        }
+        input[type=number] {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            width: 80px;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+        }
+        button {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #7dd3fc;
+            transform: translateY(-2px);
+        }
+        #log {
+            height: 400px;
+            overflow-y: auto;
+            background: #020617;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #10b981;
+        }
+        .log-entry { margin-bottom: 4px; }
+        .log-highlight { color: #f43f5e; font-weight: bold; }
+        .log-cmd { color: #38bdf8; }
+    </style>
+</head>
+<body>
+    <h1>OmniScroll Live Tuner</h1>
+    
+    <div class="container">
+        <div class="panel">
+            <h2 style="margin-top: 0;">Telemetry</h2>
+            <div class="chart-container">
+                <canvas id="telemetryChart"></canvas>
+            </div>
+            
+            <div class="controls">
+                <label>Threshold:</label>
+                <input type="range" id="threshSlider" min="100" max="3000" step="50" value="700">
+                <input type="number" id="threshInput" value="700">
+                <button onclick="updateThreshold()">Set</button>
+            </div>
+        </div>
+        
+        <div class="panel" style="flex: 0.5;">
+            <h2 style="margin-top: 0;">Event Log</h2>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const ctx = document.getElementById('telemetryChart').getContext('2d');
+        
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(50).fill(''),
+                datasets: [
+                    {
+                        label: 'Delta (Noise/Tap)',
+                        data: Array(50).fill(0),
+                        borderColor: '#818cf8',
+                        backgroundColor: 'rgba(129, 140, 248, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Threshold',
+                        data: Array(50).fill(700),
+                        borderColor: '#f43f5e',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        max: 3000,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: { 
+                        display: false 
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#f8fafc' } }
+                }
+            }
+        });
+
+        const slider = document.getElementById('threshSlider');
+        const input = document.getElementById('threshInput');
+
+        slider.oninput = function() {
+            input.value = this.value;
+        }
+
+        input.onchange = function() {
+            slider.value = this.value;
+        }
+
+        function updateThreshold() {
+            const val = parseInt(input.value);
+            socket.emit('set_threshold', { value: val });
+        }
+
+        function addLog(msg, type='normal') {
+            const log = document.getElementById('log');
+            const div = document.createElement('div');
+            div.className = 'log-entry ' + (type === 'highlight' ? 'log-highlight' : type === 'cmd' ? 'log-cmd' : '');
+            
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
+            div.innerText = `[${time}] ${msg}`;
+            
+            log.appendChild(div);
+            if(log.childNodes.length > 100) log.removeChild(log.firstChild);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        socket.on('telemetry', function(data) {
+            // Update chart
+            chart.data.datasets[0].data.push(data.delta);
+            chart.data.datasets[0].data.shift();
+            
+            chart.data.datasets[1].data.push(data.threshold);
+            chart.data.datasets[1].data.shift();
+            
+            chart.update();
+
+            // Update UI to match device state
+            if (parseInt(input.value) !== data.threshold && document.activeElement !== input && document.activeElement !== slider) {
+                slider.value = data.threshold;
+                input.value = data.threshold;
+            }
+        });
+
+        socket.on('log', function(data) {
+            let type = 'normal';
+            if (data.msg.includes('Double Tap')) type = 'highlight';
+            else if (data.msg.includes('[Command]')) type = 'cmd';
+            else if (data.msg.includes('Switched Mode')) type = 'highlight';
+            
+            addLog(data.msg, type);
+        });
+
+        addLog('Connected to Web UI.', 'cmd');
+    </script>
+</body>
+</html>

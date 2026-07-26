@@ -181,7 +181,7 @@ void loop() {
       long rawTouch = touch.getLastReading();
       long baseline = touch.getBaseline();
       long delta = abs(rawTouch - baseline);
-      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 700)\n", rawTouch, baseline, delta);
+      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: %ld)\n", rawTouch, baseline, delta, touch.getThreshold());
       lastLogTime = millis();
   }
 
@@ -264,6 +264,19 @@ void loop() {
         }
       }
     }
+  }
+  
+  // Handle incoming serial commands for live tuning
+  if (Serial.available() > 0) {
+      String cmd = Serial.readStringUntil('\n');
+      cmd.trim();
+      if (cmd.startsWith("T=")) {
+          long newThreshold = cmd.substring(2).toInt();
+          if (newThreshold > 0) {
+              touch.setThreshold(newThreshold);
+              Serial.printf("[Command] Threshold updated to: %ld\n", newThreshold);
+          }
+      }
   }
   
   delay(5); 
