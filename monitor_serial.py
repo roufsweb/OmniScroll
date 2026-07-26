@@ -26,7 +26,7 @@ print("\nRecording...")
 
 start_time = time.time()
 with open("serial_log.txt", "w") as f:
-    while time.time() - start_time < 60:
+    while time.time() - start_time < 20:
         try:
             if ser.in_waiting:
                 line = ser.readline().decode('utf-8', errors='ignore')

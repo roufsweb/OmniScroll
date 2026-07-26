@@ -11,6 +11,7 @@ public:
     void update();
     bool isDoubleTapped();
     bool isTouched();
+    void reset();
     long getBaseline() const { return _baseline; }
     long getLastReading() const { return touchRead(_pin); }
 

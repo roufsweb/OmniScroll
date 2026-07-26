@@ -32,7 +32,7 @@ USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard Keyboard;
 
-TouchController touch(TOUCH_PIN, 600); // 600 rejects wheel noise (max 312) but easily catches touches (1500+)
+TouchController touch(TOUCH_PIN, 1100); // 1100 rejects max wheel noise (854) but catches all touches (1394+)
 
 enum Mode { MODE_SCROLL, MODE_VOLUME, MODE_TIMELINE };
 Mode currentMode = MODE_SCROLL;
@@ -44,6 +44,7 @@ const unsigned long debounceDelay = 50;
 
 // Accumulator for smooth, non-stuttery movement
 int accumulationX = 0;
+unsigned long lastScrollTime = 0;
 
 // Thresholds for how much optical movement equals 1 "tick"
 const int SCROLL_THRESHOLD = 10;
@@ -180,7 +181,7 @@ void loop() {
       long rawTouch = touch.getLastReading();
       long baseline = touch.getBaseline();
       long delta = abs(rawTouch - baseline);
-      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 600)\n", rawTouch, baseline, delta);
+      Serial.printf("[Telemetry] Touch Raw: %ld | Baseline: %ld | Delta: %ld (Threshold: 1100)\n", rawTouch, baseline, delta);
       lastLogTime = millis();
   }
 
@@ -189,8 +190,13 @@ void loop() {
   
   // Handle double tap
   if (touch.isDoubleTapped()) {
-      Serial.println("Double Tap Detected!");
-      cycleMode();
+      // Only switch modes if the wheel hasn't been moving for the last 300ms
+      if (millis() - lastScrollTime > 300) {
+          Serial.println("Double Tap Detected!");
+          cycleMode();
+      } else {
+          Serial.println("Ignored double tap (repositioning finger).");
+      }
   }
   
   // Handle physical button fallback
@@ -215,6 +221,8 @@ void loop() {
     int8_t dx = (int8_t)mx8650_read(0x03);
     if (dx != 0) {
       accumulationX += dx;
+      lastScrollTime = millis();
+      touch.reset(); // Force reset touch state to ignore finger bouncing
       Serial.printf("[Wheel] dx: %d | Accumulator: %d\n", dx, accumulationX);
       
       if (currentMode == MODE_SCROLL) {

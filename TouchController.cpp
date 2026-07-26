@@ -35,6 +35,11 @@ bool TouchController::isTouched() {
     return false;
 }
 
+void TouchController::reset() {
+    _state = IDLE;
+    _doubleTappedFlag = false;
+}
+
 void TouchController::update() {
     _doubleTappedFlag = false; 
     
