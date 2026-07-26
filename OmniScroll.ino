@@ -6,6 +6,7 @@
 #include <USBHIDMouse.h>
 #include <USBHIDConsumerControl.h>
 #include <USBHIDKeyboard.h>
+#include "TouchController.h"
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
@@ -25,10 +26,13 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define SCLK_PIN 11
 #define SDIO_PIN 12
 #define BUTTON_PIN 0
+#define TOUCH_PIN 7
 
 USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard Keyboard;
+
+TouchController touch(TOUCH_PIN, 5000); // Threshold of 5000 units (can be tuned)
 
 enum Mode { MODE_SCROLL, MODE_VOLUME, MODE_TIMELINE };
 Mode currentMode = MODE_SCROLL;
@@ -93,6 +97,23 @@ void updateDisplay(const char* modeName) {
   display.display();
 }
 
+void cycleMode() {
+    if (currentMode == MODE_SCROLL) {
+        currentMode = MODE_VOLUME;
+        Serial.println("Switched Mode to: VOLUME");
+        updateDisplay("VOLUME");
+    } else if (currentMode == MODE_VOLUME) {
+        currentMode = MODE_TIMELINE;
+        Serial.println("Switched Mode to: TIMELINE");
+        updateDisplay("TIMELINE");
+    } else {
+        currentMode = MODE_SCROLL;
+        Serial.println("Switched Mode to: SCROLL");
+        updateDisplay("SCROLL");
+    }
+    accumulationX = 0; 
+}
+
 void setup() {
   // Initialize USB HID before starting the USB stack
   Mouse.begin();
@@ -142,6 +163,9 @@ void setup() {
   pinMode(SCLK_PIN, OUTPUT);
   digitalWrite(SCLK_PIN, HIGH);
   
+  touch.begin();
+  Serial.printf("Touch Sensor Base Reading: %ld\n", touch.getBaseline());
+  
   delay(1000); 
   uint8_t pid = mx8650_read(0x00); 
   Serial.printf("OmniScroll HID Ready! PID: 0x%02X\n", pid);
@@ -150,35 +174,32 @@ void setup() {
 }
 
 void loop() {
+  // Update touch sensor state machine
+  touch.update();
+  
+  // Handle double tap
+  if (touch.isDoubleTapped()) {
+      Serial.println("Double Tap Detected!");
+      cycleMode();
+  }
+  
+  // Handle physical button fallback
   bool reading = digitalRead(BUTTON_PIN);
   if (reading != lastButtonState) {
     lastDebounceTime = millis();
   }
-  
   if ((millis() - lastDebounceTime) > debounceDelay) {
     if (reading != buttonState) {
       buttonState = reading;
       if (buttonState == LOW) { 
-        // Cycle through the 3 modes
-        if (currentMode == MODE_SCROLL) {
-            currentMode = MODE_VOLUME;
-            Serial.println("Switched Mode to: VOLUME");
-            updateDisplay("VOLUME");
-        } else if (currentMode == MODE_VOLUME) {
-            currentMode = MODE_TIMELINE;
-            Serial.println("Switched Mode to: TIMELINE");
-            updateDisplay("TIMELINE");
-        } else {
-            currentMode = MODE_SCROLL;
-            Serial.println("Switched Mode to: SCROLL");
-            updateDisplay("SCROLL");
-        }
-        accumulationX = 0; 
+        Serial.println("Physical Button Pressed!");
+        cycleMode();
       }
     }
   }
   lastButtonState = reading;
 
+  // Process wheel motion
   uint8_t motion = mx8650_read(0x02);
   if (motion & 0x80) { 
     int8_t dx = (int8_t)mx8650_read(0x03);
