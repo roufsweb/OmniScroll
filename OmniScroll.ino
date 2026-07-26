@@ -185,25 +185,22 @@ void loop() {
       lastLogTime = millis();
   }
 
-  // SCROLL LOCKOUT: reset touch state machine during scroll AND for 400ms after.
-  // This prevents post-spin elevated sensor state from being mistaken as a first tap.
-  bool inLockout = (millis() - lastScrollTime <= 400);
-  if (inLockout) {
-      touch.reset();
-  }
-
-  // Update touch sensor state machine (only runs when not in lockout)
-  touch.update();
+  // SCROLL LOCKOUT: Ignore all touches for 200ms after spinning stops
+  // This prevents finger bouncing from registering as taps
+  bool inLockout = (millis() - lastScrollTime <= 200);
   
-  // Handle double tap - also gate on lockout to prevent any edge case
-  if (touch.isDoubleTapped() && !inLockout) {
-      // Only switch modes if the wheel hasn't been moving for the last 300ms
-      if (millis() - lastScrollTime > 300) {
-          Serial.println("Double Tap Detected!");
-          cycleMode();
-      } else {
-          Serial.println("Ignored double tap (repositioning finger).");
-      }
+  if (inLockout) {
+      touch.reset(); // Keep state machine in IDLE
+      // We explicitly DO NOT call touch.update() here, which freezes the baseline 
+      // during the spin. This perfectly rejects all wheel noise!
+  } else {
+      touch.update(); // Only run state machine and track baseline when stationary
+  }
+  
+  // Handle double tap
+  if (touch.isDoubleTapped()) {
+      Serial.println("Double Tap Detected!");
+      cycleMode();
   }
   
   // Handle physical button fallback
