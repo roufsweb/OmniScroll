@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Arduino Build files
+build/
+*.elf
+*.bin
+*.hex
+*.part
