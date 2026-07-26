@@ -32,7 +32,7 @@ USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard Keyboard;
 
-TouchController touch(TOUCH_PIN, 60); // Sensitivity matched to stat-screen project
+TouchController touch(TOUCH_PIN, 120); // Increased threshold to reduce accidental touches (less sensitive)
 
 enum Mode { MODE_SCROLL, MODE_VOLUME, MODE_TIMELINE };
 Mode currentMode = MODE_SCROLL;
