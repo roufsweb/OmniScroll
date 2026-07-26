@@ -229,10 +229,12 @@ void loop() {
       else if (currentMode == MODE_VOLUME) {
         if (accumulationX >= VOLUME_THRESHOLD) {
           ConsumerControl.press(CONSUMER_CONTROL_VOLUME_DECREMENT); 
+          delay(2);
           ConsumerControl.release();
           accumulationX -= VOLUME_THRESHOLD;
         } else if (accumulationX <= -VOLUME_THRESHOLD) {
           ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
+          delay(2);
           ConsumerControl.release();
           accumulationX += VOLUME_THRESHOLD;
         }
@@ -240,10 +242,12 @@ void loop() {
       else if (currentMode == MODE_TIMELINE) {
         if (accumulationX >= TIMELINE_THRESHOLD) {
           Keyboard.press(KEY_LEFT_ARROW); 
+          delay(2);
           Keyboard.release(KEY_LEFT_ARROW);
           accumulationX -= TIMELINE_THRESHOLD;
         } else if (accumulationX <= -TIMELINE_THRESHOLD) {
           Keyboard.press(KEY_RIGHT_ARROW);
+          delay(2);
           Keyboard.release(KEY_RIGHT_ARROW);
           accumulationX += TIMELINE_THRESHOLD;
         }
