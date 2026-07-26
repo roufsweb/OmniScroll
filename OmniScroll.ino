@@ -15,6 +15,10 @@
 #define SDA_PIN 35
 #define SCL_PIN 33
 
+// TinyUSB Serial (since Hardware CDC is disabled for HID)
+USBCDC USBSerial;
+#define Serial USBSerial
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Sensor & Button Pins
@@ -90,6 +94,13 @@ void updateDisplay(const char* modeName) {
 }
 
 void setup() {
+  // Initialize USB HID before starting the USB stack
+  Mouse.begin();
+  ConsumerControl.begin();
+  Keyboard.begin();
+  USBSerial.begin();
+  USB.begin(); // Start the TinyUSB stack
+  
   Serial.begin(115200);
   delay(2000); // Wait for Serial to settle
   
@@ -130,12 +141,6 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(SCLK_PIN, OUTPUT);
   digitalWrite(SCLK_PIN, HIGH);
-  
-  // Initialize USB HID
-  Mouse.begin();
-  ConsumerControl.begin();
-  Keyboard.begin();
-  USB.begin(); // Start the TinyUSB stack
   
   delay(1000); 
   uint8_t pid = mx8650_read(0x00); 

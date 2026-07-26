@@ -7,8 +7,8 @@ import serial.tools.list_ports
 
 ARDUINO_CLI = r"C:\Program Files\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe"
 
-# FQBN for Lolin ESP32-S2 Mini with Native USB CDC enabled for serial output
-FQBN = "esp32:esp32:lolin_s2_mini:CDCOnBoot=default,PartitionScheme=huge_app,EraseFlash=all"
+# FQBN for Lolin ESP32-S2 Mini with Hardware CDC disabled so TinyUSB HID can work
+FQBN = "esp32:esp32:lolin_s2_mini:CDCOnBoot=dis_cdc,PartitionScheme=huge_app,EraseFlash=all"
 SKETCH_PATH = r"e:\rouf\hardware-project\OmniScroll"
 TARGET_PORT_OVERRIDE = None
 
