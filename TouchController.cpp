@@ -1,65 +1,77 @@
 #include "TouchController.h"
 
-TouchController::TouchController(uint8_t pin, long thresholdDelta) 
-    : _pin(pin), _thresholdDelta(thresholdDelta), 
-      _state(IDLE), _doubleTappedFlag(false) {}
-
 static void touchDummyISR() {}
 
+TouchController::TouchController(uint8_t pin, long thresholdDelta)
+    : _pin(pin), _thresholdDelta(thresholdDelta),
+      _state(IDLE), _doubleTappedFlag(false), _longPressFlag(false),
+      _lastTapTime(0), _pressStartTime(0) {}
+
 void TouchController::begin() {
-    // Enable Native ESP32-S2 Touch Hardware
-    // The hardware handles baseline tracking, EMA filtering, and hysteresis internally!
     touchAttachInterrupt(_pin, touchDummyISR, _thresholdDelta);
 }
 
 bool TouchController::isTouched() {
-    // Read the native hardware state (true if pressed, false if released)
     return touchInterruptGetLastStatus(_pin);
 }
 
 void TouchController::reset() {
-    _state = IDLE;
+    _state           = IDLE;
     _doubleTappedFlag = false;
+    _longPressFlag   = false;
 }
 
 void TouchController::update() {
-    _doubleTappedFlag = false; 
-    
-    bool currentTouch = isTouched();
+    _doubleTappedFlag = false;
+    _longPressFlag    = false;
+
+    bool touched = isTouched();
     unsigned long now = millis();
-    
+
     switch (_state) {
+
         case IDLE:
-            if (currentTouch) {
-                _lastTapTime = now;
+            if (touched) {
+                _pressStartTime = now;
+                _lastTapTime    = now;
                 _state = WAIT_RELEASE_1;
             }
             break;
-            
+
         case WAIT_RELEASE_1:
-            if (!currentTouch && (now - _lastTapTime > DEBOUNCE_TIME)) {
+            if (!touched && (now - _lastTapTime > DEBOUNCE_TIME)) {
+                // Finger lifted — start waiting for a second tap
                 _lastTapTime = now;
                 _state = WAIT_TAP_2;
-            } else if (currentTouch && (now - _lastTapTime > DOUBLE_TAP_MAX_DELAY)) {
-                // Holding it too long
-                _state = IDLE; 
+            } else if (touched && (now - _pressStartTime >= LONG_PRESS_TIME)) {
+                // Still held long enough — fire long press
+                _longPressFlag = true;
+                _state = HELD;
             }
             break;
-            
+
         case WAIT_TAP_2:
-            if (currentTouch) {
+            if (touched) {
                 _lastTapTime = now;
                 _state = WAIT_RELEASE_2;
             } else if (now - _lastTapTime >= DOUBLE_TAP_MAX_DELAY) {
-                _state = IDLE; 
+                // Second tap window expired — treat as single tap (no action assigned yet)
+                _state = IDLE;
             }
             break;
-            
+
         case WAIT_RELEASE_2:
-            if (!currentTouch && (now - _lastTapTime > DEBOUNCE_TIME)) {
+            if (!touched && (now - _lastTapTime > DEBOUNCE_TIME)) {
                 _doubleTappedFlag = true;
                 _state = IDLE;
-            } else if (currentTouch && (now - _lastTapTime > DOUBLE_TAP_MAX_DELAY)) {
+            } else if (touched && (now - _lastTapTime > DOUBLE_TAP_MAX_DELAY)) {
+                _state = IDLE;
+            }
+            break;
+
+        case HELD:
+            // Wait for release before returning to IDLE
+            if (!touched) {
                 _state = IDLE;
             }
             break;
@@ -68,4 +80,8 @@ void TouchController::update() {
 
 bool TouchController::isDoubleTapped() {
     return _doubleTappedFlag;
+}
+
+bool TouchController::isLongPressed() {
+    return _longPressFlag;
 }

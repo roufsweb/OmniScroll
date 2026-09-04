@@ -4,603 +4,793 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OmniScroll Core</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="description" content="Browser-based configurator for OmniScroll. No app required — configure over USB.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-deep: #0d0d0f;
-            --bg-card: #161619;
-            --bg-elevated: #212124;
-            --text-main: #f0f0f0;
-            --text-muted: #888888;
-            --accent: #00d4ff;
-            --accent-hover: #00b0d4;
-            --border: rgba(255, 255, 255, 0.05);
-            --card-radius: 12px;
+            --bg:       #0c0c0e;
+            --surface:  #141417;
+            --raised:   #1e1e22;
+            --border:   rgba(255,255,255,0.06);
+            --text:     #ebebeb;
+            --muted:    #6b6b76;
+            --accent:   #00d4ff;
+            --radius:   10px;
         }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-deep);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* --- Header / Navigation --- */
+        /* ---- Header ---- */
         header {
-            background-color: rgba(22, 22, 25, 0.8);
-            backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 200;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 28px;
+            height: 56px;
+            background: rgba(20, 20, 23, 0.85);
+            backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
-            padding: 16px 32px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
         }
 
-        .logo {
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
+        .logo { font-size: 15px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+        .logo em { color: var(--accent); font-style: normal; }
 
-        .logo span {
-            color: var(--accent);
+        .conn-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--raised);
+            color: var(--text);
+            font: 600 13px 'Inter', sans-serif;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
         }
-
-        .status-pill {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-muted);
-            background: var(--bg-elevated);
-            padding: 8px 16px;
-            border-radius: 20px;
-            transition: all 0.3s ease;
-        }
+        .conn-btn:hover { border-color: var(--accent); }
+        .conn-btn.connected { border-color: #22c55e; background: rgba(34,197,94,0.08); color: #22c55e; }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #444;
-            box-shadow: 0 0 0 rgba(0,0,0,0);
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--muted);
+            transition: background 0.3s;
+        }
+        .conn-btn.connected .status-dot { background: #22c55e; box-shadow: 0 0 6px #22c55e80; }
+
+        /* ---- Mode bar ---- */
+        #modebar {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 28px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
         }
 
-        .status-pill.connected {
-            color: var(--text-main);
+        .modebar-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .mode-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px; font-weight: 700; letter-spacing: 1px;
+            background: var(--raised);
             border: 1px solid var(--border);
+            transition: background 0.3s;
         }
 
-        .status-pill.connected .status-dot {
-            background-color: #00ff88;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-        }
+        .mode-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 
-        /* --- Main Layout --- */
+        /* ---- Main grid ---- */
         main {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 0 20px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            gap: 20px;
+            max-width: 960px;
+            margin: 28px auto;
+            padding: 0 20px 60px;
         }
 
         .card {
-            background-color: var(--bg-card);
-            border-radius: var(--card-radius);
+            background: var(--surface);
             border: 1px solid var(--border);
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: var(--radius);
+            padding: 22px;
         }
 
-        .card.full-width {
-            grid-column: 1 / -1;
-        }
+        .card.full { grid-column: 1 / -1; }
 
         .card-title {
-            font-size: 16px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            margin-top: 0;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.8px; color: var(--muted);
+            margin-bottom: 20px;
             padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
         }
 
-        /* --- Controls --- */
-        .control-group {
-            margin-bottom: 24px;
+        /* ---- Global sliders ---- */
+        .row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
         }
+        .row:last-child { border-bottom: none; }
 
-        .control-group:last-child {
-            margin-bottom: 0;
-        }
-
-        .control-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .control-label {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .control-value {
-            font-family: monospace;
-            font-size: 14px;
-            color: var(--accent);
-            background: var(--bg-elevated);
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
+        .row-label { font-size: 13px; font-weight: 500; }
+        .row-val   { font-size: 12px; font-family: monospace; color: var(--accent); background: var(--raised); padding: 3px 8px; border-radius: 4px; }
 
         input[type=range] {
             -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
+            width: 100%; height: 4px; margin: 10px 0;
+            background: var(--raised); border-radius: 2px;
         }
-        
-        input[type=range]:focus {
-            outline: none;
-        }
-
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: var(--bg-elevated);
-            border-radius: 3px;
-        }
-
         input[type=range]::-webkit-slider-thumb {
-            height: 16px;
-            width: 16px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
             -webkit-appearance: none;
-            margin-top: -5px;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--accent); cursor: pointer;
+            box-shadow: 0 0 8px rgba(0,212,255,0.4);
             transition: transform 0.1s;
         }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 
-        input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+        .cpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+
+        /* ---- Buttons ---- */
+        .btn {
+            padding: 9px 16px; border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--raised);
+            color: var(--text); font: 600 13px 'Inter', sans-serif;
+            cursor: pointer; transition: all 0.15s;
+            text-align: center;
         }
+        .btn:hover { border-color: var(--accent); background: rgba(0,212,255,0.05); }
+        .btn.active { border-color: var(--accent); background: rgba(0,212,255,0.12); color: var(--accent); }
+        .btn.primary { background: var(--accent); color: #000; border-color: transparent; font-weight: 700; }
+        .btn.primary:hover { background: #00b8d9; }
+        .btn.full { width: 100%; margin-top: 14px; }
 
-        /* --- Toggles and Color Pickers --- */
-        .flex-row {
-            display: flex;
-            justify-content: space-between;
+        /* ---- Toggle ---- */
+        .toggle-switch {
+            position: relative; width: 36px; height: 20px; cursor: pointer;
+        }
+        .toggle-switch input { display: none; }
+        .toggle-track {
+            position: absolute; inset: 0;
+            background: var(--raised); border-radius: 10px;
+            border: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+        .toggle-thumb {
+            position: absolute; top: 3px; left: 3px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--muted);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .toggle-switch input:checked ~ .toggle-track { background: rgba(0,212,255,0.2); border-color: var(--accent); }
+        .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); background: var(--accent); }
+
+        /* ---- Mode rows ---- */
+        .mode-row {
+            display: grid;
+            grid-template-columns: 1fr 90px auto auto auto;
             align-items: center;
-            padding: 12px 0;
+            gap: 12px;
+            padding: 10px 0;
             border-bottom: 1px solid var(--border);
         }
-        
-        .flex-row:last-child {
-            border-bottom: none;
+        .mode-row:last-child { border-bottom: none; }
+        .mode-row.disabled { opacity: 0.35; }
+        .mode-name { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+        .mode-sub  { font-size: 11px; color: var(--muted); }
+
+        .hp-select {
+            background: var(--raised); border: 1px solid var(--border);
+            color: var(--text); font: 500 12px 'Inter'; border-radius: 5px;
+            padding: 5px 8px; width: 90px; cursor: pointer;
         }
 
-        input[type="color"] {
-            -webkit-appearance: none;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            padding: 0;
-            cursor: pointer;
-            background: transparent;
+        /* ---- Color swatch ---- */
+        .color-swatch {
+            width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; border: 2px solid transparent;
+            transition: border-color 0.2s, transform 0.15s;
+            box-shadow: 0 0 0 2px var(--raised), 0 0 0 3px var(--border);
         }
+        .color-swatch:hover { transform: scale(1.15); border-color: var(--accent); }
 
-        input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-
-        input[type="color"]::-webkit-color-swatch {
-            border: none;
-            border-radius: 50%;
-            box-shadow: inset 0 0 0 2px var(--bg-card), 0 0 5px rgba(0,0,0,0.5);
-        }
-
-        /* --- Buttons --- */
-        .btn {
-            background-color: var(--accent);
-            color: #000;
-            border: none;
-            border-radius: 6px;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn.outline {
-            background-color: transparent;
-            color: var(--text-main);
-            border: 1px solid var(--border);
-        }
-
-        .btn.outline:hover {
-            border-color: var(--accent);
-            background-color: rgba(0, 212, 255, 0.05);
-        }
-
-        .btn.full {
-            width: 100%;
-            margin-top: 16px;
-        }
-
-        .preset-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            margin-top: 16px;
-        }
-
-        /* --- Live Status --- */
-        .live-stat {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .live-stat-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        .live-stat-value {
-            font-size: 24px;
-            font-weight: 800;
-            font-family: monospace;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: var(--bg-elevated);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            width: 0%;
-            transition: width 0.1s linear;
-        }
-        
-        .mode-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: #333;
-            color: #fff;
-        }
-
-        /* Connect Overlay */
-        #connectOverlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(13, 13, 15, 0.95);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        #connectOverlay.hidden {
+        /* ---- Color Wheel Modal ---- */
+        #colorModal {
             display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 500;
+            justify-content: center; align-items: center;
         }
+        #colorModal.open { display: flex; }
 
-        .connect-box {
-            background: var(--bg-card);
-            padding: 40px;
-            border-radius: var(--card-radius);
+        .color-modal-box {
+            background: var(--surface);
             border: 1px solid var(--border);
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            max-width: 400px;
+            border-radius: 12px;
+            padding: 24px;
+            width: 300px;
+            display: flex; flex-direction: column; gap: 16px;
         }
 
-        .connect-box h2 {
-            margin-top: 0;
-            font-weight: 600;
+        .color-modal-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        #colorWheel { border-radius: 50%; cursor: crosshair; display: block; margin: 0 auto; }
+
+        .bri-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+        .bri-row input { flex: 1; }
+
+        .color-preview-row { display: flex; align-items: center; gap: 12px; }
+        .color-preview { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
+        .hex-input {
+            flex: 1; background: var(--raised); border: 1px solid var(--border);
+            color: var(--text); font: 500 14px monospace; border-radius: 5px;
+            padding: 7px 10px;
         }
-        
-        .connect-box p {
-            color: var(--text-muted);
-            margin-bottom: 30px;
-            line-height: 1.5;
-        }
+        .hex-input:focus { outline: none; border-color: var(--accent); }
+
+        .modal-actions { display: flex; gap: 8px; }
+        .modal-actions .btn { flex: 1; }
     </style>
 </head>
 <body>
 
-    <!-- Connection Overlay -->
-    <div id="connectOverlay">
-        <div class="connect-box">
-            <h2>Device Disconnected</h2>
-            <p>Connect your OmniScroll via USB and select the COM port to begin configuration.</p>
-            <button class="btn" id="btnConnectBig">Connect OmniScroll</button>
+<!-- Header -->
+<header>
+    <div class="logo">Omni<em>Scroll</em></div>
+    <button class="conn-btn" id="connBtn">
+        <div class="status-dot"></div>
+        <span id="connText">Connect Device</span>
+    </button>
+</header>
+
+<!-- Mode Badge Bar -->
+<div id="modebar">
+    <span class="modebar-label">Active Mode</span>
+    <div class="mode-badge" id="modeBadge">
+        <div class="mode-badge-dot" id="modeBadgeDot"></div>
+        <span id="modeBadgeName">—</span>
+    </div>
+</div>
+
+<!-- Main Content -->
+<main>
+
+    <!-- Haptic Engine -->
+    <div class="card">
+        <div class="card-title">Haptic Engine</div>
+
+        <div style="display:grid; grid-template-columns: repeat(5,1fr); gap:6px;" id="profileGrid">
+            <!-- filled by JS -->
+        </div>
+
+        <button class="btn full" id="testHapticBtn" style="margin-top:16px;">Fire Test Click</button>
+    </div>
+
+    <!-- Global Settings -->
+    <div class="card">
+        <div class="card-title">Global Settings</div>
+
+        <div class="row">
+            <span class="row-label">LED Brightness</span>
+            <span class="row-val" id="bri_val">100%</span>
+        </div>
+        <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()">
+
+        <div class="row" style="margin-top:8px;">
+            <span class="row-label">Idle Dim Timeout</span>
+            <span class="row-val" id="idle_val">30s</span>
+        </div>
+        <input type="range" id="idle" min="0" max="120" step="5" value="30" oninput="onIdleInput()">
+
+        <div class="row" style="margin-top:8px;">
+            <span class="row-label">Touch Sensitivity</span>
+            <span class="row-val" id="thr_val">800</span>
+        </div>
+        <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="onThrInput()">
+
+        <div class="row" style="margin-top: 16px;">
+            <div>
+                <div class="row-label">Sensor Resolution (CPI)</div>
+                <div class="mode-sub" style="margin-top:3px;">Higher = faster rotation response</div>
+            </div>
+        </div>
+        <div class="cpi-grid" id="cpiGrid">
+            <button class="btn" onclick="setCPI(0)">400</button>
+            <button class="btn active" onclick="setCPI(1)">800</button>
+            <button class="btn" onclick="setCPI(2)">1200</button>
+            <button class="btn" onclick="setCPI(3)">1600</button>
         </div>
     </div>
 
-    <!-- Main Header -->
-    <header>
-        <div class="logo">Omni<span>Scroll</span></div>
-        <div class="status-pill" id="statusPill">
-            <div class="status-dot"></div>
-            <span id="statusText">Disconnected</span>
+    <!-- Mode Configuration -->
+    <div class="card full">
+        <div class="card-title">Mode Configuration</div>
+        <div id="modeList"><!-- filled by JS --></div>
+    </div>
+
+</main>
+
+<!-- Color Wheel Modal -->
+<div id="colorModal">
+    <div class="color-modal-box">
+        <div class="color-modal-title" id="colorModalTitle">Select Color</div>
+        <canvas id="colorWheel" width="240" height="240"></canvas>
+        <div class="bri-row">
+            <span>Dark</span>
+            <input type="range" id="briWheel" min="0" max="100" value="100" oninput="onWheelBri()">
+            <span>Bright</span>
         </div>
-    </header>
-
-    <!-- Main Layout -->
-    <main>
-        <!-- Status Card -->
-        <div class="card full-width" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: center;">
-            <div class="live-stat" style="margin: 0;">
-                <div class="live-stat-header"><span>Current Mode</span></div>
-                <div class="mode-badge" id="dash_mode">UNKNOWN</div>
-            </div>
-            <div class="live-stat" style="margin: 0;">
-                <div class="live-stat-header"><span>Touch Delta</span><span id="dash_prog_val">0 / 800</span></div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="dash_prog_fill"></div>
-                </div>
-            </div>
-            <div class="live-stat" style="margin: 0;">
-                <div class="live-stat-header"><span>Rotation Accumulator</span></div>
-                <div class="live-stat-value" id="dash_acc">0</div>
-            </div>
+        <div class="color-preview-row">
+            <div class="color-preview" id="colorPreview"></div>
+            <input class="hex-input" type="text" id="hexInput" maxlength="7" placeholder="#0000ff" oninput="onHexInput()">
         </div>
-
-        <!-- Haptics Card -->
-        <div class="card">
-            <h2 class="card-title">Haptic Engine</h2>
-            
-            <div class="control-group">
-                <div class="control-header">
-                    <span class="control-label">Frequency (Pitch)</span>
-                    <span class="control-value"><span id="freq_val">200</span> Hz</span>
-                </div>
-                <input type="range" id="freq" min="50" max="500" value="200" oninput="updateUI()" onchange="sendSettings()">
-            </div>
-            
-            <div class="control-group">
-                <div class="control-header">
-                    <span class="control-label">Duration (Punch)</span>
-                    <span class="control-value"><span id="dur_val">30</span> ms</span>
-                </div>
-                <input type="range" id="dur" min="5" max="100" value="30" oninput="updateUI()" onchange="sendSettings()">
-            </div>
-            
-            <div class="preset-grid">
-                <button class="btn outline" onclick="setPreset(180, 20)">Crisp</button>
-                <button class="btn outline" onclick="setPreset(250, 40)">Thud</button>
-                <button class="btn outline" onclick="setPreset(120, 15)">Light</button>
-            </div>
-
-            <div class="flex-row" style="margin-top: 16px; padding-top: 24px;">
-                <span class="control-label">Enable Motor</span>
-                <input type="checkbox" id="haptics_en" checked onchange="sendSettings()" style="width: 20px; height: 20px; accent-color: var(--accent);">
-            </div>
-            
-            <button class="btn full outline" onclick="testHaptic()" style="margin-top: 24px;">Fire Test Click</button>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeColorModal()">Cancel</button>
+            <button class="btn primary" onclick="confirmColor()">Apply</button>
         </div>
-
-        <!-- System Card -->
-        <div class="card">
-            <h2 class="card-title">Lighting & Sensors</h2>
-            
-            <div class="control-group">
-                <div class="control-header">
-                    <span class="control-label">Touch Sensitivity Threshold</span>
-                    <span class="control-value"><span id="thr_val">800</span></span>
-                </div>
-                <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="updateUI()" onchange="sendSettings()">
-                <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Lower = more sensitive. Ensure Touch Delta stays below this when not touching.</div>
-            </div>
-
-            <div style="margin-top: 32px;"></div>
-            <h2 class="card-title" style="margin-bottom: 12px; border: none;">Mode Colors</h2>
-            
-            <div class="flex-row">
-                <span class="control-label">Scroll Mode</span>
-                <input type="color" id="col_s" value="#0000ff" oninput="sendSettings()">
-            </div>
-            <div class="flex-row">
-                <span class="control-label">Volume Mode</span>
-                <input type="color" id="col_v" value="#00ff00" oninput="sendSettings()">
-            </div>
-            <div class="flex-row">
-                <span class="control-label">Timeline Mode</span>
-                <input type="color" id="col_t" value="#ff0080" oninput="sendSettings()">
-            </div>
-        </div>
-    </main>
+    </div>
+</div>
 
 <script>
-    let port;
-    let writer;
-    let reader;
-    let connected = false;
-    let statusInterval;
+// =====================================================
+// State
+// =====================================================
+let port, writer, reader, connected = false;
+let statusInterval;
 
-    function updateUI() {
-        document.getElementById('freq_val').innerText = document.getElementById('freq').value;
-        document.getElementById('dur_val').innerText = document.getElementById('dur').value;
-        document.getElementById('thr_val').innerText = document.getElementById('thr').value;
+const PROFILES = ["Click", "Thud", "Tick", "Soft", "Off"];
+
+const MODE_DESCRIPTIONS = {
+    "SCROLL":     "Vertical page scroll",
+    "VOLUME":     "System volume control",
+    "TIMELINE":   "Frame-by-frame arrow keys",
+    "ZOOM":       "Ctrl+Scroll — universal zoom",
+    "H_SCROLL":   "Horizontal scroll axis",
+    "BRIGHTNESS": "Display brightness keys",
+    "TABBING":    "Ctrl+Tab — browser / app switching",
+    "UNDO_REDO":  "Ctrl+Z / Ctrl+Shift+Z",
+};
+
+let config = {
+    bri: 100, idle: 30, cpi: 1, thr: 800,
+    modes: []
+};
+
+// For color wheel modal
+let colorModalTargetMode = -1;
+let selectedH = 0, selectedS = 0, selectedV = 100;
+let wheelCanvas, wheelCtx;
+
+// =====================================================
+// Web Serial
+// =====================================================
+async function connectSerial() {
+    if (connected) { handleDisconnect(); return; }
+    try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        writer = port.writable.getWriter();
+        connected = true;
+
+        document.getElementById('connBtn').classList.add('connected');
+        document.getElementById('connText').textContent = 'Disconnect';
+
+        startReading();
+        await sendCommand("GET:CONFIG");
+        statusInterval = setInterval(() => sendCommand("GET:STATUS"), 300);
+    } catch (e) {
+        console.error(e);
+        alert("Connection failed. Ensure no other app (e.g. Arduino IDE) is using the port.");
     }
+}
 
-    async function connectSerial() {
-        try {
-            port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 115200 });
-            writer = port.writable.getWriter();
-            
-            document.getElementById('connectOverlay').classList.add('hidden');
-            let pill = document.getElementById('statusPill');
-            pill.classList.add('connected');
-            document.getElementById('statusText').innerText = "Connected";
-            
-            connected = true;
-            startReading();
-            
-            // Request full config sync on connect
-            sendCommand("GET:CONFIG");
-            
-            statusInterval = setInterval(requestStatus, 250);
-        } catch (e) {
-            console.error(e);
-            alert("Connection failed. Make sure the port is not in use by another application.");
-        }
-    }
+async function sendCommand(cmd) {
+    if (!connected || !writer) return;
+    await writer.write(new TextEncoder().encode(cmd + '\n'));
+}
 
-    async function sendCommand(cmd) {
-        if (!connected || !writer) return;
-        const encoder = new TextEncoder();
-        await writer.write(encoder.encode(cmd + '\n'));
-    }
-
-    async function startReading() {
-        reader = port.readable.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        
-        try {
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                
-                let lines = buffer.split('\n');
-                buffer = lines.pop(); 
-                
-                for (let line of lines) {
-                    line = line.trim();
-                    if (line.startsWith("STATUS:")) {
-                        try {
-                            let data = JSON.parse(line.substring(7));
-                            document.getElementById('dash_mode').innerText = data.mode;
-                            
-                            // Update badge color based on mode
-                            let badge = document.getElementById('dash_mode');
-                            if (data.mode === "SCROLL") badge.style.backgroundColor = document.getElementById('col_s').value;
-                            else if (data.mode === "VOLUME") badge.style.backgroundColor = document.getElementById('col_v').value;
-                            else if (data.mode === "TIMELINE") badge.style.backgroundColor = document.getElementById('col_t').value;
-
-                            document.getElementById('dash_acc').innerText = data.accX;
-                            
-                            let delta = Math.abs(data.touch - data.baseline);
-                            let thr = document.getElementById('thr').value;
-                            
-                            document.getElementById('dash_prog_val').innerText = `${delta} / ${thr}`;
-                            
-                            let pct = Math.min(100, (delta / thr) * 100);
-                            let fill = document.getElementById('dash_prog_fill');
-                            fill.style.width = pct + "%";
-                            
-                            // Color red if tripped
-                            if (delta >= thr) fill.style.backgroundColor = "#ff3366";
-                            else fill.style.backgroundColor = "var(--accent)";
-                            
-                        } catch(e) {}
-                    }
-                    else if (line.startsWith("CONFIG:")) {
-                        try {
-                            let data = JSON.parse(line.substring(7));
-                            document.getElementById('freq').value = data.freq;
-                            document.getElementById('dur').value = data.dur;
-                            document.getElementById('thr').value = data.thr;
-                            document.getElementById('haptics_en').checked = (data.en === 1);
-                            document.getElementById('col_s').value = "#" + data.cs;
-                            document.getElementById('col_v').value = "#" + data.cv;
-                            document.getElementById('col_t').value = "#" + data.ct;
-                            updateUI();
-                        } catch(e) {}
-                    }
-                }
+async function startReading() {
+    reader = port.readable.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    try {
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream: true });
+            let lines = buf.split('\n');
+            buf = lines.pop();
+            for (let line of lines) {
+                line = line.trim();
+                if (line.startsWith("STATUS:")) handleStatus(line.substring(7));
+                else if (line.startsWith("CONFIG:")) handleConfig(line.substring(7));
             }
-        } catch (error) {
-            console.error("Disconnect:", error);
-            handleDisconnect();
-        } finally {
-            reader.releaseLock();
+        }
+    } catch (err) { console.error(err); }
+    finally { reader.releaseLock(); handleDisconnect(); }
+}
+
+function handleDisconnect() {
+    connected = false;
+    clearInterval(statusInterval);
+    document.getElementById('connBtn').classList.remove('connected');
+    document.getElementById('connText').textContent = 'Connect Device';
+    document.getElementById('modeBadgeName').textContent = '—';
+    document.getElementById('modeBadgeDot').style.background = 'var(--muted)';
+}
+
+function handleStatus(json) {
+    try {
+        const d = JSON.parse(json);
+        document.getElementById('modeBadgeName').textContent = d.mode;
+
+        // Find mode color
+        const m = config.modes.find(x => x.name === d.mode);
+        if (m) {
+            document.getElementById('modeBadgeDot').style.background = '#' + m.c;
+        }
+    } catch(e) {}
+}
+
+function handleConfig(json) {
+    try {
+        const d = JSON.parse(json);
+        config = d;
+        applyConfigToUI();
+    } catch(e) {}
+}
+
+// =====================================================
+// Sending Settings
+// =====================================================
+function sendGlobal() {
+    const bri  = document.getElementById('bri').value;
+    const idle = document.getElementById('idle').value;
+    const thr  = document.getElementById('thr').value;
+    sendCommand(`SET:BRI:${bri},IDLE:${idle},THR:${thr}`);
+}
+
+function setCPI(level) {
+    config.cpi = level;
+    renderCPIButtons();
+    sendCommand(`SET:CPI:${level}`);
+}
+
+function sendModeConfig(idx) {
+    const m = config.modes[idx];
+    if (!m) return;
+    sendCommand(`SET:MODE:${idx},EN:${m.en},CS:${m.c},HP:${m.hp},INV:${m.inv},MTHR:${m.thr}`);
+}
+
+// =====================================================
+// UI Rendering
+// =====================================================
+function applyConfigToUI() {
+    document.getElementById('bri').value  = config.bri;
+    document.getElementById('idle').value = config.idle;
+    document.getElementById('thr').value  = config.thr;
+    document.getElementById('bri_val').textContent  = config.bri + '%';
+    document.getElementById('idle_val').textContent = config.idle + 's';
+    document.getElementById('thr_val').textContent  = config.thr;
+    config.cpi = config.cpi || 1;
+    renderCPIButtons();
+    renderHapticProfiles(config.modes[0]?.hp ?? 0); // will be per-mode in mode rows
+    renderModeList();
+}
+
+function renderCPIButtons() {
+    const btns = document.querySelectorAll('#cpiGrid .btn');
+    btns.forEach((b, i) => b.classList.toggle('active', i === config.cpi));
+}
+
+function renderHapticProfiles(activeProfile) {
+    const grid = document.getElementById('profileGrid');
+    grid.innerHTML = '';
+    PROFILES.forEach((name, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn' + (i === activeProfile ? ' active' : '');
+        btn.textContent = name;
+        btn.onclick = () => {
+            // Apply to all currently selected mode context (we'll handle per-mode in mode rows)
+            grid.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        };
+        grid.appendChild(btn);
+    });
+}
+
+function renderModeList() {
+    const list = document.getElementById('modeList');
+    list.innerHTML = '';
+
+    (config.modes || []).forEach((mode, idx) => {
+        const row = document.createElement('div');
+        row.className = 'mode-row' + (mode.en ? '' : ' disabled');
+        row.id = `mode-row-${idx}`;
+
+        const colorHex = '#' + (mode.c || '888888');
+
+        row.innerHTML = `
+            <div>
+                <div class="mode-name">${mode.name}</div>
+                <div class="mode-sub">${MODE_DESCRIPTIONS[mode.name] || ''}</div>
+            </div>
+            <select class="hp-select" id="hp_${idx}" onchange="onHPChange(${idx})">
+                ${PROFILES.map((p, i) => `<option value="${i}" ${i == mode.hp ? 'selected' : ''}>${p}</option>`).join('')}
+            </select>
+            <div class="color-swatch" id="swatch_${idx}"
+                 style="background:${colorHex}"
+                 title="Pick color"
+                 onclick="openColorModal(${idx})"></div>
+            <label class="toggle-switch" title="Invert direction">
+                <input type="checkbox" id="inv_${idx}" ${mode.inv ? 'checked' : ''} onchange="onInvChange(${idx})">
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+            </label>
+            <label class="toggle-switch" title="Enable mode">
+                <input type="checkbox" id="en_${idx}" ${mode.en ? 'checked' : ''} onchange="onEnChange(${idx})">
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+            </label>
+        `;
+        list.appendChild(row);
+    });
+
+    // Column headers
+    const legend = document.createElement('div');
+    legend.style.cssText = 'display:grid;grid-template-columns:1fr 90px auto auto auto;gap:12px;padding:12px 0 6px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;border-top:1px solid var(--border);margin-top:8px;';
+    legend.innerHTML = '<span>Mode</span><span>Haptic</span><span style="text-align:center">Color</span><span style="text-align:center">Invert</span><span style="text-align:center">Active</span>';
+    list.insertBefore(legend, list.firstChild);
+}
+
+function onEnChange(idx) {
+    config.modes[idx].en = document.getElementById(`en_${idx}`).checked ? 1 : 0;
+    document.getElementById(`mode-row-${idx}`).className = 'mode-row' + (config.modes[idx].en ? '' : ' disabled');
+    sendModeConfig(idx);
+}
+
+function onHPChange(idx) {
+    config.modes[idx].hp = parseInt(document.getElementById(`hp_${idx}`).value);
+    sendModeConfig(idx);
+}
+
+function onInvChange(idx) {
+    config.modes[idx].inv = document.getElementById(`inv_${idx}`).checked ? 1 : 0;
+    sendModeConfig(idx);
+}
+
+function onBriInput() {
+    document.getElementById('bri_val').textContent = document.getElementById('bri').value + '%';
+    sendGlobal();
+}
+function onIdleInput() {
+    const v = document.getElementById('idle').value;
+    document.getElementById('idle_val').textContent = v == 0 ? 'Off' : v + 's';
+    sendGlobal();
+}
+function onThrInput() {
+    document.getElementById('thr_val').textContent = document.getElementById('thr').value;
+    sendGlobal();
+}
+
+// =====================================================
+// Color Wheel
+// =====================================================
+function drawWheel(canvas, brightness) {
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const r  = cx - 4;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw HSV wheel: hue around ring, saturation from center
+    const imageData = ctx.createImageData(canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+            const dx = x - cx, dy = y - cy;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > r) continue;
+
+            const angle  = Math.atan2(dy, dx);
+            const hue    = ((angle / (2 * Math.PI)) + 1) % 1;
+            const sat    = dist / r;
+            const val    = brightness / 100;
+
+            const [rr, gg, bb] = hsvToRgb(hue, sat, val);
+            const idx = (y * canvas.width + x) * 4;
+            data[idx]   = rr;
+            data[idx+1] = gg;
+            data[idx+2] = bb;
+            data[idx+3] = 255;
         }
     }
+    ctx.putImageData(imageData, 0, 0);
 
-    function requestStatus() {
-        if(connected) sendCommand("GET:STATUS");
-    }
-    
-    function sendSettings() {
-        if(!connected) return;
-        let freq = document.getElementById('freq').value;
-        let dur = document.getElementById('dur').value;
-        let thr = document.getElementById('thr').value;
-        let en = document.getElementById('haptics_en').checked ? '1' : '0';
-        let cs = document.getElementById('col_s').value.substring(1);
-        let cv = document.getElementById('col_v').value.substring(1);
-        let ct = document.getElementById('col_t').value.substring(1);
-        
-        let cmd = `SET:FREQ:${freq},DUR:${dur},THR:${thr},EN:${en},CS:${cs},CV:${cv},CT:${ct}`;
-        sendCommand(cmd);
-    }
+    // Draw selection dot
+    const selAngle = selectedH * 2 * Math.PI - Math.PI;
+    const selDist  = selectedS * r;
+    const px = cx + selDist * Math.cos(selAngle);
+    const py = cy + selDist * Math.sin(selAngle);
 
-    function testHaptic() {
-        sendCommand("TEST:HAPTIC");
-    }
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, 2*Math.PI);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, 2*Math.PI);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+}
 
-    function setPreset(f, d) {
-        document.getElementById('freq').value = f;
-        document.getElementById('dur').value = d;
-        updateUI();
-        sendSettings();
+function hsvToRgb(h, s, v) {
+    let r, g, b;
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s);
+    const q = v * (1 - f * s);
+    const t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r=v; g=t; b=p; break;
+        case 1: r=q; g=v; b=p; break;
+        case 2: r=p; g=v; b=t; break;
+        case 3: r=p; g=q; b=v; break;
+        case 4: r=t; g=p; b=v; break;
+        case 5: r=v; g=p; b=q; break;
     }
+    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
 
-    function handleDisconnect() {
-        connected = false;
-        clearInterval(statusInterval);
-        document.getElementById('connectOverlay').classList.remove('hidden');
-        document.getElementById('statusPill').classList.remove('connected');
-        document.getElementById('statusText').innerText = "Disconnected";
+function rgbToHex(r, g, b) {
+    return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+    const n = parseInt(hex, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const d = max - min;
+    let h = 0, s = max === 0 ? 0 : d / max, v = max;
+    if (max !== min) {
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+        }
     }
+    return [h, s, v * 100];
+}
 
-    document.getElementById('btnConnectBig').addEventListener('click', connectSerial);
-    
-    // Init UI
-    updateUI();
+function updateColorPreview() {
+    const bri = parseInt(document.getElementById('briWheel').value);
+    const [r, g, b] = hsvToRgb(selectedH, selectedS, bri / 100);
+    const hex = '#' + rgbToHex(r, g, b);
+    document.getElementById('colorPreview').style.background = hex;
+    document.getElementById('hexInput').value = hex;
+    drawWheel(document.getElementById('colorWheel'), bri);
+}
+
+function openColorModal(modeIdx) {
+    colorModalTargetMode = modeIdx;
+    const m = config.modes[modeIdx];
+    document.getElementById('colorModalTitle').textContent = 'Color — ' + m.name;
+
+    // Parse current color
+    const [r, g, b] = hexToRgb(m.c || '0000ff');
+    const [h, s, v] = rgbToHsv(r, g, b);
+    selectedH = h; selectedS = s; selectedV = v;
+    document.getElementById('briWheel').value = Math.round(v);
+
+    document.getElementById('colorModal').classList.add('open');
+    updateColorPreview();
+
+    // Attach wheel click/drag
+    const canvas = document.getElementById('colorWheel');
+    canvas.onmousedown = canvas.ontouchstart = wheelDown;
+}
+
+function wheelDown(e) {
+    pickFromWheel(e);
+    const canvas = document.getElementById('colorWheel');
+    canvas.onmousemove = pickFromWheel;
+    document.onmouseup = () => { canvas.onmousemove = null; document.onmouseup = null; };
+}
+
+function pickFromWheel(e) {
+    const canvas = document.getElementById('colorWheel');
+    const rect   = canvas.getBoundingClientRect();
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const r  = cx - 4;
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const dx = (clientX - rect.left) * scaleX - cx;
+    const dy = (clientY - rect.top)  * scaleY - cy;
+    const dist = Math.min(Math.sqrt(dx*dx + dy*dy), r);
+
+    selectedH = ((Math.atan2(dy, dx) / (2 * Math.PI)) + 1) % 1;
+    selectedS = dist / r;
+    updateColorPreview();
+    e.preventDefault();
+}
+
+function onWheelBri() {
+    selectedV = parseInt(document.getElementById('briWheel').value);
+    updateColorPreview();
+}
+
+function onHexInput() {
+    const val = document.getElementById('hexInput').value;
+    if (!/^#[0-9a-fA-F]{6}$/.test(val)) return;
+    const [r, g, b] = hexToRgb(val);
+    const [h, s, v] = rgbToHsv(r, g, b);
+    selectedH = h; selectedS = s; selectedV = v;
+    document.getElementById('briWheel').value = Math.round(v);
+    document.getElementById('colorPreview').style.background = val;
+    drawWheel(document.getElementById('colorWheel'), Math.round(v));
+}
+
+function closeColorModal() {
+    document.getElementById('colorModal').classList.remove('open');
+    colorModalTargetMode = -1;
+}
+
+function confirmColor() {
+    if (colorModalTargetMode < 0) return;
+    const bri = parseInt(document.getElementById('briWheel').value);
+    const [r, g, b] = hsvToRgb(selectedH, selectedS, bri / 100);
+    const hex = rgbToHex(r, g, b);
+
+    config.modes[colorModalTargetMode].c = hex;
+    document.getElementById('swatch_' + colorModalTargetMode).style.background = '#' + hex;
+    sendModeConfig(colorModalTargetMode);
+    closeColorModal();
+}
+
+// =====================================================
+// Init
+// =====================================================
+document.getElementById('connBtn').addEventListener('click', connectSerial);
+document.getElementById('testHapticBtn').addEventListener('click', () => sendCommand('TEST:HAPTIC'));
+
+// Seed default mode list for UI before connection
+config.modes = [
+    {name:"SCROLL",     en:1, c:"0000ff", hp:0, inv:0, thr:10},
+    {name:"VOLUME",     en:1, c:"00ff00", hp:3, inv:0, thr:25},
+    {name:"TIMELINE",   en:1, c:"ff0080", hp:0, inv:0, thr:15},
+    {name:"ZOOM",       en:0, c:"ff9500", hp:0, inv:0, thr:15},
+    {name:"H_SCROLL",   en:0, c:"00c2a8", hp:2, inv:0, thr:10},
+    {name:"BRIGHTNESS", en:0, c:"ffd700", hp:3, inv:0, thr:20},
+    {name:"TABBING",    en:0, c:"9b59b6", hp:0, inv:0, thr:20},
+    {name:"UNDO_REDO",  en:0, c:"e74c3c", hp:1, inv:0, thr:15},
+];
+renderModeList();
+renderCPIButtons();
+renderHapticProfiles(0);
 </script>
 </body>
 </html>
