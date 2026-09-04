@@ -772,7 +772,7 @@ function confirmColor() {
 }
 
 // =====================================================
-// Init
+// Init & Auto-Reconnect
 // =====================================================
 document.getElementById('connBtn').addEventListener('click', connectSerial);
 document.getElementById('testHapticBtn').addEventListener('click', () => sendCommand('TEST:HAPTIC'));
@@ -791,6 +791,48 @@ config.modes = [
 renderModeList();
 renderCPIButtons();
 renderHapticProfiles(0);
+
+// --- Auto-reconnect on page load ---
+// The Web Serial API remembers previously granted ports.
+// If one exists, silently reconnect without showing the picker.
+async function tryAutoReconnect() {
+    if (!('serial' in navigator)) return;
+    try {
+        const ports = await navigator.serial.getPorts();
+        if (ports.length > 0) {
+            port = ports[0];
+            document.getElementById('connText').textContent = 'Reconnecting...';
+            await port.open({ baudRate: 115200 });
+            writer = port.writable.getWriter();
+            connected = true;
+            document.getElementById('connBtn').classList.add('connected');
+            document.getElementById('connText').textContent = 'Disconnect';
+            startReading();
+            await sendCommand("GET:CONFIG");
+            statusInterval = setInterval(() => sendCommand("GET:STATUS"), 300);
+        }
+    } catch (e) {
+        // Port unavailable (board not plugged in, or busy) — stay disconnected silently
+        console.log('Auto-reconnect skipped:', e.message);
+        document.getElementById('connText').textContent = 'Connect Device';
+    }
+}
+
+// Listen for the device being plugged in after page load
+if ('serial' in navigator) {
+    navigator.serial.addEventListener('connect', async (e) => {
+        // Give the OS a moment to finish enumeration
+        await new Promise(r => setTimeout(r, 1000));
+        if (!connected) tryAutoReconnect();
+    });
+
+    navigator.serial.addEventListener('disconnect', () => {
+        if (connected) handleDisconnect();
+    });
+}
+
+window.addEventListener('load', tryAutoReconnect);
+
 </script>
 </body>
 </html>

@@ -419,6 +419,13 @@ void parseSerialCommand(String& cmd) {
 // setup()
 // =======================================================
 void setup() {
+    // Set USB descriptor strings — these appear in the browser's serial port picker
+    USB.productName("OmniScroll");
+    USB.manufacturerName("OmniScroll Project");
+    USB.serialNumber("OMNI-001");
+    USB.VID(0x303A);
+    USB.PID(0x4F53); // 'OS' for OmniScroll
+
     Mouse.begin();
     ConsumerControl.begin();
     Keyboard.begin();
