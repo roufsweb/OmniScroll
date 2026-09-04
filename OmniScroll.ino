@@ -416,6 +416,36 @@ void parseSerialCommand(String& cmd) {
 
 
 // =======================================================
+// TinyUSB Descriptor Override
+// Bypasses the Arduino core's string caching entirely.
+// =======================================================
+extern "C" uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+    (void)langid;
+    static uint16_t _desc_str[32];
+    uint8_t chr_count = 0;
+    const char* str = "";
+
+    if (index == 0) {
+        _desc_str[1] = 0x0409; // English
+        chr_count = 1;
+    } else {
+        if (index == 1) str = "OmniScroll Project"; // Manufacturer
+        else if (index == 2) str = "OmniScroll";        // Product
+        else if (index == 3) str = "OMNI-001";          // Serial
+        else return NULL;
+
+        chr_count = strlen(str);
+        if (chr_count > 31) chr_count = 31;
+        for (uint8_t i = 0; i < chr_count; i++) {
+            _desc_str[1 + i] = str[i];
+        }
+    }
+
+    _desc_str[0] = (TUSB_DESC_STRING << 8) | (2 * chr_count + 2);
+    return _desc_str;
+}
+
+// =======================================================
 // setup()
 // =======================================================
 void setup() {
