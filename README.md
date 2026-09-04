@@ -1,34 +1,94 @@
 # OmniScroll
 
-A premium, open-source haptic rotary dial powered by the ESP32-S2 and MX8650 optical sensor. Features seamless browser-based configuration via Web Serial API, beautiful RGB mode indication, and tactile haptics.
+A custom haptic rotary dial built around a freely spinning ball bearing and an MX8650 optical sensor. Connects to any PC or Mac as a standard USB HID device — no drivers, no software. Configure it from any Chromium browser over the same USB cable using the Web Serial API.
 
-## Features
-- **Triple Mode Functionality:** Scroll Mode, Volume Mode, and Timeline Mode.
-- **Native USB HID:** Instantly works on PC/Mac without drivers.
-- **Capacitive Touch:** Hardware-interrupt driven capacitive touch sensor for gesture detection.
-- **Haptic Feedback:** Precision tuning of haptic clicks via an LRA motor.
-- **Plug-and-Play Web Configurator:** Configure colors, frequency, and touch sensitivity directly from Chrome over the USB cable!
+---
 
-## ⚙️ Web Configuration
-OmniScroll uses the modern Web Serial API for configuration, eliminating the need to install software or connect to Wi-Fi.
+## Configure
 
-Simply plug in your OmniScroll, open Chrome/Edge, and visit the live configurator:
-👉 **[Configure OmniScroll](https://roufsweb.github.io/OmniScroll/)** 👈
+Plug in your OmniScroll, then open the configurator in Chrome or Edge:
+
+**[roufsweb.github.io/OmniScroll](https://roufsweb.github.io/OmniScroll/)**
+
+No installation required. The page connects directly to the device over USB.
+
+---
 
 ## How It Works
-Unlike traditional mechanical encoders that suffer from wear and physical constraints, OmniScroll uses a completely **freely spinning ball bearing**.
-An MX8650 optical mouse sensor sits right below the bearing, reading its surface texture to calculate rotation. This allows for incredibly smooth, high-resolution scrolling without physical friction, while the LRA haptic motor simulates the "clicks" or "detents" in software.
 
-## Hardware Stack
-- **MCU:** Lolin ESP32-S2 Mini
-- **Sensor:** MX8650 Optical Mouse Sensor
-- **Haptics:** LRA Motor (driven by PAM8403)
-- **Lighting:** Analog 5050 RGB LED (White balanced via PWM calibration)
+A freely spinning ball bearing acts as the dial. An MX8650 optical mouse sensor sits directly beneath it, reading the surface texture of the bearing as it rotates. This replaces a traditional mechanical encoder entirely — no physical contacts, no wear, no fixed step resolution.
 
-*(See `HARDWARE.md` and `FEATURES.md` for pinouts and advanced electrical details).*
+The "clicks" you feel are not mechanical. An LRA (Linear Resonant Actuator) driven by a PAM8403 amplifier fires a precise tone burst on each virtual detent. Frequency, duration, and intensity are all tunable from the configurator.
 
-## Development
-To flash the firmware, connect the board via USB, put it into BOOT mode (Hold BOOT, Press RST, Release RST, Release BOOT), and run:
-```bash
-python upload.py --port COMX
-```
+---
+
+## Modes
+
+The dial operates in configurable modes. Double-tap the touch zone to cycle between active modes.
+
+| Mode | Action | LED Color |
+|---|---|---|
+| Scroll | Vertical page scroll | Blue |
+| Volume | System volume control | Green |
+| Timeline | Frame-by-frame (arrow keys) | Pink |
+| Zoom | Ctrl+Scroll — works in any app | Amber |
+| Horizontal Scroll | Side-scroll axis | Teal |
+| Brightness | Display brightness keys | Yellow |
+| Tabbing | Ctrl+Tab — cycle browser tabs | Violet |
+| Undo / Redo | Ctrl+Z / Ctrl+Shift+Z | Red |
+
+All 8 modes are configurable. Enable only the ones you use. Colors and haptic profiles are set per mode.
+
+---
+
+## Hardware
+
+| Component | Part | Notes |
+|---|---|---|
+| Microcontroller | Lolin ESP32-S2 Mini | Native USB OTG, hardware touch peripheral |
+| Encoder | MX8650 Optical Sensor | Reads bearing surface via 2-wire serial |
+| Haptic motor | iPhone 6 LRA | Driven by PAM8403 audio amplifier |
+| Indicator | Analog 5050 RGB LED | Software white-balanced via PWM calibration |
+| Input | ESP32-S2 capacitive touch (GPIO 12) | Hardware-filtered, double-tap & long-press |
+
+Full pin mapping and electrical notes are in [HARDWARE.md](HARDWARE.md).
+
+---
+
+## Settings
+
+All settings are stored in the ESP32's NVS flash and survive power cycles.
+
+- **Haptic profile** — Choose from Click, Thud, Tick, Soft, or Off. Set per mode.
+- **Mode color** — Full HSB color wheel. Any color for each mode.
+- **Sensor resolution** — 400 / 800 / 1200 / 1600 CPI.
+- **Touch sensitivity** — Adjust the detection threshold for your hand.
+- **LED brightness** — Master dimmer, 0–100%.
+- **Idle dim timeout** — LED fades to 20% after a set period of inactivity.
+- **Direction invert** — Reverse rotation direction per mode.
+
+---
+
+## Building the Firmware
+
+Requires the [Arduino IDE](https://www.arduino.cc/en/software) with the ESP32 board package installed.
+
+**Board settings:**
+
+| Setting | Value |
+|---|---|
+| Board | Lolin S2 Mini |
+| USB CDC On Boot | Disabled |
+| Partition Scheme | Huge APP |
+
+**Flash procedure:**
+1. Hold the `BOOT` button on the board.
+2. Press and release `RST`.
+3. Release `BOOT`.
+4. Upload from the Arduino IDE.
+
+---
+
+## License
+
+MIT

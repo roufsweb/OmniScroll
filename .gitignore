@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Development tools (not for public repo)
+upload.py
+.agents/
+
 # AI Agent & Session files (never commit)
 .agents/*.log
 *.session

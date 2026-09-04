@@ -375,10 +375,14 @@ let wheelCanvas, wheelCtx;
 // =====================================================
 // Web Serial
 // =====================================================
+// Espressif VID (0x303A) + default TinyUSB PID for CDC (0x1001)
+// This filter makes Chrome label the port "OmniScroll" in the picker
+const USB_FILTERS = [{ usbVendorId: 0x303A, usbProductId: 0x1001 }];
+
 async function connectSerial() {
     if (connected) { handleDisconnect(); return; }
     try {
-        port = await navigator.serial.requestPort();
+        port = await navigator.serial.requestPort({ filters: USB_FILTERS });
         await port.open({ baudRate: 115200 });
         writer = port.writable.getWriter();
         connected = true;
@@ -798,7 +802,7 @@ renderHapticProfiles(0);
 async function tryAutoReconnect() {
     if (!('serial' in navigator)) return;
     try {
-        const ports = await navigator.serial.getPorts();
+        const ports = await navigator.serial.getPorts({ filters: USB_FILTERS });
         if (ports.length > 0) {
             port = ports[0];
             document.getElementById('connText').textContent = 'Reconnecting...';
