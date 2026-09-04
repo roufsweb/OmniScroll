@@ -15,6 +15,10 @@ OmniScroll uses the modern Web Serial API for configuration, eliminating the nee
 Simply plug in your OmniScroll, open Chrome/Edge, and visit the live configurator:
 👉 **[Configure OmniScroll](https://roufsweb.github.io/OmniScroll/)** 👈
 
+## How It Works
+Unlike traditional mechanical encoders that suffer from wear and physical constraints, OmniScroll uses a completely **freely spinning ball bearing**.
+An MX8650 optical mouse sensor sits right below the bearing, reading its surface texture to calculate rotation. This allows for incredibly smooth, high-resolution scrolling without physical friction, while the LRA haptic motor simulates the "clicks" or "detents" in software.
+
 ## Hardware Stack
 - **MCU:** Lolin ESP32-S2 Mini
 - **Sensor:** MX8650 Optical Mouse Sensor

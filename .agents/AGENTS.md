@@ -18,3 +18,8 @@ These rules apply to all AI agents working on the OmniScroll workspace.
 ## Documentation
 - Always update `FEATURES.md` and `HARDWARE.md` if the hardware specifications or project goals change.
 - When generating schematics or wiring diagrams, double-check the Lolin ESP32-S2 Mini pinout (e.g., ensure touch pins are actually touch-capable, ensure USB D+/D- pins are correctly mapped).
+
+## Repository Hygiene
+- **Never commit personal or debug files:** Do NOT commit `*.log`, `*.txt`, `transcript*.jsonl`, or anything in the `scratch/` directory.
+- **Agent Artifacts:** Do NOT commit agent-specific artifacts like `WALKTHROUGH.md`, `task.md`, or `implementation_plan.md` to the public repository. These are for the local session only.
+- **Code Cleanliness:** Keep the repo looking professional. Do not commit messy python scratch scripts or debugging tools unless requested.

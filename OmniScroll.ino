@@ -146,11 +146,7 @@ void cycleMode() {
     accumulationX = 0; 
 }
 
-String toHexColor(uint8_t r, uint8_t g, uint8_t b) {
-  char hex[8];
-  sprintf(hex, "#%02x%02x%02x", r, g, b);
-  return String(hex);
-}
+// Hex color conversion removed (handled by UI now)
 
 void setup() {
   Mouse.begin();
@@ -293,6 +289,22 @@ void loop() {
           json += String(accumulationX);
           json += "}";
           Serial.println("STATUS:" + json);
+      }
+      else if (cmd == "GET:CONFIG") {
+          String json = "{";
+          json += "\"freq\":" + String(hapticFreq);
+          json += ", \"dur\":" + String(hapticDuration);
+          json += ", \"thr\":" + String(touch.getThreshold());
+          json += ", \"en\":" + String(hapticEnabled ? 1 : 0);
+          
+          char hexBuf[32];
+          sprintf(hexBuf, ",\"cs\":\"%02x%02x%02x\",\"cv\":\"%02x%02x%02x\",\"ct\":\"%02x%02x%02x\"", 
+                  colorScroll[0], colorScroll[1], colorScroll[2],
+                  colorVolume[0], colorVolume[1], colorVolume[2],
+                  colorTimeline[0], colorTimeline[1], colorTimeline[2]);
+          json += String(hexBuf);
+          json += "}";
+          Serial.println("CONFIG:" + json);
       }
       else if (cmd == "TEST:HAPTIC") {
           hapticPlaying = false; 
