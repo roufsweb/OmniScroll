@@ -419,7 +419,7 @@ void parseSerialCommand(String& cmd) {
 // TinyUSB Descriptor Override
 // Bypasses the Arduino core's string caching entirely.
 // =======================================================
-extern "C" uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+extern "C" const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     (void)langid;
     static uint16_t _desc_str[32];
     uint8_t chr_count = 0;
