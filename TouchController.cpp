@@ -1,40 +1,20 @@
 #include "TouchController.h"
 
-TouchController::TouchController(uint8_t pin, uint16_t thresholdDelta) 
+TouchController::TouchController(uint8_t pin, long thresholdDelta) 
     : _pin(pin), _thresholdDelta(thresholdDelta), 
-      _baseline(0), _state(IDLE), _doubleTappedFlag(false) {}
+      _state(IDLE), _doubleTappedFlag(false) {}
+
+static void touchDummyISR() {}
 
 void TouchController::begin() {
-    // Wait for touch peripheral to stabilize and average 25 readings
-    long sum = 0;
-    for (int i = 0; i < 5; i++) {
-        touchRead(_pin);
-        delay(10);
-    }
-    for (int i = 0; i < 25; i++) {
-        sum += touchRead(_pin);
-        delay(10);
-    }
-    _baseline = sum / 25;
+    // Enable Native ESP32-S2 Touch Hardware
+    // The hardware handles baseline tracking, EMA filtering, and hysteresis internally!
+    touchAttachInterrupt(_pin, touchDummyISR, _thresholdDelta);
 }
 
 bool TouchController::isTouched() {
-    long currentVal = touchRead(_pin);
-    long delta = abs(currentVal - _baseline);
-    
-    // If the difference is significant, register as touch
-    if (delta > _thresholdDelta) {
-        return true;
-    }
-    
-    // Update baseline slowly when not touched.
-    // Gate: only update if delta < 500. This allows tracking the natural
-    // resting variance (200-460 range) while still freezing out real touches (700+)
-    // and heavy wheel interference (800+).
-    if (delta < 500) {
-        _baseline = (_baseline * 15 + currentVal) / 16;
-    }
-    return false;
+    // Read the native hardware state (true if pressed, false if released)
+    return touchInterruptGetLastStatus(_pin);
 }
 
 void TouchController::reset() {

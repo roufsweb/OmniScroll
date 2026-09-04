@@ -7,7 +7,7 @@ import serial.tools.list_ports
 
 ARDUINO_CLI = r"C:\Program Files\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe"
 
-# FQBN for Lolin ESP32-S2 Mini with Hardware CDC disabled so TinyUSB HID can work
+# FQBN for Lolin ESP32-S2 Mini with Hardware CDC disabled (relying on TinyUSB CDC)
 FQBN = "esp32:esp32:lolin_s2_mini:CDCOnBoot=dis_cdc,PartitionScheme=huge_app,EraseFlash=all"
 SKETCH_PATH = r"e:\rouf\hardware-project\OmniScroll"
 TARGET_PORT_OVERRIDE = None
@@ -27,8 +27,8 @@ def reset_to_bootloader(port):
         ser = serial.Serial()
         ser.port = port
         ser.baudrate = 1200
-        ser.dtr = True
-        ser.rts = True
+        ser.dtr = False
+        ser.rts = False
         ser.open()
         time.sleep(0.2)
         ser.close()
@@ -40,12 +40,12 @@ def reset_to_bootloader(port):
 
 def main():
     ports_before = get_ports()
-    if not ports_before:
+    if not ports_before and not TARGET_PORT_OVERRIDE:
         print("[-] No serial ports detected! Please verify the ESP32-S3 is connected.")
         sys.exit(1)
     
-    target_port = ports_before[0]
-    if TARGET_PORT_OVERRIDE and TARGET_PORT_OVERRIDE in ports_before:
+    target_port = ports_before[0] if ports_before else TARGET_PORT_OVERRIDE
+    if TARGET_PORT_OVERRIDE:
         target_port = TARGET_PORT_OVERRIDE
     elif len(ports_before) > 1:
         print(f"[*] Detected multiple ports: {ports_before}")

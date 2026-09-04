@@ -4,7 +4,14 @@
 - **Lolin ESP32-S2 Mini**
   - **Role**: Main processing unit, USB HID interface, touch sensor controller, and haptic driver.
   - **Specs**: No PSRAM, 320 KB SRAM, 4MB ROM.
-  - **Features Utilized**: Native USB support, capacitive touch pins, I2C/SPI/PWM for peripherals.
+  - **Features Utilized**: Native USB support, capacitive touch pins, PWM for peripherals.
+
+## Pin Mapping
+- **GPIO 0**: Built-in Boot Button (Used as general-purpose physical input button)
+- **GPIO 9**: MX8650 SDIO (Serial Data I/O)
+- **GPIO 11**: MX8650 SCLK (Serial Clock)
+- **GPIO 12**: Capacitive Touch Input
+- **GPIO 17**: Haptic Motor Driver (PWM to PAM8403 Left Channel)
 
 ## Sensors
 - **MX8650 Optical Mouse Sensor**
@@ -14,8 +21,13 @@
 
 ## Feedback Mechanisms
 - **Haptic Engine**
-  - **Type**: Linear Resonant Actuator (LRA) or Eccentric Rotating Mass (ERM) motor (ideally paired with a dedicated driver IC like DRV2605L for crisp feedback).
-  - **Role**: Provides simulated physical feedback (virtual detents, button click simulation, mode switch alerts, limits).
+  - **Type**: iPhone 6 Linear Resonant Actuator (LRA).
+  - **Driver**: PAM8403 audio amplifier module (Left channel connected to GPIO 17).
+  - **Role**: Provides simulated physical feedback (virtual detents, button click simulation, mode switch alerts).
+- **RGB Mode Indicator**
+  - **Type**: 6-pin 5050 Analog RGB LED.
+  - **Wiring**: Red (GPIO 18), Green (GPIO 16), Blue (GPIO 33) via 470Ω resistors.
+  - **Role**: Visually indicates the currently active scroll mode.
 
 ## Mechanical Components
 - **Freely Spinning Bearing**
@@ -23,10 +35,6 @@
   
 ## Inputs
 - **Capacitive Touch Input**
-  - **Role**: Touch-sensitive areas serving as physical buttons (e.g., left/right click, mode switch), driven by the ESP32-S2's internal touch peripheral.
-
-## Displays
-- **0.91" OLED Display**
-  - **Type**: SSD1306 (128x32 pixels, I2C)
-  - **Role**: Displays current mode and system status.
-  - **Connections**: 5V (VCC), GND, SDA (GPIO 35), SCL (GPIO 33).
+  - **Role**: Touch-sensitive areas serving as physical buttons (e.g., left/right click, mode switch), driven by the ESP32-S2's internal touch peripheral (GPIO 12).
+- **Physical Button**
+  - **Role**: Fallback or secondary button using the ESP32-S2's built-in BOOT button (GPIO 0).

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OmniScroll Tuning (Web Serial)</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; text-align: center; }
+  h1 { color: #bb86fc; }
+  .card { background-color: #1e1e1e; border-radius: 12px; padding: 20px; max-width: 400px; margin: 0 auto 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+  label { display: block; margin-top: 15px; font-weight: bold; text-align: left; }
+  input[type=range] { width: 100%; margin: 15px 0; }
+  .value { float: right; color: #03dac6; }
+  button { background-color: #bb86fc; color: #000; border: none; padding: 12px 20px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+  button:hover { background-color: #9965f4; }
+  button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+  .presets { display: flex; gap: 10px; margin-top: 15px; }
+  .presets button { background-color: #03dac6; color: #000; flex: 1; }
+  .presets button:hover { background-color: #01b4a3; }
+  .dashboard { text-align: left; background-color: #2c2c2c; padding: 15px; border-radius: 8px; margin-top: 15px; font-family: monospace; font-size: 14px; }
+  .dashboard span { color: #bb86fc; }
+  #connectBox { background-color: #2c2c2c; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #03dac6; }
+</style>
+</head>
+<body>
+  <h1>OmniScroll Tuning</h1>
+  
+  <div id="connectBox" class="card">
+    <p>Connect your OmniScroll via USB to configure it.</p>
+    <button id="btnConnect">Connect to OmniScroll</button>
+  </div>
+
+  <div id="uiContainer" style="display:none;">
+    <div class="card">
+      <label>Frequency (Hz) <span class="value" id="freq_val">200</span></label>
+      <input type="range" id="freq" min="50" max="500" value="200" oninput="updateVal('freq', this.value)" onchange="sendSettings()">
+      
+      <label>Duration (ms) <span class="value" id="dur_val">30</span></label>
+      <input type="range" id="dur" min="5" max="100" value="30" oninput="updateVal('dur', this.value)" onchange="sendSettings()">
+      
+      <label>Touch Threshold <span class="value" id="thr_val">800</span></label>
+      <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="updateVal('thr', this.value)" onchange="sendSettings()">
+      
+      <label style="margin-bottom: 15px;">
+        <input type="checkbox" id="haptics_en" checked onchange="sendSettings()"> 
+        Enable Haptics (Disable to test for electrical noise)
+      </label>
+      
+      <button onclick="testHaptic()">TEST CLICK</button>
+    </div>
+    
+    <div class="card">
+      <h3>Mode Colors</h3>
+      <label>Scroll Mode <input type="color" id="col_s" value="#0000ff" onchange="sendSettings()" style="width:50px; float:right; border:none;"></label>
+      <label>Volume Mode <input type="color" id="col_v" value="#00ff00" onchange="sendSettings()" style="width:50px; float:right; border:none;"></label>
+      <label>Timeline Mode <input type="color" id="col_t" value="#ff0080" onchange="sendSettings()" style="width:50px; float:right; border:none;"></label>
+    </div>
+    
+    <div class="card">
+      <h3>Live Activity</h3>
+      <div class="dashboard">
+        Mode: <span id="dash_mode">...</span><br>
+        Touch Delta: <progress id="dash_prog" value="0" max="1000" style="width: 100%; height: 20px;"></progress><br>
+        Touch Raw: <span id="dash_touch">0</span><br>
+        Touch Baseline: <span id="dash_base">0</span><br>
+        Scroll Acc. X: <span id="dash_acc">0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Presets</h3>
+      <div class="presets">
+        <button onclick="setPreset(180, 20)">Crisp</button>
+        <button onclick="setPreset(250, 40)">Thud</button>
+        <button onclick="setPreset(120, 15)">Light</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let port;
+  let writer;
+  let reader;
+  let connected = false;
+
+  async function connectSerial() {
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 115200 });
+      writer = port.writable.getWriter();
+      document.getElementById('connectBox').style.display = 'none';
+      document.getElementById('uiContainer').style.display = 'block';
+      connected = true;
+      startReading();
+      setInterval(requestStatus, 500);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to connect. Make sure no other program (like Arduino IDE) is using the port.");
+    }
+  }
+
+  async function sendCommand(cmd) {
+    if (!connected || !writer) return;
+    const encoder = new TextEncoder();
+    await writer.write(encoder.encode(cmd + '\n'));
+  }
+
+  async function startReading() {
+    reader = port.readable.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        
+        let lines = buffer.split('\n');
+        buffer = lines.pop(); // keep the incomplete line
+        
+        for (let line of lines) {
+          line = line.trim();
+          if (line.startsWith("STATUS:")) {
+            try {
+              let data = JSON.parse(line.substring(7));
+              document.getElementById('dash_mode').innerText = data.mode;
+              document.getElementById('dash_touch').innerText = data.touch;
+              document.getElementById('dash_base').innerText = data.baseline;
+              document.getElementById('dash_acc').innerText = data.accX;
+              
+              let delta = Math.abs(data.touch - data.baseline);
+              let thr = document.getElementById('thr').value;
+              document.getElementById('dash_prog').max = thr;
+              document.getElementById('dash_prog').value = delta;
+            } catch(e) {}
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  function requestStatus() {
+    sendCommand("GET:STATUS");
+  }
+
+  function updateVal(id, val) { document.getElementById(id+'_val').innerText = val; }
+  
+  function sendSettings() {
+    let freq = document.getElementById('freq').value;
+    let dur = document.getElementById('dur').value;
+    let thr = document.getElementById('thr').value;
+    let en = document.getElementById('haptics_en').checked ? '1' : '0';
+    let cs = document.getElementById('col_s').value.substring(1);
+    let cv = document.getElementById('col_v').value.substring(1);
+    let ct = document.getElementById('col_t').value.substring(1);
+    
+    let cmd = `SET:FREQ:${freq},DUR:${dur},THR:${thr},EN:${en},CS:${cs},CV:${cv},CT:${ct}`;
+    sendCommand(cmd);
+  }
+
+  function testHaptic() {
+    sendCommand("TEST:HAPTIC");
+  }
+
+  function setPreset(f, d) {
+    document.getElementById('freq').value = f;
+    document.getElementById('dur').value = d;
+    updateVal('freq', f);
+    updateVal('dur', d);
+    sendSettings();
+  }
+
+  document.getElementById('btnConnect').addEventListener('click', connectSerial);
+</script>
+</body>
+</html>
