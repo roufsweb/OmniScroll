@@ -375,9 +375,9 @@ let wheelCanvas, wheelCtx;
 // =====================================================
 // Web Serial
 // =====================================================
-// Espressif VID (0x303A) + default TinyUSB PID for CDC (0x1001)
-// This filter makes Chrome label the port "OmniScroll" in the picker
-const USB_FILTERS = [{ usbVendorId: 0x303A, usbProductId: 0x1001 }];
+// OmniScroll USB identity: Espressif VID (0x303A) + OmniScroll PID (0x4F53)
+// Filtering by VID+PID ensures the port picker only shows OmniScroll devices.
+const USB_FILTERS = [{ usbVendorId: 0x303A, usbProductId: 0x4F53 }];
 
 async function connectSerial() {
     if (connected) { handleDisconnect(); return; }

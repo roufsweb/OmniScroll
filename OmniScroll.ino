@@ -10,7 +10,25 @@
 #include <Preferences.h>
 #include "TouchController.h"
 
-// TinyUSB CDC Serial
+// =======================================================
+// USB Device Identity
+// MUST be declared before USBCDC and HID device globals.
+// C++ initializes globals in declaration order within the
+// same file, so this constructor runs before TinyUSB
+// processes any device registration — guaranteeing the
+// product name is set before the host enumerates the device.
+// =======================================================
+static const struct OmniScrollUSBIdentity {
+    OmniScrollUSBIdentity() {
+        USB.manufacturerName("OmniScroll");
+        USB.productName("OmniScroll");
+        USB.serialNumber("OMNI-001");
+        USB.VID(0x303A);   // Espressif Systems VID
+        USB.PID(0x4F53);   // 0x4F53 = 'OS' — OmniScroll
+    }
+} _usbIdentity;
+
+// TinyUSB CDC Serial (declared AFTER identity, so USB strings are already set)
 USBCDC USBSerial;
 #define Serial USBSerial
 
