@@ -4,7 +4,7 @@
 
 #include <Arduino.h>
 #include <USB.h>
-#include <USBHIDMouse.h>
+#include "OmniScrollHID.h"
 #include <USBHIDConsumerControl.h>
 #include <USBHIDKeyboard.h>
 #include <Preferences.h>
@@ -13,6 +13,8 @@
 // TinyUSB CDC Serial
 USBCDC USBSerial;
 #define Serial USBSerial
+
+OmniScrollHID Mouse;
 
 // -------------------------------------------------------
 // Pin Definitions
@@ -30,7 +32,6 @@ USBCDC USBSerial;
 // -------------------------------------------------------
 // HID & Peripherals
 // -------------------------------------------------------
-USBHIDMouse          Mouse;
 USBHIDConsumerControl ConsumerControl;
 USBHIDKeyboard       Keyboard;
 Preferences          prefs;
@@ -94,11 +95,10 @@ bool hapticPlaying    = false;
 // -------------------------------------------------------
 // LED State
 // -------------------------------------------------------
-// Software white-balance calibration (from fixed-ISO camera analysis)
-const float cal_R = 0.10f;
-const float cal_G = 0.08f;
-const float cal_B = 1.0f;
-
+// Software white-balance calibration (adjustable via Web Serial)
+float cal_R = 0.10f;
+float cal_G = 0.08f;
+float cal_B = 1.0f;
 float ledBrightness       = 1.0f; // 0.0–1.0 master dimmer
 unsigned long lastActivityTime = 0;
 int   idleDimMs           = 30000; // 0 = disabled
@@ -204,14 +204,20 @@ void playHapticClick() {
 // Mode Cycling
 // =======================================================
 void cycleMode() {
-    int start = currentModeIdx;
     do {
         currentModeIdx = (currentModeIdx + 1) % MAX_MODES;
-    } while (!modeList[currentModeIdx].enabled && currentModeIdx != start);
+    } while (!modeList[currentModeIdx].enabled);
+    
+    // Save the newly selected mode to survive power cycle
+    prefs.begin("omniscroll", false);
+    prefs.putInt("curMode", currentModeIdx);
+    prefs.end();
 
-    accumulationX = 0;
-    applyModeColor();
+    hapticPlaying = false;
+    noTone(HAPTIC_PIN);
     playHapticClick();
+    
+    applyModeColor();
     Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
 }
 
@@ -220,42 +226,49 @@ void cycleMode() {
 // NVS Persistence — Preferences
 // =======================================================
 void loadPrefs() {
-    prefs.begin("omni", false);
-
-    ledBrightness = prefs.getFloat("bri",  1.0f);
-    idleDimMs     = prefs.getInt("idle",   30000);
-    sensorCPI     = prefs.getUChar("cpi",  1);
-    long thr      = prefs.getLong("thr",   800);
-    touch.setThreshold(thr);
-
+    prefs.begin("omniscroll", false);
     for (int i = 0; i < MAX_MODES; i++) {
-        char key[14];
-        snprintf(key, sizeof(key), "m%d_r",   i); modeList[i].color[0]        = prefs.getUChar(key, modeList[i].color[0]);
-        snprintf(key, sizeof(key), "m%d_g",   i); modeList[i].color[1]        = prefs.getUChar(key, modeList[i].color[1]);
-        snprintf(key, sizeof(key), "m%d_b",   i); modeList[i].color[2]        = prefs.getUChar(key, modeList[i].color[2]);
-        snprintf(key, sizeof(key), "m%d_hp",  i); modeList[i].hapticProfile   = prefs.getUChar(key, modeList[i].hapticProfile);
-        snprintf(key, sizeof(key), "m%d_en",  i); modeList[i].enabled         = prefs.getBool(key,  modeList[i].enabled);
-        snprintf(key, sizeof(key), "m%d_inv", i); modeList[i].invertDirection  = prefs.getBool(key,  modeList[i].invertDirection);
-        snprintf(key, sizeof(key), "m%d_thr", i); modeList[i].threshold       = prefs.getInt(key,   modeList[i].threshold);
+        String base = "m" + String(i);
+        if (prefs.isKey((base + "e").c_str())) {
+            modeList[i].enabled = prefs.getBool((base + "e").c_str());
+            modeList[i].color[0] = prefs.getUChar((base + "r").c_str());
+            modeList[i].color[1] = prefs.getUChar((base + "g").c_str());
+            modeList[i].color[2] = prefs.getUChar((base + "b").c_str());
+            modeList[i].hapticProfile = prefs.getUChar((base + "h").c_str());
+            modeList[i].invertDirection = prefs.getBool((base + "i").c_str());
+            modeList[i].threshold = prefs.getInt((base + "t").c_str());
+        }
     }
+    // Load global RGB calibration
+    if (prefs.isKey("cal_R")) cal_R = prefs.getFloat("cal_R", 0.10f);
+    if (prefs.isKey("cal_G")) cal_G = prefs.getFloat("cal_G", 0.08f);
+    if (prefs.isKey("cal_B")) cal_B = prefs.getFloat("cal_B", 1.0f);
+    
+    // Load last active mode
+    if (prefs.isKey("curMode")) {
+        currentModeIdx = prefs.getInt("curMode", 0);
+        if (currentModeIdx >= MAX_MODES || !modeList[currentModeIdx].enabled) currentModeIdx = 0;
+    }
+    prefs.end();
 }
 
 void savePrefs() {
-    prefs.putFloat("bri",  ledBrightness);
-    prefs.putInt("idle",   idleDimMs);
-    prefs.putUChar("cpi",  sensorCPI);
-    prefs.putLong("thr",   touch.getThreshold());
-
+    prefs.begin("omniscroll", false);
     for (int i = 0; i < MAX_MODES; i++) {
-        char key[14];
-        snprintf(key, sizeof(key), "m%d_r",   i); prefs.putUChar(key, modeList[i].color[0]);
-        snprintf(key, sizeof(key), "m%d_g",   i); prefs.putUChar(key, modeList[i].color[1]);
-        snprintf(key, sizeof(key), "m%d_b",   i); prefs.putUChar(key, modeList[i].color[2]);
-        snprintf(key, sizeof(key), "m%d_hp",  i); prefs.putUChar(key, modeList[i].hapticProfile);
-        snprintf(key, sizeof(key), "m%d_en",  i); prefs.putBool(key,  modeList[i].enabled);
-        snprintf(key, sizeof(key), "m%d_inv", i); prefs.putBool(key,  modeList[i].invertDirection);
-        snprintf(key, sizeof(key), "m%d_thr", i); prefs.putInt(key,   modeList[i].threshold);
+        String base = "m" + String(i);
+        prefs.putBool((base + "e").c_str(), modeList[i].enabled);
+        prefs.putUChar((base + "r").c_str(), modeList[i].color[0]);
+        prefs.putUChar((base + "g").c_str(), modeList[i].color[1]);
+        prefs.putUChar((base + "b").c_str(), modeList[i].color[2]);
+        prefs.putUChar((base + "h").c_str(), modeList[i].hapticProfile);
+        prefs.putBool((base + "i").c_str(), modeList[i].invertDirection);
+        prefs.putInt((base + "t").c_str(), modeList[i].threshold);
     }
+    prefs.putFloat("cal_R", cal_R);
+    prefs.putFloat("cal_G", cal_G);
+    prefs.putFloat("cal_B", cal_B);
+    prefs.putInt("curMode", currentModeIdx);
+    prefs.end();
 }
 
 
@@ -263,10 +276,15 @@ void savePrefs() {
 // Mode Action Dispatch
 // =======================================================
 void dispatchAction(int dir) {
+    if (modeList[currentModeIdx].invertDirection) {
+        dir = -dir;
+    }
+
     const char* n = modeList[currentModeIdx].name;
 
     if      (strcmp(n, "SCROLL") == 0) {
-        Mouse.move(0, 0, -dir);
+        // High-resolution scroll: sending larger values provides smoother gliding on supported OS
+        Mouse.scroll(-dir * 20); 
     }
     else if (strcmp(n, "VOLUME") == 0) {
         ConsumerControl.press(dir > 0 ? CONSUMER_CONTROL_VOLUME_INCREMENT : CONSUMER_CONTROL_VOLUME_DECREMENT);
@@ -278,11 +296,11 @@ void dispatchAction(int dir) {
     }
     else if (strcmp(n, "ZOOM") == 0) {
         Keyboard.press(KEY_LEFT_CTRL);
-        Mouse.move(0, 0, dir);
+        Mouse.scroll(dir * 20);
         delay(2); Keyboard.releaseAll();
     }
     else if (strcmp(n, "H_SCROLL") == 0) {
-        Mouse.move(0, 0, 0, dir); // 4th axis = horizontal wheel
+        Mouse.hScroll(dir); // Horizontal scroll
     }
     else if (strcmp(n, "BRIGHTNESS") == 0) {
         // HID Usage 0x006F = Brightness Up, 0x0070 = Brightness Down
@@ -323,6 +341,9 @@ void buildConfigJSON(String& out) {
     out += ",\"idle\":" + String(idleDimMs / 1000);
     out += ",\"cpi\":"  + String(sensorCPI);
     out += ",\"thr\":"  + String(touch.getThreshold());
+    out += ",\"cal_r\":" + String(cal_R, 3);
+    out += ",\"cal_g\":" + String(cal_G, 3);
+    out += ",\"cal_b\":" + String(cal_B, 3);
     out += ",\"modes\":[";
     for (int i = 0; i < MAX_MODES; i++) {
         if (i > 0) out += ",";

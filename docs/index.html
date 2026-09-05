@@ -282,10 +282,33 @@
         <div class="card-title">Global Settings</div>
 
         <div class="row">
-            <span class="row-label">LED Brightness</span>
+            <span class="row-label">LED Master Brightness</span>
             <span class="row-val" id="bri_val">100%</span>
         </div>
         <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()">
+
+        <!-- RGB White Balance Calibration -->
+        <div style="margin-top:12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+            <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 8px; text-transform: uppercase;">Hardware White Balance</div>
+            
+            <div class="row" style="font-size: 11px;">
+                <span style="color: #ff4757;">Red</span>
+                <span class="row-val" id="cal_r_val">10.0%</span>
+            </div>
+            <input type="range" id="cal_r" min="0" max="1000" value="100" oninput="onCalInput('r')">
+            
+            <div class="row" style="font-size: 11px; margin-top: 4px;">
+                <span style="color: #2ed573;">Green</span>
+                <span class="row-val" id="cal_g_val">8.0%</span>
+            </div>
+            <input type="range" id="cal_g" min="0" max="1000" value="80" oninput="onCalInput('g')">
+            
+            <div class="row" style="font-size: 11px; margin-top: 4px;">
+                <span style="color: #1e90ff;">Blue</span>
+                <span class="row-val" id="cal_b_val">100.0%</span>
+            </div>
+            <input type="range" id="cal_b" min="0" max="1000" value="1000" oninput="onCalInput('b')">
+        </div>
 
         <div class="row" style="margin-top:8px;">
             <span class="row-label">Idle Dim Timeout</span>
@@ -487,6 +510,17 @@ function applyConfigToUI() {
     document.getElementById('bri_val').textContent  = config.bri + '%';
     document.getElementById('idle_val').textContent = config.idle + 's';
     document.getElementById('thr_val').textContent  = config.thr;
+    
+    // Set calibration sliders (firmware uses 0.0-1.0 float, UI uses 0-1000)
+    if (config.cal_r !== undefined) {
+        document.getElementById('cal_r').value = Math.round(config.cal_r * 1000);
+        document.getElementById('cal_r_val').textContent = (config.cal_r * 100).toFixed(1) + '%';
+        document.getElementById('cal_g').value = Math.round(config.cal_g * 1000);
+        document.getElementById('cal_g_val').textContent = (config.cal_g * 100).toFixed(1) + '%';
+        document.getElementById('cal_b').value = Math.round(config.cal_b * 1000);
+        document.getElementById('cal_b_val').textContent = (config.cal_b * 100).toFixed(1) + '%';
+    }
+
     config.cpi = config.cpi || 1;
     renderCPIButtons();
     renderHapticProfiles(config.modes[0]?.hp ?? 0); // will be per-mode in mode rows
@@ -577,6 +611,11 @@ function onInvChange(idx) {
 function onBriInput() {
     document.getElementById('bri_val').textContent = document.getElementById('bri').value + '%';
     sendGlobal();
+}
+function onCalInput(channel) {
+    const v = document.getElementById('cal_' + channel).value;
+    document.getElementById('cal_' + channel + '_val').textContent = (v / 10).toFixed(1) + '%';
+    sendCommand(`SET:CAL:${channel.toUpperCase()}:${(v / 1000).toFixed(3)}`);
 }
 function onIdleInput() {
     const v = document.getElementById('idle').value;
