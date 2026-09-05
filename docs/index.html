@@ -664,7 +664,7 @@ function drawWheel(canvas, brightness) {
     ctx.putImageData(imageData, 0, 0);
 
     // Draw selection dot
-    const selAngle = selectedH * 2 * Math.PI - Math.PI;
+    const selAngle = selectedH * 2 * Math.PI;
     const selDist  = selectedS * r;
     const px = cx + selDist * Math.cos(selAngle);
     const py = cy + selDist * Math.sin(selAngle);
@@ -714,63 +714,71 @@ function rgbToHsv(r, g, b) {
     r /= 255; g /= 255; b /= 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const d = max - min;
-    let h = 0, s = max === 0 ? 0 : d / max, v = max;
+    let h = 0, s = (max === 0 ? 0 : d / max), v = max;
     if (max !== min) {
         switch (max) {
-            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-            case g: h = ((b - r) / d + 2) / 6; break;
-            case b: h = ((r - g) / d + 4) / 6; break;
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
         }
+        h /= 6;
     }
     return [h, s, v * 100];
+}
+
+function openColorModal(idx) {
+    colorModalTargetMode = idx;
+    const m = config.modes[idx];
+    if (m && m.c) {
+        const [r, g, b] = hexToRgb(m.c);
+        const [h, s, v] = rgbToHsv(r, g, b);
+        selectedH = h; selectedS = s; selectedV = v;
+        document.getElementById('briWheel').value = Math.round(v);
+        document.getElementById('hexInput').value = '#' + m.c;
+    }
+    document.getElementById('colorModalTitle').textContent = `Color: ${m.name}`;
+    document.getElementById('colorModal').classList.add('open');
+    updateColorPreview();
+
+    // Init canvas size
+    wheelCanvas = document.getElementById('colorWheel');
+    wheelCtx = wheelCanvas.getContext('2d');
+    
+    // Add touch and mouse event listeners
+    let isDragging = false;
+    wheelCanvas.onmousedown = (e) => { isDragging = true; handleColorInteract(e); };
+    wheelCanvas.onmousemove = (e) => { if (isDragging) handleColorInteract(e); };
+    window.onmouseup = () => { isDragging = false; };
+    
+    wheelCanvas.ontouchstart = (e) => { isDragging = true; handleColorInteract(e); };
+    wheelCanvas.ontouchmove = (e) => { if (isDragging) handleColorInteract(e); };
+    window.ontouchend = () => { isDragging = false; };
 }
 
 function updateColorPreview() {
     const bri = parseInt(document.getElementById('briWheel').value);
     const [r, g, b] = hsvToRgb(selectedH, selectedS, bri / 100);
-    const hex = '#' + rgbToHex(r, g, b);
-    document.getElementById('colorPreview').style.background = hex;
-    document.getElementById('hexInput').value = hex;
+    const hex = rgbToHex(r, g, b);
+    document.getElementById('colorPreview').style.background = '#' + hex;
+    document.getElementById('hexInput').value = '#' + hex;
     drawWheel(document.getElementById('colorWheel'), bri);
+    
+    // Live preview! Avoid sending NVS save by using PREVIEW: prefix
+    if (colorModalTargetMode >= 0) {
+        sendCommand(`PREVIEW:MODE:${colorModalTargetMode},CS:${hex}`);
+    }
 }
 
-function openColorModal(modeIdx) {
-    colorModalTargetMode = modeIdx;
-    const m = config.modes[modeIdx];
-    document.getElementById('colorModalTitle').textContent = 'Color — ' + m.name;
-
-    // Parse current color
-    const [r, g, b] = hexToRgb(m.c || '0000ff');
-    const [h, s, v] = rgbToHsv(r, g, b);
-    selectedH = h; selectedS = s; selectedV = v;
-    document.getElementById('briWheel').value = Math.round(v);
-
-    document.getElementById('colorModal').classList.add('open');
-    updateColorPreview();
-
-    // Attach wheel click/drag
-    const canvas = document.getElementById('colorWheel');
-    canvas.onmousedown = canvas.ontouchstart = wheelDown;
-}
-
-function wheelDown(e) {
-    pickFromWheel(e);
-    const canvas = document.getElementById('colorWheel');
-    canvas.onmousemove = pickFromWheel;
-    document.onmouseup = () => { canvas.onmousemove = null; document.onmouseup = null; };
-}
-
-function pickFromWheel(e) {
-    const canvas = document.getElementById('colorWheel');
-    const rect   = canvas.getBoundingClientRect();
-    const cx = canvas.width / 2, cy = canvas.height / 2;
+function handleColorInteract(e) {
+    const rect = wheelCanvas.getBoundingClientRect();
+    const cx = wheelCanvas.width / 2, cy = wheelCanvas.height / 2;
     const r  = cx - 4;
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-    const scaleX = canvas.width  / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const scaleX = wheelCanvas.width  / rect.width;
+    const scaleY = wheelCanvas.height / rect.height;
     const dx = (clientX - rect.left) * scaleX - cx;
     const dy = (clientY - rect.top)  * scaleY - cy;
     const dist = Math.min(Math.sqrt(dx*dx + dy*dy), r);
@@ -795,6 +803,9 @@ function onHexInput() {
     document.getElementById('briWheel').value = Math.round(v);
     document.getElementById('colorPreview').style.background = val;
     drawWheel(document.getElementById('colorWheel'), Math.round(v));
+    if (colorModalTargetMode >= 0) {
+        sendCommand(`PREVIEW:MODE:${colorModalTargetMode},CS:${val.replace('#','')}`);
+    }
 }
 
 function closeColorModal() {
@@ -810,6 +821,8 @@ function confirmColor() {
 
     config.modes[colorModalTargetMode].c = hex;
     document.getElementById('swatch_' + colorModalTargetMode).style.background = '#' + hex;
+    
+    // Actually save this time
     sendModeConfig(colorModalTargetMode);
     closeColorModal();
 }

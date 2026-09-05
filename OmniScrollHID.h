@@ -5,8 +5,7 @@
 #include <USBHID.h>
 
 // Report IDs
-#define REPORT_ID_MOUSE 1
-#define REPORT_ID_MULTIPLIER 2
+#define REPORT_ID_MULTIPLIER 10
 
 extern const uint8_t desc_hid_omni[];
 

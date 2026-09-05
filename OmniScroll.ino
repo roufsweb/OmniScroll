@@ -381,11 +381,16 @@ void parseSerialCommand(String& cmd) {
         noTone(HAPTIC_PIN);
         playHapticClick();
     }
-    else if (cmd.startsWith("SET:")) {
+    else if (cmd.startsWith("SET:CAL:R:")) { cal_R = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
+    else if (cmd.startsWith("SET:CAL:G:")) { cal_G = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
+    else if (cmd.startsWith("SET:CAL:B:")) { cal_B = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
+    else if (cmd.startsWith("SET:") || cmd.startsWith("PREVIEW:")) {
         // Global settings:  SET:BRI:80,IDLE:30,CPI:1,THR:800
         // Per-mode settings: SET:MODE:0,EN:1,CS:0000ff,HP:0,INV:0,MTHR:10
         // Both can be in a single SET: command separated by commas.
-        String params = cmd.substring(4);
+        
+        bool isPreview = cmd.startsWith("PREVIEW:");
+        String params = cmd.substring(isPreview ? 8 : 4);
         int modeTarget = -1;
         int nextComma  = -1;
 
@@ -426,12 +431,13 @@ void parseSerialCommand(String& cmd) {
             if (nextComma != -1) params = params.substring(nextComma + 1);
         } while (nextComma != -1);
 
-        savePrefs();
-
-        // Confirm with a click
-        hapticPlaying = false;
-        noTone(HAPTIC_PIN);
-        playHapticClick();
+        if (!isPreview) {
+            savePrefs();
+            // Confirm with a click
+            hapticPlaying = false;
+            noTone(HAPTIC_PIN);
+            playHapticClick();
+        }
     }
 }
 

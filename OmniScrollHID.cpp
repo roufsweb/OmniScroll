@@ -7,7 +7,7 @@ const uint8_t desc_hid_omni[] = {
   HID_COLLECTION(HID_COLLECTION_APPLICATION),
     
     // Mouse Report
-    HID_REPORT_ID(REPORT_ID_MOUSE)
+    HID_REPORT_ID(HID_REPORT_ID_MOUSE)
     HID_USAGE(HID_USAGE_DESKTOP_POINTER),
     HID_COLLECTION(HID_COLLECTION_PHYSICAL),
       
@@ -111,7 +111,7 @@ void OmniScrollHID::scroll(int16_t amount) {
     report.wheel = amount;
     report.pan = 0;
     
-    hid.SendReport(REPORT_ID_MOUSE, &report, sizeof(report));
+    hid.SendReport(HID_REPORT_ID_MOUSE, &report, sizeof(report));
 }
 
 void OmniScrollHID::hScroll(int8_t amount) {
@@ -122,5 +122,5 @@ void OmniScrollHID::hScroll(int8_t amount) {
     report.wheel = 0;
     report.pan = amount;
     
-    hid.SendReport(REPORT_ID_MOUSE, &report, sizeof(report));
+    hid.SendReport(HID_REPORT_ID_MOUSE, &report, sizeof(report));
 }
