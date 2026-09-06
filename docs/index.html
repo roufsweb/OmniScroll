@@ -299,8 +299,8 @@
             transition: background 0.3s ease, opacity 0.3s ease;
         }
 
-        /* ---- Curved Rotation Arrows ---- */
-        .device-rotation-arrows {
+        /* ---- Apple-Inspired Precision Rotary Crown Dial ---- */
+        .apple-rotary-dial {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
@@ -308,44 +308,116 @@
             z-index: 10;
         }
 
-        .rotation-arrow-group {
-            opacity: 0;
-            transform-origin: 668px 300px;
-            transform: scale(0.98);
-            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .rotation-arrow-group.active {
-            opacity: 1;
-            transform: scale(1);
-            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.55)) drop-shadow(0 0 20px rgba(94, 234, 212, 0.35));
-        }
-
-        .arrow-arc {
+        .dial-rim-guide {
             fill: none;
-            stroke: url(#soothingArrowGrad);
-            stroke-width: 16;
+            stroke: rgba(255, 255, 255, 0.09);
+            stroke-width: 1.5;
+            stroke-dasharray: 4 6;
+        }
+
+        .dial-ticks-group {
+            transform-origin: 668px 300px;
+            transform: scaleY(0.495) rotate(var(--dial-angle, 0deg));
+            will-change: transform;
+            transition: transform 0.08s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+        }
+
+        .dial-tick {
+            stroke: rgba(255, 255, 255, 0.22);
+            stroke-width: 1.6;
             stroke-linecap: round;
-            stroke-linejoin: round;
-            stroke-dasharray: 46 22;
+            transition: stroke 0.2s ease, filter 0.2s ease;
         }
 
-        .rotation-arrow-group.active.spin-cw .arrow-arc {
-            animation: flowCW 0.85s linear infinite;
+        .dial-tick.med {
+            stroke: rgba(255, 255, 255, 0.38);
+            stroke-width: 2.0;
         }
 
-        .rotation-arrow-group.active.spin-ccw .arrow-arc {
-            animation: flowCCW 0.85s linear infinite;
+        .dial-tick.major {
+            stroke: rgba(255, 255, 255, 0.7);
+            stroke-width: 2.8;
         }
 
-        @keyframes flowCW {
-            from { stroke-dashoffset: 136; }
-            to { stroke-dashoffset: 0; }
+        .real-device-wrapper.spinning .dial-tick {
+            stroke: rgba(255, 255, 255, 0.65);
+            filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.4));
         }
 
-        @keyframes flowCCW {
-            from { stroke-dashoffset: 0; }
-            to { stroke-dashoffset: 136; }
+        .real-device-wrapper.spinning .dial-tick.major {
+            stroke: #ffffff;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+        }
+
+        /* ---- Apple watchOS Digital Crown Floating Track ---- */
+        .apple-crown-track {
+            position: absolute;
+            right: 14px;
+            top: 18%;
+            height: 64%;
+            width: 5px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: 15;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            opacity: 0;
+            transform: translateX(4px) scaleY(0.9);
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .apple-crown-track.active {
+            opacity: 1;
+            transform: translateX(0) scaleY(1);
+        }
+
+        .apple-crown-indicator {
+            position: absolute;
+            top: 50%;
+            left: -2px;
+            width: 9px;
+            height: 28px;
+            margin-top: -14px;
+            background: linear-gradient(180deg, #ffffff 0%, rgba(240, 240, 245, 0.9) 100%);
+            border-radius: 9999px;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.75), 0 2px 8px rgba(0, 0, 0, 0.5);
+            transform: translateY(0);
+            transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+        }
+
+        /* ---- Apple Taptic Ultrasonic Ripple ---- */
+        .apple-taptic-ripple {
+            position: absolute;
+            left: 50.2%;
+            top: 24.2%;
+            width: 240px;
+            height: 120px;
+            margin-left: -120px;
+            margin-top: -60px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255, 255, 255, 0.7);
+            pointer-events: none;
+            z-index: 12;
+            opacity: 0;
+            transform: scale(0.6);
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.45));
+        }
+
+        .apple-taptic-ripple.pulse {
+            animation: appleRipple 0.38s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+        }
+
+        @keyframes appleRipple {
+            0% {
+                opacity: 0.8;
+                transform: scale(0.7);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.35);
+            }
         }
 
         .device-hint {
@@ -402,38 +474,21 @@
                 <!-- Precision-Mapped Slanted LED Diffuser Light -->
                 <div class="device-led-diffuser" id="deviceLedDiffuser"></div>
 
-                <!-- Two Symmetrical Curved Directional Rotation Arrows around the Metal Rim -->
-                <svg class="device-rotation-arrows" viewBox="0 0 1330 1240">
-                    <defs>
-                        <!-- Soothing Ethereal Sky-Teal Gradient -->
-                        <linearGradient id="soothingArrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#38bdf8" />
-                            <stop offset="50%" stop-color="#5eead4" />
-                            <stop offset="100%" stop-color="#38bdf8" />
-                        </linearGradient>
-
-                        <marker id="arrowHeadCW" markerWidth="11" markerHeight="11" refX="6.5" refY="5" orient="auto">
-                            <path d="M 1 1.5 L 8.5 5 L 1 8.5 Q 3.5 5 1 1.5 Z" fill="#38bdf8" />
-                        </marker>
-                        <marker id="arrowHeadCCW" markerWidth="11" markerHeight="11" refX="6.5" refY="5" orient="auto">
-                            <path d="M 1 1.5 L 8.5 5 L 1 8.5 Q 3.5 5 1 1.5 Z" fill="#38bdf8" />
-                        </marker>
-                    </defs>
-
-                    <!-- Clockwise Arrows (Right arc curves down, Left arc curves up) -->
-                    <g id="arrowsCW" class="rotation-arrow-group spin-cw">
-                        <path class="arrow-arc" d="M 1051 129 A 515 255 0 0 1 1051 471" marker-end="url(#arrowHeadCW)" />
-                        <path class="arrow-arc" d="M 285 471 A 515 255 0 0 1 285 129" marker-end="url(#arrowHeadCW)" />
-                    </g>
-
-                    <!-- Counter-Clockwise Arrows (Right arc curves up, Left arc curves down) -->
-                    <g id="arrowsCCW" class="rotation-arrow-group spin-ccw">
-                        <path class="arrow-arc" d="M 1051 471 A 515 255 0 0 0 1051 129" marker-end="url(#arrowHeadCCW)" />
-                        <path class="arrow-arc" d="M 285 129 A 515 255 0 0 0 285 471" marker-end="url(#arrowHeadCCW)" />
-                    </g>
+                <!-- Apple Precision Rotary Bezel: Razor-thin ticks rotating in 3D perspective -->
+                <svg class="apple-rotary-dial" id="appleRotaryDial" viewBox="0 0 1330 1240">
+                    <ellipse cx="668" cy="300" rx="515" ry="255" class="dial-rim-guide" />
+                    <g id="dialTicksGroup" class="dial-ticks-group"></g>
                 </svg>
+
+                <!-- Apple watchOS Digital Crown Floating Track -->
+                <div class="apple-crown-track" id="crownTrack">
+                    <div class="apple-crown-indicator" id="crownIndicator"></div>
+                </div>
+
+                <!-- Apple Taptic Ultrasonic Acoustic Ripple -->
+                <div class="apple-taptic-ripple" id="tapticRipple"></div>
             </div>
-            <div class="device-hint">Curved arrows indicate active scroll direction</div>
+            <div class="device-hint">Apple Precision Crown • Drag horizontally or turn physical knob</div>
         </div>
     </div>
 
@@ -453,15 +508,15 @@
             
             <div class="row" style="font-size: 11px;">
                 <span style="color: #ff4757;">Red Max</span>
-                <span class="row-val" id="cal_r_val">10.0%</span>
+                <span class="row-val" id="cal_r_val">100.0%</span>
             </div>
-            <input type="range" id="cal_r" min="0" max="1000" value="100" oninput="onCalInput('r')">
+            <input type="range" id="cal_r" min="0" max="1000" value="1000" oninput="onCalInput('r')">
             
             <div class="row" style="font-size: 11px; margin-top: 4px;">
                 <span style="color: #2ed573;">Green Max</span>
-                <span class="row-val" id="cal_g_val">8.0%</span>
+                <span class="row-val" id="cal_g_val">100.0%</span>
             </div>
-            <input type="range" id="cal_g" min="0" max="1000" value="80" oninput="onCalInput('g')">
+            <input type="range" id="cal_g" min="0" max="1000" value="1000" oninput="onCalInput('g')">
             
             <div class="row" style="font-size: 11px; margin-top: 4px;">
                 <span style="color: #1e90ff;">Blue Max</span>
@@ -612,28 +667,80 @@ async function startReading() {
 // =====================================================
 // Photorealistic Live Diffuser & Rotation Arrow Feedback
 // =====================================================
-let arrowTimeout = null;
+// =====================================================
+// Apple Precision Rotary Crown & Haptic Feedback
+// =====================================================
+let currentDialAngle = 0;
+let crownPillOffset = 0;
+let crownTimeout = null;
+let lastRippleTime = 0;
 
-function triggerRotationArrow(direction) {
-    const arrowsCW = document.getElementById('arrowsCW');
-    const arrowsCCW = document.getElementById('arrowsCCW');
-    if (!arrowsCW || !arrowsCCW) return;
+function initDialTicks() {
+    const group = document.getElementById('dialTicksGroup');
+    if (!group) return;
+    const cx = 668, cy = 300, rOut = 515;
+    const count = 72; // every 5 degrees
+    let svgHtml = '';
+    for (let i = 0; i < count; i++) {
+        const rad = (i * 5) * Math.PI / 180;
+        const isMajor = (i % 6 === 0);
+        const isMed = (i % 2 === 0);
+        const rIn = isMajor ? 474 : (isMed ? 490 : 502);
+        const cls = isMajor ? 'dial-tick major' : (isMed ? 'dial-tick med' : 'dial-tick');
+        const x1 = (cx + rIn * Math.cos(rad)).toFixed(1);
+        const y1 = (cy + rIn * Math.sin(rad)).toFixed(1);
+        const x2 = (cx + rOut * Math.cos(rad)).toFixed(1);
+        const y2 = (cy + rOut * Math.sin(rad)).toFixed(1);
+        svgHtml += `<line class="${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`;
+    }
+    group.innerHTML = svgHtml;
+}
 
-    if (direction > 0) {
-        // Clockwise rotation
-        arrowsCCW.classList.remove('active');
-        arrowsCW.classList.add('active');
-    } else if (direction < 0) {
-        // Counter-Clockwise rotation
-        arrowsCW.classList.remove('active');
-        arrowsCCW.classList.add('active');
+function triggerAppleCrown(delta) {
+    const wrap = document.getElementById('deviceVisualizer');
+    const track = document.getElementById('crownTrack');
+    const indicator = document.getElementById('crownIndicator');
+    const ripple = document.getElementById('tapticRipple');
+    if (!wrap) return;
+
+    // Smoothly rotate the precision dial in 3D perspective
+    currentDialAngle += delta * 3.6;
+    wrap.style.setProperty('--dial-angle', `${currentDialAngle}deg`);
+    wrap.classList.add('spinning');
+
+    // Apple watchOS Digital Crown Scrubber Pill feedback
+    if (track && indicator) {
+        track.classList.add('active');
+        crownPillOffset = Math.max(-26, Math.min(26, crownPillOffset + delta * 3.5));
+        indicator.style.transform = `translateY(${crownPillOffset}px) scale(1.15)`;
     }
 
-    clearTimeout(arrowTimeout);
-    arrowTimeout = setTimeout(() => {
-        arrowsCW.classList.remove('active');
-        arrowsCCW.classList.remove('active');
-    }, 600);
+    // Apple Taptic Ultrasonic Acoustic Ripple pulse
+    const now = performance.now();
+    if (ripple && (now - lastRippleTime > 75)) {
+        lastRippleTime = now;
+        ripple.classList.remove('pulse');
+        void ripple.offsetWidth; // force DOM reflow
+        ripple.classList.add('pulse');
+    }
+
+    clearTimeout(crownTimeout);
+    crownTimeout = setTimeout(() => {
+        wrap.classList.remove('spinning');
+        if (track && indicator) {
+            crownPillOffset = 0;
+            indicator.style.transform = `translateY(0) scale(1)`;
+            setTimeout(() => {
+                if (!wrap.classList.contains('spinning')) {
+                    track.classList.remove('active');
+                }
+            }, 550);
+        }
+    }, 400);
+}
+
+function triggerRotationArrow(delta) {
+    triggerAppleCrown(delta);
 }
 
 function updateLiveLedColor(hex) {
@@ -669,8 +776,7 @@ function handleDisconnect() {
 function handleScroll(dxStr) {
     const dx = parseInt(dxStr, 10);
     if (!isNaN(dx) && dx !== 0) {
-        // Trigger live curved arrow in the direction of movement
-        triggerRotationArrow(dx);
+        triggerAppleCrown(dx);
     }
 }
 
@@ -1067,7 +1173,8 @@ renderModeList();
 renderCPIButtons();
 renderHapticProfiles(0);
 
-// --- Initialize Visualizer ---
+// --- Initialize Visualizer & Precision Dial Ticks ---
+initDialTicks();
 const wrapEl = document.getElementById('deviceVisualizer');
 if (wrapEl) {
     let isDragging = false;
@@ -1080,8 +1187,8 @@ if (wrapEl) {
     window.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
         const dx = e.clientX - startX;
-        if (Math.abs(dx) > 2) {
-            triggerRotationArrow(dx);
+        if (Math.abs(dx) > 1) {
+            triggerAppleCrown(dx);
             startX = e.clientX;
         }
     });
@@ -1096,8 +1203,8 @@ if (wrapEl) {
     window.addEventListener('touchmove', (e) => {
         if (!isDragging || e.touches.length !== 1) return;
         const dx = e.touches[0].clientX - startX;
-        if (Math.abs(dx) > 2) {
-            triggerRotationArrow(dx);
+        if (Math.abs(dx) > 1) {
+            triggerAppleCrown(dx);
             startX = e.touches[0].clientX;
         }
     }, { passive: true });
@@ -1106,7 +1213,7 @@ if (wrapEl) {
     wrapEl.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 1 : -1;
-        triggerRotationArrow(delta);
+        triggerAppleCrown(delta * 2);
     }, { passive: false });
 }
 

@@ -195,18 +195,19 @@ void setLedColor(uint8_t r, uint8_t g, uint8_t b) {
     uint8_t gammaG = gamma8[g];
     uint8_t gammaB = gamma8[b];
 
-    // Apply hardware max-brightness calibration and UI master dim
-    uint8_t fR = (uint8_t)(gammaR * cal_R * ledBrightness * dim);
-    uint8_t fG = (uint8_t)(gammaG * cal_G * ledBrightness * dim);
-    uint8_t fB = (uint8_t)(gammaB * cal_B * ledBrightness * dim);
+    // Apply hardware max-brightness calibration (default 1.0 = 100% max PWM) and UI master dim
+    uint32_t fR = (uint32_t)constrain((int)(gammaR * cal_R * ledBrightness * dim), 0, 255);
+    uint32_t fG = (uint32_t)constrain((int)(gammaG * cal_G * ledBrightness * dim), 0, 255);
+    uint32_t fB = (uint32_t)constrain((int)(gammaB * cal_B * ledBrightness * dim), 0, 255);
+
     if (COMMON_ANODE) {
-        if (fR == 0) digitalWrite(LED_R_PIN, HIGH); else analogWrite(LED_R_PIN, 255 - fR);
-        if (fG == 0) digitalWrite(LED_G_PIN, HIGH); else analogWrite(LED_G_PIN, 255 - fG);
-        if (fB == 0) digitalWrite(LED_B_PIN, HIGH); else analogWrite(LED_B_PIN, 255 - fB);
+        ledcWrite(LED_R_PIN, 255 - fR);
+        ledcWrite(LED_G_PIN, 255 - fG);
+        ledcWrite(LED_B_PIN, 255 - fB);
     } else {
-        if (fR == 0) digitalWrite(LED_R_PIN, LOW); else analogWrite(LED_R_PIN, fR);
-        if (fG == 0) digitalWrite(LED_G_PIN, LOW); else analogWrite(LED_G_PIN, fG);
-        if (fB == 0) digitalWrite(LED_B_PIN, LOW); else analogWrite(LED_B_PIN, fB);
+        ledcWrite(LED_R_PIN, fR);
+        ledcWrite(LED_G_PIN, fG);
+        ledcWrite(LED_B_PIN, fB);
     }
 }
 
@@ -270,15 +271,21 @@ void loadPrefs() {
             modeList[i].threshold = prefs.getInt((base + "t").c_str());
         }
     }
-    // Load global RGB calibration
-    if (prefs.isKey("cal_R")) cal_R = prefs.getFloat("cal_R", 1.0f);
-    if (prefs.isKey("cal_G")) cal_G = prefs.getFloat("cal_G", 1.0f);
-    if (prefs.isKey("cal_B")) cal_B = prefs.getFloat("cal_B", 1.0f);
-    
-    // Safety check: if old dark calibration values were saved, reset them to full brightness
-    if (cal_R < 0.2f) cal_R = 1.0f;
-    if (cal_G < 0.2f) cal_G = 1.0f;
-    if (cal_B < 0.2f) cal_B = 1.0f;
+    // Load global RGB calibration (defaulting to 1.0f = 100% max PWM)
+    if (prefs.isKey("cal_max_v1")) {
+        cal_R = prefs.getFloat("cal_R", 1.0f);
+        cal_G = prefs.getFloat("cal_G", 1.0f);
+        cal_B = prefs.getFloat("cal_B", 1.0f);
+    } else {
+        // Reset legacy dimmed calibrations to full max PWM
+        cal_R = 1.0f;
+        cal_G = 1.0f;
+        cal_B = 1.0f;
+        prefs.putFloat("cal_R", 1.0f);
+        prefs.putFloat("cal_G", 1.0f);
+        prefs.putFloat("cal_B", 1.0f);
+        prefs.putBool("cal_max_v1", true);
+    }
     
     // Load last active mode
     if (prefs.isKey("curMode")) {
@@ -303,6 +310,7 @@ void savePrefs() {
     prefs.putFloat("cal_R", cal_R);
     prefs.putFloat("cal_G", cal_G);
     prefs.putFloat("cal_B", cal_B);
+    prefs.putBool("cal_max_v1", true);
     prefs.putInt("curMode", currentModeIdx);
     prefs.end();
 }
@@ -534,13 +542,15 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(SCLK_PIN,   OUTPUT);
     
-    pinMode(LED_R_PIN, OUTPUT);
-    pinMode(LED_G_PIN, OUTPUT);
-    pinMode(LED_B_PIN, OUTPUT);
+    // Initialize hardware LEDC PWM for all 3 RGB LED channels
+    // 5000 Hz, 8-bit resolution (0-255) for smooth, flicker-free max PWM
+    ledcAttach(LED_R_PIN, 5000, 8);
+    ledcAttach(LED_G_PIN, 5000, 8);
+    ledcAttach(LED_B_PIN, 5000, 8);
+    ledcWrite(LED_R_PIN, 0);
+    ledcWrite(LED_G_PIN, 0);
+    ledcWrite(LED_B_PIN, 0);
     digitalWrite(SCLK_PIN, HIGH);
-    pinMode(LED_R_PIN, OUTPUT);
-    pinMode(LED_G_PIN, OUTPUT);
-    pinMode(LED_B_PIN, OUTPUT);
 
     // Load all persistent settings from NVS
     loadPrefs();
@@ -584,6 +594,7 @@ void loop() {
     if (inLockout) { touch.reset(); } else { touch.update(); }
 
     if (touch.isDoubleTapped()) {
+        if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
         cycleMode();
         lastActivityTime = millis();
     }
@@ -591,6 +602,7 @@ void loop() {
     if (touch.isLongPressed()) {
         // Long press = mode cycle in reverse (wraps around)
         // Future: assignable action via Web UI
+        if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
         Serial.println("LONGPRESS");
         lastActivityTime = millis();
     }
@@ -602,6 +614,7 @@ void loop() {
         if (reading != buttonState) {
             buttonState = reading;
             if (buttonState == LOW) {
+                if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
                 cycleMode();
                 lastActivityTime = millis();
             }
@@ -614,8 +627,10 @@ void loop() {
     if (motion & 0x80) {
         int8_t dx = (int8_t)mx8650_read(0x03);
         if (dx != 0) {
+            if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
             accumulationX += dx;
             lastScrollTime = millis();
+            lastActivityTime = millis();
             isScrolling = true; // Mark that a scroll session is active
             
             // Broadcast live scroll data for Web UI visual knob

@@ -58,8 +58,8 @@ CONFIG:{
   "idle": 30,
   "cpi": 1,
   "thr": 800,
-  "cal_r": 0.100,
-  "cal_g": 0.080,
+  "cal_r": 1.000,
+  "cal_g": 1.000,
   "cal_b": 1.000,
   "modes": [
     {"name":"SCROLL","en":1,"c":"0000ff","hp":0,"inv":0,"thr":10},
@@ -70,4 +70,4 @@ CONFIG:{
 
 ### Async Notifications
 * `MODE:<ModeName>` - Broadcast automatically when the user physically switches modes via capacitive double-tap or the physical hardware button. The web UI uses this to instantly highlight the active mode.
-* `SCROLL:<delta>` - Broadcast in real time when the optical wheel rotates. The web control panel uses this to smoothly animate the physical 3D cylindrical metal rim live.
+* `SCROLL:<delta>` - Broadcast in real time when the optical wheel rotates. The web control panel uses this to smoothly animate the Apple-inspired precision rotary dial and watchOS Digital Crown haptic track live.
