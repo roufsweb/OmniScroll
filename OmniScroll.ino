@@ -634,7 +634,7 @@ void loop() {
     // --- Optical sensor ---
     uint8_t motion = mx8650_read(0x02);
     if (motion & 0x80) {
-        int8_t dx = (int8_t)mx8650_read(0x03);
+        int8_t dx = -(int8_t)mx8650_read(0x03); // Invert sensor orientation: clockwise rotation = positive
         if (dx != 0) {
             if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
             accumulationX += dx;
