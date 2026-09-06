@@ -178,9 +178,11 @@ uint16_t OmniScrollHID::_onGetFeature(uint8_t report_id, uint8_t *buffer, uint16
         if (len > 0) buffer[0] = 2; // We support 2 contacts for panning
         return 1;
     } else if (report_id == REPORT_ID_PTP_HQA) {
-        // Windows expects a 256 byte blob. We just return all zeros (blank certification).
-        memset(buffer, 0, min(len, (uint16_t)256));
-        return min(len, (uint16_t)256);
+        // Windows expects a 256 byte blob for certification.
+        // We MUST NOT write 256 bytes into the buffer because TinyUSB's Control Endpoint
+        // buffer (EP0) is typically only 64 bytes. Writing 256 bytes causes a heap overflow and kernel panic!
+        // Returning 0 safely stalls the request. Windows will just treat it as an uncertified PTP.
+        return 0;
     }
     return 0;
 }
