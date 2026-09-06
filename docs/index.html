@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniScroll Core</title>
-    <meta name="description" content="Browser-based configurator for OmniScroll. No app required — configure over USB.">
+    <title>OmniScroll Control</title>
+    <meta name="description" content="Browser-based control panel for OmniScroll. No app required — configure over USB.">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -24,23 +26,39 @@
             font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
             -webkit-font-smoothing: antialiased;
         }
 
         /* ---- Header ---- */
         header {
-            position: sticky; top: 0; z-index: 200;
+            position: relative; z-index: 200;
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 28px;
             height: 56px;
-            background: rgba(20, 20, 23, 0.85);
-            backdrop-filter: blur(12px);
+            background: rgba(20, 20, 23, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
 
-        .logo { font-size: 15px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+        .logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
         .logo em { color: var(--accent); font-style: normal; }
+        .logo-badge {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
 
         .conn-btn {
             display: flex; align-items: center; gap: 8px;
@@ -402,12 +420,124 @@
             }
         }
 
-        .device-hint {
-            margin-top: 10px;
-            font-size: 11px;
+        /* ---- App Scroll Container (Hides native scrollbar, scroll controlled via side slider) ---- */
+        .app-scroll-container {
+            flex: 1;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-behavior: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+            position: relative;
+        }
+        .app-scroll-container::-webkit-scrollbar {
+            display: none; /* WebKit */
+        }
+
+        /* ---- Precision Side Scroll Slider Rail ---- */
+        .side-scroll-rail {
+            position: fixed;
+            right: 14px;
+            top: 112px;
+            bottom: 24px;
+            width: 28px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(20, 20, 23, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 8px 4px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            user-select: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .side-scroll-rail.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(10px);
+        }
+
+        .rail-step-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
             color: var(--muted);
-            letter-spacing: 0.3px;
-            text-align: center;
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 0;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+        .rail-step-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .rail-step-btn:active {
+            transform: scale(0.92);
+        }
+
+        .rail-track {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            cursor: pointer;
+            margin: 8px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .rail-track-groove {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 2px;
+        }
+
+        .rail-thumb {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            min-height: 28px;
+            background: linear-gradient(180deg, #2a2a30 0%, #1c1c20 100%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .rail-thumb:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.35);
+        }
+
+        .rail-thumb.dragging {
+            cursor: grabbing;
+            border-color: var(--accent);
+            box-shadow: 0 0 14px rgba(0, 212, 255, 0.55);
+            background: #25252b;
+        }
+
+        .rail-thumb-grip {
+            width: 8px;
+            height: 4px;
+            border-top: 1.5px solid rgba(255, 255, 255, 0.4);
+            border-bottom: 1.5px solid rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
@@ -415,7 +545,7 @@
 
 <!-- Header -->
 <header>
-    <div class="logo">Omni<em>Scroll</em></div>
+    <div class="logo">Omni<em>Scroll</em> <span class="logo-badge">Control</span></div>
     <button class="conn-btn" id="connBtn">
         <div class="status-dot"></div>
         <span id="connText">Connect Device</span>
@@ -431,7 +561,8 @@
     </div>
 </div>
 
-<!-- Main Content -->
+<!-- Main Scroll Container -->
+<div class="app-scroll-container" id="appScrollContainer">
 <main>
 
     <!-- Haptic Engine -->
@@ -442,13 +573,16 @@
             <!-- filled by JS -->
         </div>
 
-        <button class="btn full" id="testHapticBtn" style="margin-top:16px;">Fire Test Click</button>
+        <button class="btn full" id="testHapticBtn" style="margin-top:16px;">Test Haptic Pulse</button>
 
         <!-- Photorealistic Real Device Visualizer -->
         <div class="real-device-container">
-            <div class="real-device-wrapper" id="deviceVisualizer" title="Drag horizontally or use mouse wheel to spin">
-                <!-- Base Hardware: Transparent PNG with clean frosted diffuser slot -->
-                <img src="omniscroll_neutral.png" class="device-base-img" alt="OmniScroll Hardware">
+            <div class="real-device-wrapper" id="deviceVisualizer">
+                <!-- Base Hardware: High-speed optimized WebP with PNG fallback -->
+                <picture>
+                    <source srcset="omniscroll_neutral.webp" type="image/webp">
+                    <img src="omniscroll_neutral.png" class="device-base-img" alt="OmniScroll Hardware" loading="eager">
+                </picture>
                 
                 <!-- Optical LED Bloom behind/around the bezel -->
                 <div class="device-led-bloom" id="deviceLedBloom"></div>
@@ -471,7 +605,6 @@
                 <!-- Apple Taptic Ultrasonic Acoustic Ripple -->
                 <div class="apple-taptic-ripple" id="tapticRipple"></div>
             </div>
-            <div class="device-hint">Apple Precision Dial • Drag or spin physical wheel</div>
         </div>
     </div>
 
@@ -549,6 +682,27 @@
     </div>
 
 </main>
+</div>
+
+<!-- Precision Side Scroll Slider Rail -->
+<aside class="side-scroll-rail" id="sideScrollRail" aria-label="Page Navigation Slider">
+    <button class="rail-step-btn up" id="railStepUp" title="Scroll Up" aria-label="Scroll Up">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+    <div class="rail-track" id="railTrack">
+        <div class="rail-track-groove"></div>
+        <div class="rail-thumb" id="railThumb">
+            <div class="rail-thumb-grip"></div>
+        </div>
+    </div>
+    <button class="rail-step-btn down" id="railStepDown" title="Scroll Down" aria-label="Scroll Down">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+    </button>
+</aside>
 
 <!-- Color Wheel Modal -->
 <div id="colorModal">
@@ -1198,6 +1352,148 @@ if (wrapEl) {
         const delta = e.deltaY > 0 ? 1 : -1;
         triggerAppleCrown(delta * 2);
     }, { passive: false });
+}
+
+// =====================================================
+// Custom Side Slider & Wheel Scroll Blocker
+// =====================================================
+// Block physical wheel / mouse scroll from scrolling the document page
+window.addEventListener('wheel', (e) => {
+    // If user is directly hovering the device visualizer, allow it to spin the dial
+    if (e.target.closest('#deviceVisualizer')) {
+        return;
+    }
+    // Block document scrolling
+    e.preventDefault();
+}, { passive: false });
+
+const scrollContainer = document.getElementById('appScrollContainer');
+const sideRail = document.getElementById('sideScrollRail');
+const railTrack = document.getElementById('railTrack');
+const railThumb = document.getElementById('railThumb');
+const railStepUp = document.getElementById('railStepUp');
+const railStepDown = document.getElementById('railStepDown');
+
+let isThumbDragging = false;
+let dragStartY = 0;
+let dragStartScrollTop = 0;
+
+function syncSliderWithScroll() {
+    if (!scrollContainer || !railTrack || !railThumb || !sideRail) return;
+    const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+    
+    if (maxScroll <= 10) {
+        sideRail.classList.add('hidden');
+        return;
+    }
+    sideRail.classList.remove('hidden');
+
+    const trackHeight = railTrack.clientHeight;
+    const ratio = scrollContainer.clientHeight / scrollContainer.scrollHeight;
+    const thumbHeight = Math.max(32, Math.min(140, Math.round(trackHeight * ratio)));
+    railThumb.style.height = `${thumbHeight}px`;
+
+    const availTrack = trackHeight - thumbHeight;
+    const scrollRatio = Math.max(0, Math.min(1, scrollContainer.scrollTop / maxScroll));
+    const thumbTop = scrollRatio * availTrack;
+    railThumb.style.top = `${thumbTop}px`;
+}
+
+if (scrollContainer && railTrack && railThumb) {
+    scrollContainer.addEventListener('scroll', syncSliderWithScroll, { passive: true });
+    window.addEventListener('resize', syncSliderWithScroll);
+
+    // Draggable thumb (Mouse)
+    railThumb.addEventListener('mousedown', (e) => {
+        isThumbDragging = true;
+        dragStartY = e.clientY;
+        dragStartScrollTop = scrollContainer.scrollTop;
+        railThumb.classList.add('dragging');
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isThumbDragging) return;
+        const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+        if (maxScroll <= 0) return;
+
+        const trackHeight = railTrack.clientHeight;
+        const thumbHeight = railThumb.clientHeight;
+        const availTrack = trackHeight - thumbHeight;
+        if (availTrack <= 0) return;
+
+        const deltaY = e.clientY - dragStartY;
+        const scrollDelta = (deltaY / availTrack) * maxScroll;
+        scrollContainer.scrollTop = dragStartScrollTop + scrollDelta;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isThumbDragging) {
+            isThumbDragging = false;
+            railThumb.classList.remove('dragging');
+            document.body.style.userSelect = '';
+        }
+    });
+
+    // Draggable thumb (Touch)
+    railThumb.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            isThumbDragging = true;
+            dragStartY = e.touches[0].clientY;
+            dragStartScrollTop = scrollContainer.scrollTop;
+            railThumb.classList.add('dragging');
+        }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isThumbDragging || e.touches.length !== 1) return;
+        const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+        if (maxScroll <= 0) return;
+        const availTrack = railTrack.clientHeight - railThumb.clientHeight;
+        if (availTrack <= 0) return;
+        const deltaY = e.touches[0].clientY - dragStartY;
+        scrollContainer.scrollTop = dragStartScrollTop + (deltaY / availTrack) * maxScroll;
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+        isThumbDragging = false;
+        railThumb.classList.remove('dragging');
+    });
+
+    // Click track groove to jump/scroll smoothly
+    railTrack.addEventListener('click', (e) => {
+        if (e.target === railThumb || railThumb.contains(e.target)) return;
+        const rect = railTrack.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        const trackHeight = railTrack.clientHeight;
+        const thumbHeight = railThumb.clientHeight;
+        const availTrack = trackHeight - thumbHeight;
+        if (availTrack <= 0) return;
+
+        const targetTop = Math.max(0, Math.min(availTrack, clickY - thumbHeight / 2));
+        const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+        scrollContainer.scrollTo({
+            top: (targetTop / availTrack) * maxScroll,
+            behavior: 'smooth'
+        });
+    });
+
+    // Step up / down buttons
+    if (railStepUp) {
+        railStepUp.addEventListener('click', () => {
+            scrollContainer.scrollBy({ top: -200, behavior: 'smooth' });
+        });
+    }
+    if (railStepDown) {
+        railStepDown.addEventListener('click', () => {
+            scrollContainer.scrollBy({ top: 200, behavior: 'smooth' });
+        });
+    }
+
+    // Initial positioning
+    setTimeout(syncSliderWithScroll, 120);
+    window.addEventListener('load', syncSliderWithScroll);
 }
 
 // Initial color seeding
