@@ -845,6 +845,11 @@ let crownPillOffset = 0;
 let crownTimeout = null;
 let lastRippleTime = 0;
 
+// Calibrated 360° hardware optical constants:
+// Measured on hardware: ~520 raw counts per 1 full 360° revolution
+const COUNTS_PER_REV = 520;
+const DEG_PER_COUNT = 360.0 / COUNTS_PER_REV; // ~0.6923° per count (exact 1:1 rotation)
+
 function initDialTicks() {
     const group = document.getElementById('dialTicksGroup');
     if (!group) return;
@@ -866,13 +871,13 @@ function initDialTicks() {
     group.innerHTML = svgHtml;
 }
 
-function triggerAppleCrown(delta) {
+function triggerAppleCrown(degAngleDelta) {
     const wrap = document.getElementById('deviceVisualizer');
     const ripple = document.getElementById('tapticRipple');
     if (!wrap) return;
 
-    // Smoothly rotate the precision dial in 3D perspective
-    currentDialAngle += delta * 5.5;
+    // Smoothly rotate the precision dial in 3D perspective with 1:1 physical calibration
+    currentDialAngle += degAngleDelta;
     wrap.style.setProperty('--dial-angle', `${currentDialAngle}deg`);
     wrap.classList.add('spinning');
 
@@ -928,7 +933,7 @@ function handleDisconnect() {
 function handleScroll(dxStr) {
     const dx = parseInt(dxStr, 10);
     if (!isNaN(dx) && dx !== 0) {
-        triggerAppleCrown(dx);
+        triggerAppleCrown(dx * DEG_PER_COUNT);
     }
 }
 
@@ -1375,7 +1380,7 @@ if (wrapEl) {
     wrapEl.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 1 : -1;
-        triggerAppleCrown(delta * 2);
+        triggerAppleCrown(delta * 12);
     }, { passive: false });
 }
 
