@@ -29,7 +29,7 @@ OmniScrollHID Mouse;
 #define TOUCH_PIN    12
 #define HAPTIC_PIN   17
 #define LED_R_PIN    18
-#define LED_G_PIN    16
+#define LED_G_PIN    35
 #define LED_B_PIN    33
 #define COMMON_ANODE false
 
