@@ -322,11 +322,6 @@ void savePrefs() {
 void dispatchAction(int direction) {
     playHapticClick();
     
-    // Execute action based on mode
-    if (modeList[currentModeIdx].invertDirection) {
-        direction = -direction;
-    }
-
     const char* n = modeList[currentModeIdx].name;
 
     if (strcmp(n, "VOLUME") == 0) {
@@ -647,11 +642,12 @@ void loop() {
             lastActivityTime = millis();
             isScrolling = true; // Mark that a scroll session is active
             
-            // Broadcast live scroll data for Web UI visual knob
-            Serial.println("SCROLL:" + String(dx));
+            int dir = modeList[currentModeIdx].invertDirection ? -1 : 1;
+            
+            // Broadcast live scroll data for Web UI visual knob (respects active mode invert setting)
+            Serial.println("SCROLL:" + String(dx * dir));
 
             int thr = modeList[currentModeIdx].threshold;
-            int dir = modeList[currentModeIdx].invertDirection ? -1 : 1;
 
             if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
                 // USB micro-scroll sent continuously
