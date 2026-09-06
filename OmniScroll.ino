@@ -650,15 +650,14 @@ void loop() {
             int thr = modeList[currentModeIdx].threshold;
 
             if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
-                // USB micro-scroll sent continuously
-                Mouse.scroll(dx * dir);
-                
-                // Decoupled haptic accumulator
+                // Haptic-synchronized scroll: exactly 1 controlled scroll notch per haptic detent
                 while (accumulationX >= thr) {
+                    Mouse.scroll(dir);
                     playHapticClick();
                     accumulationX -= thr;
                 }
                 while (accumulationX <= -thr) {
+                    Mouse.scroll(-dir);
                     playHapticClick();
                     accumulationX += thr;
                 }
