@@ -424,6 +424,15 @@ void parseSerialCommand(String& cmd) {
         noTone(HAPTIC_PIN);
         playHapticClick();
     }
+    else if (cmd.startsWith("TEST:LED:")) {
+        String ch = cmd.substring(9);
+        ch.toUpperCase();
+        if      (ch == "R") setLedColor(255, 0, 0);
+        else if (ch == "G") setLedColor(0, 255, 0);
+        else if (ch == "B") setLedColor(0, 0, 255);
+        else if (ch == "OFF") setLedColor(0, 0, 0);
+        else if (ch == "RESET") applyModeColor();
+    }
     else if (cmd.startsWith("SET:CAL:R:")) { cal_R = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
     else if (cmd.startsWith("SET:CAL:G:")) { cal_G = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
     else if (cmd.startsWith("SET:CAL:B:")) { cal_B = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
@@ -564,6 +573,11 @@ void setup() {
 
     uint8_t pid = mx8650_read(0x00);
     Serial.printf("MX8650 PID: 0x%02X | CPI Level: %d\n", pid, sensorCPI);
+
+    // RGB hardware self-test diagnostic sweep at boot (120ms per channel)
+    setLedColor(255, 0, 0); delay(120); // Red
+    setLedColor(0, 255, 0); delay(120); // Green
+    setLedColor(0, 0, 255); delay(120); // Blue
 
     applyModeColor();
     lastActivityTime = millis();

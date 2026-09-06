@@ -299,7 +299,7 @@
             transition: background 0.3s ease, opacity 0.3s ease;
         }
 
-        /* ---- Apple-Inspired Precision Rotary Crown Dial ---- */
+        /* ---- Apple-Inspired Precision Rotary Dial & Indicator ---- */
         .apple-rotary-dial {
             position: absolute;
             top: 0; left: 0;
@@ -310,12 +310,12 @@
 
         .dial-rim-guide {
             fill: none;
-            stroke: rgba(255, 255, 255, 0.09);
-            stroke-width: 1.5;
-            stroke-dasharray: 4 6;
+            stroke: rgba(255, 255, 255, 0.12);
+            stroke-width: 2.5;
+            stroke-dasharray: 6 8;
         }
 
-        .dial-ticks-group {
+        .dial-ticks-group, .dial-pip-group {
             transform-origin: 668px 300px;
             transform: scaleY(0.495) rotate(var(--dial-angle, 0deg));
             will-change: transform;
@@ -323,68 +323,50 @@
         }
 
         .dial-tick {
-            stroke: rgba(255, 255, 255, 0.22);
-            stroke-width: 1.6;
+            stroke: rgba(255, 255, 255, 0.45);
+            stroke-width: 4.5;
             stroke-linecap: round;
             transition: stroke 0.2s ease, filter 0.2s ease;
         }
 
         .dial-tick.med {
-            stroke: rgba(255, 255, 255, 0.38);
-            stroke-width: 2.0;
+            stroke: rgba(255, 255, 255, 0.75);
+            stroke-width: 6.5;
         }
 
         .dial-tick.major {
-            stroke: rgba(255, 255, 255, 0.7);
-            stroke-width: 2.8;
+            stroke: #ffffff;
+            stroke-width: 8.5;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
         }
 
         .real-device-wrapper.spinning .dial-tick {
-            stroke: rgba(255, 255, 255, 0.65);
-            filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.4));
+            stroke: rgba(255, 255, 255, 0.85);
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.6));
         }
 
         .real-device-wrapper.spinning .dial-tick.major {
             stroke: #ffffff;
-            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+            filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.95)) drop-shadow(0 0 24px rgba(94, 234, 212, 0.8));
         }
 
-        /* ---- Apple watchOS Digital Crown Floating Track ---- */
-        .apple-crown-track {
-            position: absolute;
-            right: 14px;
-            top: 18%;
-            height: 64%;
-            width: 5px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 9999px;
-            pointer-events: none;
-            z-index: 15;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            opacity: 0;
-            transform: translateX(4px) scaleY(0.9);
-            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Signature Apple Position Indicator Pip */
+        .dial-pip-glow {
+            fill: #38bdf8;
+            opacity: 0.5;
+            filter: blur(8px);
+            transition: opacity 0.2s ease;
         }
 
-        .apple-crown-track.active {
-            opacity: 1;
-            transform: translateX(0) scaleY(1);
+        .dial-pip-core {
+            fill: #ffffff;
+            stroke: #38bdf8;
+            stroke-width: 4;
+            filter: drop-shadow(0 0 12px #38bdf8) drop-shadow(0 0 24px #5eead4);
         }
 
-        .apple-crown-indicator {
-            position: absolute;
-            top: 50%;
-            left: -2px;
-            width: 9px;
-            height: 28px;
-            margin-top: -14px;
-            background: linear-gradient(180deg, #ffffff 0%, rgba(240, 240, 245, 0.9) 100%);
-            border-radius: 9999px;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.75), 0 2px 8px rgba(0, 0, 0, 0.5);
-            transform: translateY(0);
-            transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+        .real-device-wrapper.spinning .dial-pip-glow {
+            opacity: 0.95;
         }
 
         /* ---- Apple Taptic Ultrasonic Ripple ---- */
@@ -474,21 +456,22 @@
                 <!-- Precision-Mapped Slanted LED Diffuser Light -->
                 <div class="device-led-diffuser" id="deviceLedDiffuser"></div>
 
-                <!-- Apple Precision Rotary Bezel: Razor-thin ticks rotating in 3D perspective -->
+                <!-- Apple Precision Rotary Bezel: High-visibility knurled indices & glowing indicator notch -->
                 <svg class="apple-rotary-dial" id="appleRotaryDial" viewBox="0 0 1330 1240">
                     <ellipse cx="668" cy="300" rx="515" ry="255" class="dial-rim-guide" />
+                    <!-- Rotating 3D dial flutes / ticks -->
                     <g id="dialTicksGroup" class="dial-ticks-group"></g>
+                    <!-- Signature glowing Apple position indicator notch -->
+                    <g id="dialPipGroup" class="dial-pip-group">
+                        <circle cx="668" cy="-215" r="28" class="dial-pip-glow" />
+                        <circle cx="668" cy="-215" r="16" class="dial-pip-core" />
+                    </g>
                 </svg>
-
-                <!-- Apple watchOS Digital Crown Floating Track -->
-                <div class="apple-crown-track" id="crownTrack">
-                    <div class="apple-crown-indicator" id="crownIndicator"></div>
-                </div>
 
                 <!-- Apple Taptic Ultrasonic Acoustic Ripple -->
                 <div class="apple-taptic-ripple" id="tapticRipple"></div>
             </div>
-            <div class="device-hint">Apple Precision Crown • Drag horizontally or turn physical knob</div>
+            <div class="device-hint">Apple Precision Dial • Drag or spin physical wheel</div>
         </div>
     </div>
 
@@ -523,6 +506,14 @@
                 <span class="row-val" id="cal_b_val">100.0%</span>
             </div>
             <input type="range" id="cal_b" min="0" max="1000" value="1000" oninput="onCalInput('b')">
+
+            <!-- Hardware Channel Diagnostic Test -->
+            <div style="margin-top:10px; display:flex; gap:6px;">
+                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('R')">🔴 Red</button>
+                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('G')">🟢 Green</button>
+                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('B')">🔵 Blue</button>
+                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('RESET')">Mode</button>
+            </div>
         </div>
 
         <div class="row" style="margin-top:8px;">
@@ -678,14 +669,14 @@ let lastRippleTime = 0;
 function initDialTicks() {
     const group = document.getElementById('dialTicksGroup');
     if (!group) return;
-    const cx = 668, cy = 300, rOut = 515;
-    const count = 72; // every 5 degrees
+    const cx = 668, cy = 300, rOut = 530;
+    const count = 48; // every 7.5 degrees for clean spacing and maximum visibility
     let svgHtml = '';
     for (let i = 0; i < count; i++) {
-        const rad = (i * 5) * Math.PI / 180;
-        const isMajor = (i % 6 === 0);
-        const isMed = (i % 2 === 0);
-        const rIn = isMajor ? 474 : (isMed ? 490 : 502);
+        const rad = (i * 7.5) * Math.PI / 180;
+        const isMajor = (i % 4 === 0);  // every 30 degrees
+        const isMed   = (i % 2 === 0);  // every 15 degrees
+        const rIn = isMajor ? 445 : (isMed ? 472 : 492);
         const cls = isMajor ? 'dial-tick major' : (isMed ? 'dial-tick med' : 'dial-tick');
         const x1 = (cx + rIn * Math.cos(rad)).toFixed(1);
         const y1 = (cy + rIn * Math.sin(rad)).toFixed(1);
@@ -698,22 +689,13 @@ function initDialTicks() {
 
 function triggerAppleCrown(delta) {
     const wrap = document.getElementById('deviceVisualizer');
-    const track = document.getElementById('crownTrack');
-    const indicator = document.getElementById('crownIndicator');
     const ripple = document.getElementById('tapticRipple');
     if (!wrap) return;
 
     // Smoothly rotate the precision dial in 3D perspective
-    currentDialAngle += delta * 3.6;
+    currentDialAngle += delta * 5.5;
     wrap.style.setProperty('--dial-angle', `${currentDialAngle}deg`);
     wrap.classList.add('spinning');
-
-    // Apple watchOS Digital Crown Scrubber Pill feedback
-    if (track && indicator) {
-        track.classList.add('active');
-        crownPillOffset = Math.max(-26, Math.min(26, crownPillOffset + delta * 3.5));
-        indicator.style.transform = `translateY(${crownPillOffset}px) scale(1.15)`;
-    }
 
     // Apple Taptic Ultrasonic Acoustic Ripple pulse
     const now = performance.now();
@@ -727,16 +709,7 @@ function triggerAppleCrown(delta) {
     clearTimeout(crownTimeout);
     crownTimeout = setTimeout(() => {
         wrap.classList.remove('spinning');
-        if (track && indicator) {
-            crownPillOffset = 0;
-            indicator.style.transform = `translateY(0) scale(1)`;
-            setTimeout(() => {
-                if (!wrap.classList.contains('spinning')) {
-                    track.classList.remove('active');
-                }
-            }, 550);
-        }
-    }, 400);
+    }, 450);
 }
 
 function triggerRotationArrow(delta) {
@@ -941,6 +914,16 @@ function onCalInput(channel) {
     const v = document.getElementById('cal_' + channel).value;
     document.getElementById('cal_' + channel + '_val').textContent = (v / 10).toFixed(1) + '%';
     sendCommand(`SET:CAL:${channel.toUpperCase()}:${(v / 1000).toFixed(3)}`);
+}
+function testLed(ch) {
+    sendCommand(`TEST:LED:${ch}`);
+    if (ch === 'R') updateLiveLedColor('#ff0000');
+    else if (ch === 'G') updateLiveLedColor('#00ff00');
+    else if (ch === 'B') updateLiveLedColor('#0000ff');
+    else if (ch === 'RESET') {
+        const dot = document.getElementById('modeBadgeDot');
+        if (dot && dot.style.background) updateLiveLedColor(dot.style.background);
+    }
 }
 function onIdleInput() {
     const v = document.getElementById('idle').value;
