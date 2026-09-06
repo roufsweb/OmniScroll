@@ -8,6 +8,7 @@
 #define REPORT_ID_PTP_INPUT        11
 #define REPORT_ID_PTP_MAX_CONTACTS 12
 #define REPORT_ID_PTP_HQA          13
+#define REPORT_ID_PTP_CONFIG       14
 
 // Finger Contact Structure (matches the HID descriptor)
 typedef struct __attribute__ ((packed)) {

@@ -462,7 +462,7 @@ extern "C" const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t lang
     } else {
         if (index == 1) str = "OmniScroll Project"; // Manufacturer
         else if (index == 2) str = "OmniScroll";        // Product
-        else if (index == 3) str = "OMNI-005";          // Serial
+        else if (index == 3) str = "OMNI-006";          // Serial
         else return NULL;
 
         chr_count = strlen(str);
@@ -483,9 +483,9 @@ void setup() {
     // Set USB descriptor strings BEFORE any USB or HID components begin
     USB.productName("OmniScroll");
     USB.manufacturerName("OmniScroll");
-    USB.serialNumber("OMNI-005"); // Changed to force Windows cache invalidation
+    USB.serialNumber("OMNI-006"); // Changed to force Windows cache invalidation
     USB.VID(0x303A); // Espressif standard VID
-    USB.PID(0x4F57); // Changed to 0x4F57 to bust Windows descriptor cache!
+    USB.PID(0x4F58); // Changed to 0x4F58 to bust Windows descriptor cache!
 
     Mouse.begin();
     ConsumerControl.begin();

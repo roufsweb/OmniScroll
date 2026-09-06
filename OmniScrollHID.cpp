@@ -140,6 +140,24 @@ const uint8_t desc_hid_omni[] = {
     0x96, 0x00, 0x01,                           // REPORT_COUNT (256)
     HID_FEATURE(HID_DATA | HID_VARIABLE | HID_ABSOLUTE), // 0xB1, 0x02
 
+    HID_COLLECTION_END, // End of Touch Pad Application Collection
+
+    // ---------------------------------------------------------
+    // PTP Configuration TLC (Mandatory for Windows to enable PTP)
+    // ---------------------------------------------------------
+    HID_USAGE_PAGE(HID_USAGE_PAGE_DIGITIZER),   // 0x05, 0x0D
+    0x09, 0x0E,                                 // USAGE(Configuration)
+    HID_COLLECTION(HID_COLLECTION_APPLICATION), // 0xA1, 0x01
+      HID_REPORT_ID(REPORT_ID_PTP_CONFIG)
+      HID_USAGE(HID_USAGE_DIGITIZER_FINGER),    // 0x09, 0x22
+      HID_COLLECTION(HID_COLLECTION_LOGICAL),   // 0xA1, 0x02
+        0x09, 0x52,                             // USAGE(Input Mode)
+        HID_LOGICAL_MIN(0),                     // 0x15, 0x00
+        HID_LOGICAL_MAX(10),                    // 0x25, 0x0A
+        HID_REPORT_SIZE(8),                     // 0x75, 0x08
+        HID_REPORT_COUNT(1),                    // 0x95, 0x01
+        HID_FEATURE(HID_DATA | HID_VARIABLE | HID_ABSOLUTE), // 0xB1, 0x02
+      HID_COLLECTION_END,
     HID_COLLECTION_END
 };
 
