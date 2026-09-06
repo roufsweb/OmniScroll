@@ -11,8 +11,12 @@
 #include "TouchController.h"
 
 // TinyUSB CDC Serial
+#if !ARDUINO_USB_CDC_ON_BOOT
+#include "USBCDC.h"
 USBCDC USBSerial;
+// Map standard Serial calls to the USB CDC object
 #define Serial USBSerial
+#endif
 
 OmniScrollHID Mouse;
 
@@ -84,6 +88,7 @@ ModeConfig modeList[MAX_MODES] = {
 int  currentModeIdx  = 0;
 int  accumulationX   = 0;
 unsigned long lastScrollTime = 0;
+bool isScrolling = false;
 
 // -------------------------------------------------------
 // Haptic State
@@ -283,8 +288,7 @@ void dispatchAction(int dir) {
     const char* n = modeList[currentModeIdx].name;
 
     if      (strcmp(n, "SCROLL") == 0) {
-        // High-resolution scroll: sending larger values provides smoother gliding on supported OS
-        Mouse.scroll(-dir * 20); 
+        Mouse.scroll((int8_t)(-dir));
     }
     else if (strcmp(n, "VOLUME") == 0) {
         ConsumerControl.press(dir > 0 ? CONSUMER_CONTROL_VOLUME_INCREMENT : CONSUMER_CONTROL_VOLUME_DECREMENT);
@@ -296,7 +300,7 @@ void dispatchAction(int dir) {
     }
     else if (strcmp(n, "ZOOM") == 0) {
         Keyboard.press(KEY_LEFT_CTRL);
-        Mouse.scroll(dir * 20);
+        Mouse.scroll((int8_t)(dir));
         delay(2); Keyboard.releaseAll();
     }
     else if (strcmp(n, "H_SCROLL") == 0) {
@@ -458,7 +462,7 @@ extern "C" const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t lang
     } else {
         if (index == 1) str = "OmniScroll Project"; // Manufacturer
         else if (index == 2) str = "OmniScroll";        // Product
-        else if (index == 3) str = "OMNI-001";          // Serial
+        else if (index == 3) str = "OMNI-005";          // Serial
         else return NULL;
 
         chr_count = strlen(str);
@@ -479,9 +483,9 @@ void setup() {
     // Set USB descriptor strings BEFORE any USB or HID components begin
     USB.productName("OmniScroll");
     USB.manufacturerName("OmniScroll");
-    USB.serialNumber("OMNI-001");
-    USB.VID(0x303A);
-    USB.PID(0x4F54); // Changed PID to force Windows to forget cached name
+    USB.serialNumber("OMNI-005"); // Changed to force Windows cache invalidation
+    USB.VID(0x303A); // Espressif standard VID
+    USB.PID(0x4F57); // Changed to 0x4F57 to bust Windows descriptor cache!
 
     Mouse.begin();
     ConsumerControl.begin();
@@ -575,6 +579,7 @@ void loop() {
         if (dx != 0) {
             accumulationX += dx;
             lastScrollTime = millis();
+            isScrolling = true; // Mark that a scroll session is active
 
             int thr = modeList[currentModeIdx].threshold;
             int dir = modeList[currentModeIdx].invertDirection ? -1 : 1;
@@ -588,6 +593,15 @@ void loop() {
                 accumulationX += thr;
             }
         }
+    }
+
+    // --- PTP Momentum Release ---
+    // If we've stopped spinning for 50ms, lift the imaginary PTP fingers
+    if (isScrolling && (millis() - lastScrollTime > 50)) {
+        if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
+            Mouse.releaseScroll();
+        }
+        isScrolling = false;
     }
 
     // --- Serial command handler ---

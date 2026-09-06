@@ -8,6 +8,8 @@ upload.py
 .agents/
 
 # AI Agent & Session files (never commit)
+AGENTS.md
+GEMINI.md
 .agents/*.log
 *.session
 transcript*.jsonl

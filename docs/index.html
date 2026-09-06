@@ -398,9 +398,9 @@ let wheelCanvas, wheelCtx;
 // =====================================================
 // Web Serial
 // =====================================================
-// OmniScroll USB identity: Espressif VID (0x303A) + OmniScroll PID (0x4F54)
-// Filtering by VID+PID ensures the port picker only shows OmniScroll devices.
-const USB_FILTERS = [{ usbVendorId: 0x303A, usbProductId: 0x4F54 }];
+// OmniScroll USB identity: Espressif VID (0x303A)
+// Filtering by VID ensures the port picker shows OmniScroll devices even if PID changes.
+const USB_FILTERS = [{ usbVendorId: 0x303A }];
 
 async function connectSerial() {
     if (connected) { handleDisconnect(); return; }
