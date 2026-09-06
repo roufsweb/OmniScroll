@@ -37,10 +37,11 @@ Identical to `SET:`, but does **not** save to NVS and does **not** trigger a hap
 * `PREVIEW:BRI:50`
 * `PREVIEW:CAL:R:0.5`
 
-### Query Commands
+### Query & Test Commands
 * `GET:STATUS` - Requests a rapid telemetry update.
 * `GET:CONFIG` - Requests the complete configuration state (to populate the UI on load).
 * `TEST:HAPTIC` - Plays the currently selected haptic profile once.
+* `TEST:LED:<R|G|B|OFF|RESET>` - Forces a pure individual LED channel output or resets back to the active mode color for hardware diagnosis.
 
 ## 2. Device to Web (Responses)
 
