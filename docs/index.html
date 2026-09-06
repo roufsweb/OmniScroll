@@ -239,8 +239,122 @@
         }
         .hex-input:focus { outline: none; border-color: var(--accent); }
 
-        .modal-actions { display: flex; gap: 8px; }
         .modal-actions .btn { flex: 1; }
+
+        /* ---- Photorealistic Device Visualizer ---- */
+        .real-device-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto 0;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .real-device-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1330 / 1240;
+            user-select: none;
+            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.55)) drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+            cursor: grab;
+        }
+        .real-device-wrapper:active {
+            cursor: grabbing;
+        }
+
+        .device-base-img {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: block;
+            pointer-events: none;
+        }
+
+        .device-led-bloom {
+            position: absolute;
+            left: 48%; top: 72%;
+            width: 38%; height: 14%;
+            transform: rotate(-12.5deg);
+            border-radius: 8px;
+            background: var(--led-color, #0055ff);
+            filter: blur(16px);
+            opacity: calc(var(--led-bri-factor, 1) * 0.7);
+            mix-blend-mode: screen;
+            pointer-events: none;
+            transition: background 0.3s ease, opacity 0.3s ease;
+        }
+
+        .device-led-diffuser {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            /* Exact slanted slot quadrilateral in 1330x1240 */
+            clip-path: polygon(49.7% 77.34%, 84.0% 69.76%, 84.0% 77.58%, 49.7% 85.8%);
+            background: radial-gradient(ellipse at 67% 77%, var(--led-color, #0055ff) 0%, rgba(var(--led-rgb, 0,85,255), 0.95) 55%, rgba(var(--led-rgb, 0,85,255), 0.6) 100%);
+            mix-blend-mode: screen;
+            opacity: calc(var(--led-bri-factor, 1) * 0.95);
+            transition: background 0.3s ease, opacity 0.3s ease;
+        }
+
+        /* ---- Curved Rotation Arrows ---- */
+        .device-rotation-arrows {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .rotation-arrow-group {
+            opacity: 0;
+            transform-origin: 668px 300px;
+            transform: scale(0.98);
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .rotation-arrow-group.active {
+            opacity: 1;
+            transform: scale(1);
+            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.55)) drop-shadow(0 0 20px rgba(94, 234, 212, 0.35));
+        }
+
+        .arrow-arc {
+            fill: none;
+            stroke: url(#soothingArrowGrad);
+            stroke-width: 16;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 46 22;
+        }
+
+        .rotation-arrow-group.active.spin-cw .arrow-arc {
+            animation: flowCW 0.85s linear infinite;
+        }
+
+        .rotation-arrow-group.active.spin-ccw .arrow-arc {
+            animation: flowCCW 0.85s linear infinite;
+        }
+
+        @keyframes flowCW {
+            from { stroke-dashoffset: 136; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes flowCCW {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: 136; }
+        }
+
+        .device-hint {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.3px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -275,6 +389,52 @@
         </div>
 
         <button class="btn full" id="testHapticBtn" style="margin-top:16px;">Fire Test Click</button>
+
+        <!-- Photorealistic Real Device Visualizer -->
+        <div class="real-device-container">
+            <div class="real-device-wrapper" id="deviceVisualizer" title="Drag horizontally or use mouse wheel to spin">
+                <!-- Base Hardware: Transparent PNG with clean frosted diffuser slot -->
+                <img src="omniscroll_neutral.png" class="device-base-img" alt="OmniScroll Hardware">
+                
+                <!-- Optical LED Bloom behind/around the bezel -->
+                <div class="device-led-bloom" id="deviceLedBloom"></div>
+
+                <!-- Precision-Mapped Slanted LED Diffuser Light -->
+                <div class="device-led-diffuser" id="deviceLedDiffuser"></div>
+
+                <!-- Two Symmetrical Curved Directional Rotation Arrows around the Metal Rim -->
+                <svg class="device-rotation-arrows" viewBox="0 0 1330 1240">
+                    <defs>
+                        <!-- Soothing Ethereal Sky-Teal Gradient -->
+                        <linearGradient id="soothingArrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#38bdf8" />
+                            <stop offset="50%" stop-color="#5eead4" />
+                            <stop offset="100%" stop-color="#38bdf8" />
+                        </linearGradient>
+
+                        <marker id="arrowHeadCW" markerWidth="11" markerHeight="11" refX="6.5" refY="5" orient="auto">
+                            <path d="M 1 1.5 L 8.5 5 L 1 8.5 Q 3.5 5 1 1.5 Z" fill="#38bdf8" />
+                        </marker>
+                        <marker id="arrowHeadCCW" markerWidth="11" markerHeight="11" refX="6.5" refY="5" orient="auto">
+                            <path d="M 1 1.5 L 8.5 5 L 1 8.5 Q 3.5 5 1 1.5 Z" fill="#38bdf8" />
+                        </marker>
+                    </defs>
+
+                    <!-- Clockwise Arrows (Right arc curves down, Left arc curves up) -->
+                    <g id="arrowsCW" class="rotation-arrow-group spin-cw">
+                        <path class="arrow-arc" d="M 1051 129 A 515 255 0 0 1 1051 471" marker-end="url(#arrowHeadCW)" />
+                        <path class="arrow-arc" d="M 285 471 A 515 255 0 0 1 285 129" marker-end="url(#arrowHeadCW)" />
+                    </g>
+
+                    <!-- Counter-Clockwise Arrows (Right arc curves up, Left arc curves down) -->
+                    <g id="arrowsCCW" class="rotation-arrow-group spin-ccw">
+                        <path class="arrow-arc" d="M 1051 471 A 515 255 0 0 0 1051 129" marker-end="url(#arrowHeadCCW)" />
+                        <path class="arrow-arc" d="M 285 129 A 515 255 0 0 0 285 471" marker-end="url(#arrowHeadCCW)" />
+                    </g>
+                </svg>
+            </div>
+            <div class="device-hint">Curved arrows indicate active scroll direction</div>
+        </div>
     </div>
 
     <!-- Global Settings -->
@@ -442,10 +602,58 @@ async function startReading() {
                 line = line.trim();
                 if (line.startsWith("STATUS:")) handleStatus(line.substring(7));
                 else if (line.startsWith("CONFIG:")) handleConfig(line.substring(7));
+                else if (line.startsWith("SCROLL:")) handleScroll(line.substring(7));
             }
         }
     } catch (err) { console.error(err); }
     finally { reader.releaseLock(); handleDisconnect(); }
+}
+
+// =====================================================
+// Photorealistic Live Diffuser & Rotation Arrow Feedback
+// =====================================================
+let arrowTimeout = null;
+
+function triggerRotationArrow(direction) {
+    const arrowsCW = document.getElementById('arrowsCW');
+    const arrowsCCW = document.getElementById('arrowsCCW');
+    if (!arrowsCW || !arrowsCCW) return;
+
+    if (direction > 0) {
+        // Clockwise rotation
+        arrowsCCW.classList.remove('active');
+        arrowsCW.classList.add('active');
+    } else if (direction < 0) {
+        // Counter-Clockwise rotation
+        arrowsCW.classList.remove('active');
+        arrowsCCW.classList.add('active');
+    }
+
+    clearTimeout(arrowTimeout);
+    arrowTimeout = setTimeout(() => {
+        arrowsCW.classList.remove('active');
+        arrowsCCW.classList.remove('active');
+    }, 600);
+}
+
+function updateLiveLedColor(hex) {
+    if (!hex) return;
+    if (!hex.startsWith('#')) hex = '#' + hex;
+    const dot = document.getElementById('modeBadgeDot');
+    if (dot) dot.style.background = hex;
+
+    const r = parseInt(hex.slice(1, 3), 16) || 0;
+    const g = parseInt(hex.slice(3, 5), 16) || 0;
+    const b = parseInt(hex.slice(5, 7), 16) || 0;
+    const briVal = parseInt(document.getElementById('bri')?.value, 10);
+    const briFactor = isNaN(briVal) ? 1.0 : (briVal / 100);
+
+    const wrap = document.getElementById('deviceVisualizer');
+    if (wrap) {
+        wrap.style.setProperty('--led-color', hex);
+        wrap.style.setProperty('--led-rgb', `${r}, ${g}, ${b}`);
+        wrap.style.setProperty('--led-bri-factor', briFactor);
+    }
 }
 
 function handleDisconnect() {
@@ -455,6 +663,15 @@ function handleDisconnect() {
     document.getElementById('connText').textContent = 'Connect Device';
     document.getElementById('modeBadgeName').textContent = '—';
     document.getElementById('modeBadgeDot').style.background = 'var(--muted)';
+    updateLiveLedColor('#333333');
+}
+
+function handleScroll(dxStr) {
+    const dx = parseInt(dxStr, 10);
+    if (!isNaN(dx) && dx !== 0) {
+        // Trigger live curved arrow in the direction of movement
+        triggerRotationArrow(dx);
+    }
 }
 
 function handleStatus(json) {
@@ -462,10 +679,10 @@ function handleStatus(json) {
         const d = JSON.parse(json);
         document.getElementById('modeBadgeName').textContent = d.mode;
 
-        // Find mode color
+        // Find mode color and illuminate live diffuser
         const m = config.modes.find(x => x.name === d.mode);
-        if (m) {
-            document.getElementById('modeBadgeDot').style.background = '#' + m.c;
+        if (m && m.c) {
+            updateLiveLedColor(m.c);
         }
     } catch(e) {}
 }
@@ -610,6 +827,8 @@ function onInvChange(idx) {
 
 function onBriInput() {
     document.getElementById('bri_val').textContent = document.getElementById('bri').value + '%';
+    const dot = document.getElementById('modeBadgeDot');
+    if (dot && dot.style.background) updateLiveLedColor(dot.style.background);
     sendGlobal();
 }
 function onCalInput(channel) {
@@ -847,6 +1066,52 @@ config.modes = [
 renderModeList();
 renderCPIButtons();
 renderHapticProfiles(0);
+
+// --- Initialize Visualizer ---
+const wrapEl = document.getElementById('deviceVisualizer');
+if (wrapEl) {
+    let isDragging = false;
+    let startX = 0;
+    wrapEl.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        if (Math.abs(dx) > 2) {
+            triggerRotationArrow(dx);
+            startX = e.clientX;
+        }
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    wrapEl.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+        }
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - startX;
+        if (Math.abs(dx) > 2) {
+            triggerRotationArrow(dx);
+            startX = e.touches[0].clientX;
+        }
+    }, { passive: true });
+    window.addEventListener('touchend', () => { isDragging = false; });
+
+    wrapEl.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 1 : -1;
+        triggerRotationArrow(delta);
+    }, { passive: false });
+}
+
+// Initial color seeding
+updateLiveLedColor('#0055ff'); // Seed with Mode 0 default color
 
 // --- Auto-reconnect on page load ---
 // The Web Serial API remembers previously granted ports.

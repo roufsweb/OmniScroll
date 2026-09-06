@@ -70,3 +70,4 @@ CONFIG:{
 
 ### Async Notifications
 * `MODE:<ModeName>` - Broadcast automatically when the user physically switches modes via capacitive double-tap or the physical hardware button. The web UI uses this to instantly highlight the active mode.
+* `SCROLL:<delta>` - Broadcast in real time when the optical wheel rotates. The web control panel uses this to smoothly animate the physical 3D cylindrical metal rim live.

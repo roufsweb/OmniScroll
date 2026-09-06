@@ -101,8 +101,8 @@ bool hapticPlaying    = false;
 // LED State
 // -------------------------------------------------------
 // Software white-balance calibration (adjustable via Web Serial)
-float cal_R = 0.10f;
-float cal_G = 0.08f;
+float cal_R = 1.0f;
+float cal_G = 1.0f;
 float cal_B = 1.0f;
 float ledBrightness       = 1.0f; // 0.0–1.0 master dimmer
 unsigned long lastActivityTime = 0;
@@ -166,21 +166,47 @@ void setSensorCPI(uint8_t level) {
 
 
 // =======================================================
-// LED
+// LED & Gamma Correction
 // =======================================================
+// Gamma 2.8 lookup table for smooth perceptual brightness
+const uint8_t gamma8[] = {
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
+    1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
+    2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
+    5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
+   10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
+   17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
+   25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
+   37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
+   51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
+   69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
+   90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
+  115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
+  144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
+  177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
+  215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255
+};
+
 void setLedColor(uint8_t r, uint8_t g, uint8_t b) {
     float dim = isIdleDimmed ? 0.2f : 1.0f;
-    uint8_t fR = (uint8_t)(r * cal_R * ledBrightness * dim);
-    uint8_t fG = (uint8_t)(g * cal_G * ledBrightness * dim);
-    uint8_t fB = (uint8_t)(b * cal_B * ledBrightness * dim);
+    // Apply Gamma Correction FIRST so perceptual brightness is linear
+    uint8_t gammaR = gamma8[r];
+    uint8_t gammaG = gamma8[g];
+    uint8_t gammaB = gamma8[b];
+
+    // Apply hardware max-brightness calibration and UI master dim
+    uint8_t fR = (uint8_t)(gammaR * cal_R * ledBrightness * dim);
+    uint8_t fG = (uint8_t)(gammaG * cal_G * ledBrightness * dim);
+    uint8_t fB = (uint8_t)(gammaB * cal_B * ledBrightness * dim);
     if (COMMON_ANODE) {
-        analogWrite(LED_R_PIN, 255 - fR);
-        analogWrite(LED_G_PIN, 255 - fG);
-        analogWrite(LED_B_PIN, 255 - fB);
+        if (fR == 0) digitalWrite(LED_R_PIN, HIGH); else analogWrite(LED_R_PIN, 255 - fR);
+        if (fG == 0) digitalWrite(LED_G_PIN, HIGH); else analogWrite(LED_G_PIN, 255 - fG);
+        if (fB == 0) digitalWrite(LED_B_PIN, HIGH); else analogWrite(LED_B_PIN, 255 - fB);
     } else {
-        analogWrite(LED_R_PIN, fR);
-        analogWrite(LED_G_PIN, fG);
-        analogWrite(LED_B_PIN, fB);
+        if (fR == 0) digitalWrite(LED_R_PIN, LOW); else analogWrite(LED_R_PIN, fR);
+        if (fG == 0) digitalWrite(LED_G_PIN, LOW); else analogWrite(LED_G_PIN, fG);
+        if (fB == 0) digitalWrite(LED_B_PIN, LOW); else analogWrite(LED_B_PIN, fB);
     }
 }
 
@@ -245,9 +271,14 @@ void loadPrefs() {
         }
     }
     // Load global RGB calibration
-    if (prefs.isKey("cal_R")) cal_R = prefs.getFloat("cal_R", 0.10f);
-    if (prefs.isKey("cal_G")) cal_G = prefs.getFloat("cal_G", 0.08f);
+    if (prefs.isKey("cal_R")) cal_R = prefs.getFloat("cal_R", 1.0f);
+    if (prefs.isKey("cal_G")) cal_G = prefs.getFloat("cal_G", 1.0f);
     if (prefs.isKey("cal_B")) cal_B = prefs.getFloat("cal_B", 1.0f);
+    
+    // Safety check: if old dark calibration values were saved, reset them to full brightness
+    if (cal_R < 0.2f) cal_R = 1.0f;
+    if (cal_G < 0.2f) cal_G = 1.0f;
+    if (cal_B < 0.2f) cal_B = 1.0f;
     
     // Load last active mode
     if (prefs.isKey("curMode")) {
@@ -280,46 +311,46 @@ void savePrefs() {
 // =======================================================
 // Mode Action Dispatch
 // =======================================================
-void dispatchAction(int dir) {
+void dispatchAction(int direction) {
+    playHapticClick();
+    
+    // Execute action based on mode
     if (modeList[currentModeIdx].invertDirection) {
-        dir = -dir;
+        direction = -direction;
     }
 
     const char* n = modeList[currentModeIdx].name;
 
-    if      (strcmp(n, "SCROLL") == 0) {
-        Mouse.scroll((int8_t)(-dir));
-    }
-    else if (strcmp(n, "VOLUME") == 0) {
-        ConsumerControl.press(dir > 0 ? CONSUMER_CONTROL_VOLUME_INCREMENT : CONSUMER_CONTROL_VOLUME_DECREMENT);
+    if (strcmp(n, "VOLUME") == 0) {
+        ConsumerControl.press(direction > 0 ? CONSUMER_CONTROL_VOLUME_INCREMENT : CONSUMER_CONTROL_VOLUME_DECREMENT);
         delay(2); ConsumerControl.release();
     }
     else if (strcmp(n, "TIMELINE") == 0) {
-        Keyboard.press(dir > 0 ? KEY_RIGHT_ARROW : KEY_LEFT_ARROW);
+        Keyboard.press(direction > 0 ? KEY_RIGHT_ARROW : KEY_LEFT_ARROW);
         delay(2); Keyboard.releaseAll();
     }
     else if (strcmp(n, "ZOOM") == 0) {
         Keyboard.press(KEY_LEFT_CTRL);
-        Mouse.scroll((int8_t)(dir));
+        Mouse.scroll((int8_t)(direction));
         delay(2); Keyboard.releaseAll();
     }
     else if (strcmp(n, "H_SCROLL") == 0) {
-        Mouse.hScroll(dir); // Horizontal scroll
+        Mouse.hScroll(direction); // Horizontal scroll
     }
     else if (strcmp(n, "BRIGHTNESS") == 0) {
         // HID Usage 0x006F = Brightness Up, 0x0070 = Brightness Down
-        ConsumerControl.press(dir > 0 ? 0x006F : 0x0070);
+        ConsumerControl.press(direction > 0 ? 0x006F : 0x0070);
         delay(2); ConsumerControl.release();
     }
     else if (strcmp(n, "TABBING") == 0) {
         Keyboard.press(KEY_LEFT_CTRL);
-        if (dir < 0) Keyboard.press(KEY_LEFT_SHIFT);
+        if (direction < 0) Keyboard.press(KEY_LEFT_SHIFT);
         Keyboard.press(KEY_TAB);
         delay(2); Keyboard.releaseAll();
     }
     else if (strcmp(n, "UNDO_REDO") == 0) {
         Keyboard.press(KEY_LEFT_CTRL);
-        if (dir > 0) Keyboard.press(KEY_LEFT_SHIFT); // Ctrl+Shift+Z = Redo (universal)
+        if (direction > 0) Keyboard.press(KEY_LEFT_SHIFT); // Ctrl+Shift+Z = Redo (universal)
         Keyboard.press('z');
         delay(2); Keyboard.releaseAll();
     }
@@ -483,14 +514,16 @@ void setup() {
     // Set USB descriptor strings BEFORE any USB or HID components begin
     USB.productName("OmniScroll");
     USB.manufacturerName("OmniScroll");
-    USB.serialNumber("OMNI-006"); // Changed to force Windows cache invalidation
+    USB.serialNumber("OMNI-006"); 
     USB.VID(0x303A); // Espressif standard VID
-    USB.PID(0x4F58); // Changed to 0x4F58 to bust Windows descriptor cache!
+    USB.PID(0x4F5A); // High-Res Mouse Descriptor cache bust
 
     Mouse.begin();
     ConsumerControl.begin();
     Keyboard.begin();
+#if !ARDUINO_USB_CDC_ON_BOOT
     USBSerial.begin();
+#endif
     USB.begin();
     Serial.begin(115200);
     delay(2000);
@@ -500,6 +533,10 @@ void setup() {
     pinMode(HAPTIC_PIN, OUTPUT);
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(SCLK_PIN,   OUTPUT);
+    
+    pinMode(LED_R_PIN, OUTPUT);
+    pinMode(LED_G_PIN, OUTPUT);
+    pinMode(LED_B_PIN, OUTPUT);
     digitalWrite(SCLK_PIN, HIGH);
     pinMode(LED_R_PIN, OUTPUT);
     pinMode(LED_G_PIN, OUTPUT);
@@ -580,28 +617,38 @@ void loop() {
             accumulationX += dx;
             lastScrollTime = millis();
             isScrolling = true; // Mark that a scroll session is active
+            
+            // Broadcast live scroll data for Web UI visual knob
+            Serial.println("SCROLL:" + String(dx));
 
             int thr = modeList[currentModeIdx].threshold;
             int dir = modeList[currentModeIdx].invertDirection ? -1 : 1;
 
-            while (accumulationX >= thr) {
-                dispatchAction(dir);
-                accumulationX -= thr;
-            }
-            while (accumulationX <= -thr) {
-                dispatchAction(-dir);
-                accumulationX += thr;
+            if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
+                // USB micro-scroll sent continuously
+                Mouse.scroll(dx * dir);
+                
+                // Decoupled haptic accumulator
+                while (accumulationX >= thr) {
+                    playHapticClick();
+                    accumulationX -= thr;
+                }
+                while (accumulationX <= -thr) {
+                    playHapticClick();
+                    accumulationX += thr;
+                }
+            } else {
+                // Other modes: dispatch discrete actions when threshold is reached
+                while (accumulationX >= thr) {
+                    dispatchAction(dir);
+                    accumulationX -= thr;
+                }
+                while (accumulationX <= -thr) {
+                    dispatchAction(-dir);
+                    accumulationX += thr;
+                }
             }
         }
-    }
-
-    // --- PTP Momentum Release ---
-    // If we've stopped spinning for 50ms, lift the imaginary PTP fingers
-    if (isScrolling && (millis() - lastScrollTime > 50)) {
-        if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
-            Mouse.releaseScroll();
-        }
-        isScrolling = false;
     }
 
     // --- Serial command handler ---

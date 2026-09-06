@@ -19,3 +19,4 @@
 - **Web Serial API**: OmniScroll is configured using the Web Serial API. This allows Google Chrome or Microsoft Edge to communicate directly with the dial over the USB cable.
 - **True Plug-and-Play**: There is no Wi-Fi to configure, no IP addresses to find, and no companion apps to install. The configurator is hosted publicly on GitHub Pages and runs entirely in the browser.
 - **Live Tuning**: The Web UI allows for real-time adjustments to haptic frequency, haptic duration, touch sensitivity, and RGB mode colors.
+- **Photorealistic Live Visualizer**: An interactive hardware visualizer featuring transparent alpha cutout of the physical device, real-time LED diffuser illumination matching the device's RGB state, and sleek curved directional rotation arrows indicating live wheel movement.
