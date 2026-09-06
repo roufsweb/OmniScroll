@@ -1355,7 +1355,7 @@ if (wrapEl) {
         if (!isDragging) return;
         const dx = e.clientX - startX;
         if (Math.abs(dx) > 1) {
-            triggerAppleCrown(dx);
+            triggerAppleCrown(dx * 1.5);
             startX = e.clientX;
         }
     });
@@ -1371,7 +1371,7 @@ if (wrapEl) {
         if (!isDragging || e.touches.length !== 1) return;
         const dx = e.touches[0].clientX - startX;
         if (Math.abs(dx) > 1) {
-            triggerAppleCrown(dx);
+            triggerAppleCrown(dx * 1.5);
             startX = e.touches[0].clientX;
         }
     }, { passive: true });
