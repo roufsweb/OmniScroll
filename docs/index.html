@@ -287,24 +287,24 @@
         </div>
         <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()">
 
-        <!-- RGB White Balance Calibration -->
+        <!-- Individual Max Brightness (Hardware Calibration) -->
         <div style="margin-top:12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
-            <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 8px; text-transform: uppercase;">Hardware White Balance</div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 8px; text-transform: uppercase;">Individual Max Brightness</div>
             
             <div class="row" style="font-size: 11px;">
-                <span style="color: #ff4757;">Red</span>
+                <span style="color: #ff4757;">Red Max</span>
                 <span class="row-val" id="cal_r_val">10.0%</span>
             </div>
             <input type="range" id="cal_r" min="0" max="1000" value="100" oninput="onCalInput('r')">
             
             <div class="row" style="font-size: 11px; margin-top: 4px;">
-                <span style="color: #2ed573;">Green</span>
+                <span style="color: #2ed573;">Green Max</span>
                 <span class="row-val" id="cal_g_val">8.0%</span>
             </div>
             <input type="range" id="cal_g" min="0" max="1000" value="80" oninput="onCalInput('g')">
             
             <div class="row" style="font-size: 11px; margin-top: 4px;">
-                <span style="color: #1e90ff;">Blue</span>
+                <span style="color: #1e90ff;">Blue Max</span>
                 <span class="row-val" id="cal_b_val">100.0%</span>
             </div>
             <input type="range" id="cal_b" min="0" max="1000" value="1000" oninput="onCalInput('b')">
