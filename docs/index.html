@@ -1650,7 +1650,7 @@
                     <span class="capsule-name">LED Brightness</span>
                 </div>
                 <span class="capsule-val" id="bri_val">100%</span>
-                <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()">
+                <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()" onchange="sendGlobal(true)">
             </div>
 
             <!-- Idle Sleep Timeout Capsule -->
@@ -1665,7 +1665,7 @@
                     <span class="capsule-name">Idle Sleep</span>
                 </div>
                 <span class="capsule-val" id="idle_val">30s</span>
-                <input type="range" id="idle" min="0" max="120" step="5" value="30" oninput="onIdleInput()">
+                <input type="range" id="idle" min="0" max="120" step="5" value="30" oninput="onIdleInput()" onchange="sendGlobal(true)">
             </div>
 
             <!-- Touch Sensitivity Capsule -->
@@ -1681,7 +1681,7 @@
                     <span class="capsule-name">Touch Sensitivity</span>
                 </div>
                 <span class="capsule-val" id="thr_val">800</span>
-                <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="onThrInput()">
+                <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="onThrInput()" onchange="sendGlobal(true)">
             </div>
         </div>
 
@@ -2216,12 +2216,26 @@ function handleConfig(json) {
 
 // =====================================================
 // Sending Settings
-// =====================================================
-function sendGlobal() {
-    const bri  = document.getElementById('bri').value;
-    const idle = document.getElementById('idle').value;
-    const thr  = document.getElementById('thr').value;
-    sendCommand(`SET:BRI:${bri},IDLE:${idle},THR:${thr}`);
+let sendGlobalTimer = null;
+function sendGlobal(immediate = false) {
+    if (sendGlobalTimer) {
+        clearTimeout(sendGlobalTimer);
+        sendGlobalTimer = null;
+    }
+    const send = () => {
+        const bri  = document.getElementById('bri').value;
+        const idle = document.getElementById('idle').value;
+        const thr  = document.getElementById('thr').value;
+        config.bri  = parseInt(bri, 10);
+        config.idle = parseInt(idle, 10);
+        config.thr  = parseInt(thr, 10);
+        sendCommand(`SET:BRI:${bri},IDLE:${idle},THR:${thr}`);
+    };
+    if (immediate) {
+        send();
+    } else {
+        sendGlobalTimer = setTimeout(send, 120);
+    }
 }
 
 function setCPI(level) {

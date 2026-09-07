@@ -20,10 +20,7 @@ public:
     long getLastReading() const { return touchRead(_pin); }
     long getBaseline() const { return 0; } // Hardware handles baseline natively
 
-    void setThreshold(long threshold) {
-        _thresholdDelta = threshold;
-        touchAttachInterrupt(_pin, nullptr, _thresholdDelta);
-    }
+    void setThreshold(long threshold);
 
 private:
     uint8_t _pin;

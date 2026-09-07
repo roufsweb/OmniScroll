@@ -11,6 +11,11 @@ void TouchController::begin() {
     touchAttachInterrupt(_pin, touchDummyISR, _thresholdDelta);
 }
 
+void TouchController::setThreshold(long threshold) {
+    _thresholdDelta = threshold;
+    touchAttachInterrupt(_pin, touchDummyISR, _thresholdDelta);
+}
+
 bool TouchController::isTouched() {
     return touchInterruptGetLastStatus(_pin);
 }
