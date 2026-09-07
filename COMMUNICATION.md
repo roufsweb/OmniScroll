@@ -48,8 +48,10 @@ Identical to `SET:`, but does **not** save to NVS and does **not** trigger a hap
 ### STATUS Response
 Rapid telemetry sent when `GET:STATUS` is received, formatted as JSON string prefixed with `STATUS:`.
 ```json
-STATUS:{"mode":"SCROLL","touch":1234,"baseline":0,"accX":10}
+STATUS:{"mode":"SCROLL","touch":1234,"baseline":0,"accX":10,"usb":1}
 ```
+* `usb`: Host connection state (`1` = mounted and active with PC, `0` = standby / disconnected breathing).
+
 
 ### CONFIG Response
 Full state payload sent when `GET:CONFIG` is received, formatted as JSON string prefixed with `CONFIG:`.
@@ -72,3 +74,5 @@ CONFIG:{
 ### Async Notifications
 * `MODE:<ModeName>` - Broadcast automatically when the user physically switches modes via capacitive double-tap or the physical hardware button. The web UI uses this to instantly highlight the active mode.
 * `SCROLL:<delta>` - Broadcast in real time when the optical wheel rotates. The web control panel uses this to smoothly animate the Apple-inspired precision rotary dial and watchOS Digital Crown haptic track live.
+* `TOUCH:TAP` - Broadcast when the user touches the top capacitive disk. Triggers the radiant HomePod glass ripple in the Web UI.
+* `TOUCH:DOUBLE` - Broadcast when a capacitive double-tap is registered. Triggers the dual-harmonic resonant wave in the Web UI.

@@ -290,7 +290,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin: 20px auto 0;
+            margin: 80px auto 0;
             width: 100%;
             max-width: 320px;
         }
@@ -358,11 +358,9 @@
             stroke-dasharray: 6 8;
         }
 
+        /* Ticks are positioned directly in JS — no CSS transform needed */
         .dial-ticks-group, .dial-pip-group {
-            transform-origin: 668px 300px;
-            transform: scaleY(0.495) rotate(var(--dial-angle, 0deg));
-            will-change: transform;
-            transition: transform 0.08s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+            /* positions updated via setAttribute in JS */
         }
 
         .dial-tick {
@@ -393,23 +391,17 @@
             filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.95)) drop-shadow(0 0 24px rgba(94, 234, 212, 0.8));
         }
 
-        /* Signature Apple Position Indicator Pip */
-        .dial-pip-glow {
-            fill: #38bdf8;
-            opacity: 0.5;
-            filter: blur(8px);
-            transition: opacity 0.2s ease;
+        /* Single brighter indicator line for infinite rotation (watch style) */
+        .dial-tick.indicator {
+            stroke: rgba(0, 212, 255, 0.5);
+            stroke-width: 9.5;
+            filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.4));
+            transition: stroke 0.2s ease, filter 0.2s ease;
         }
-
-        .dial-pip-core {
-            fill: #ffffff;
-            stroke: #38bdf8;
-            stroke-width: 4;
-            filter: drop-shadow(0 0 12px #38bdf8) drop-shadow(0 0 24px #5eead4);
-        }
-
-        .real-device-wrapper.spinning .dial-pip-glow {
-            opacity: 0.95;
+        
+        .real-device-wrapper.spinning .dial-tick.indicator {
+            stroke: #00d4ff;
+            filter: drop-shadow(0 0 18px rgba(0, 212, 255, 1)) drop-shadow(0 0 36px rgba(0, 212, 255, 0.8));
         }
 
         /* ---- Apple Taptic Ultrasonic Ripple ---- */
@@ -442,6 +434,118 @@
             100% {
                 opacity: 0;
                 transform: scale(1.35);
+            }
+        }
+
+        /* ---- Apple HomePod Glass Radiant Touch Animation (Perspective Ellipse) ---- */
+        .touch-disk-hitbox {
+            fill: transparent;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: fill 0.2s ease;
+        }
+        .touch-disk-hitbox:hover {
+            fill: rgba(255, 255, 255, 0.04);
+        }
+
+        .touch-ambient-halo {
+            fill: var(--touch-glow, #00d4ff);
+            opacity: 0;
+            mix-blend-mode: screen;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .real-device-wrapper:hover .touch-ambient-halo {
+            opacity: 0.06;
+        }
+
+        .apple-touch-core {
+            fill: url(#touchCoreGrad);
+            opacity: 0;
+            transform-origin: 662px 188px;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        .apple-touch-wave {
+            fill: url(#touchWaveGrad);
+            opacity: 0;
+            transform-origin: 662px 188px;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        .apple-touch-ring {
+            fill: none;
+            stroke: #ffffff;
+            stroke-width: 4;
+            opacity: 0;
+            transform-origin: 662px 188px;
+            filter: drop-shadow(0 0 10px var(--touch-glow, #00d4ff));
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        /* Animation Keyframe Activations */
+        .apple-touch-core.active {
+            animation: appleCoreGlint 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .apple-touch-wave.active {
+            animation: appleWaveExpand 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .apple-touch-wave.wave-secondary.active {
+            animation: appleWaveExpand 0.48s cubic-bezier(0.16, 1, 0.3, 1) 0.11s forwards;
+        }
+        .apple-touch-ring.active {
+            animation: appleRingExpand 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .apple-touch-ring.ring-secondary.active {
+            animation: appleRingExpand 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.11s forwards;
+        }
+
+        @keyframes appleCoreGlint {
+            0% {
+                opacity: 0.95;
+                transform: scale(0.6);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1.4);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(3.0);
+            }
+        }
+
+        @keyframes appleWaveExpand {
+            0% {
+                opacity: 0.92;
+                transform: scale(0.35);
+            }
+            30% {
+                opacity: 0.78;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(9.5);
+            }
+        }
+
+        @keyframes appleRingExpand {
+            0% {
+                opacity: 0.9;
+                transform: scale(0.8);
+                stroke-width: 4.5;
+            }
+            60% {
+                opacity: 0.55;
+                stroke-width: 3;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(14);
+                stroke-width: 1;
             }
         }
 
@@ -617,18 +721,55 @@
 
                 <!-- Apple Precision Rotary Bezel: High-visibility knurled indices & glowing indicator notch -->
                 <svg class="apple-rotary-dial" id="appleRotaryDial" viewBox="0 0 1330 1240">
-                    <ellipse cx="668" cy="300" rx="515" ry="255" class="dial-rim-guide" />
-                    <!-- Rotating 3D dial flutes / ticks -->
+                    <defs>
+                        <!-- Exact perspective clip for inner black disk (ratio 172 / 415 = 0.4144) -->
+                        <clipPath id="touchDiskClip">
+                            <ellipse cx="662" cy="188" rx="415" ry="172" />
+                        </clipPath>
+                        
+                        <!-- Radiant HomePod glass touch gradient -->
+                        <radialGradient id="touchWaveGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+                            <stop offset="25%" stop-color="var(--touch-glow, #00d4ff)" stop-opacity="0.8" />
+                            <stop offset="65%" stop-color="var(--touch-glow, #00d4ff)" stop-opacity="0.35" />
+                            <stop offset="100%" stop-color="var(--touch-glow, #00d4ff)" stop-opacity="0" />
+                        </radialGradient>
+                        <radialGradient id="touchCoreGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+                            <stop offset="40%" stop-color="var(--touch-glow, #00d4ff)" stop-opacity="0.85" />
+                            <stop offset="100%" stop-color="var(--touch-glow, #00d4ff)" stop-opacity="0" />
+                        </radialGradient>
+                    </defs>
+
+                    <!-- Rim guide: exact match to the user's white ring overlay -->
+                    <ellipse cx="670.1" cy="258.1" rx="465" ry="248" transform="rotate(2.74 670.1 258.1)" class="dial-rim-guide" />
+                    <!-- Rotating 3D dial ticks — positions computed in JS directly on ellipse -->
                     <g id="dialTicksGroup" class="dial-ticks-group"></g>
-                    <!-- Signature glowing Apple position indicator notch -->
-                    <g id="dialPipGroup" class="dial-pip-group">
-                        <circle cx="668" cy="-215" r="28" class="dial-pip-glow" />
-                        <circle cx="668" cy="-215" r="16" class="dial-pip-core" />
+
+                    <!-- Apple HomePod Glass Radiant Touch Layer (Perspective Ellipse) -->
+                    <g id="touchDiskLayer" class="touch-disk-layer" clip-path="url(#touchDiskClip)" style="display: none;">
+                        <!-- Touch background subtle ambient hover halo -->
+                        <ellipse cx="662" cy="188" rx="415" ry="172" class="touch-ambient-halo" id="touchAmbientHalo" />
+                        
+                        <!-- Expanding radiant wave 1 (Primary) -->
+                        <ellipse cx="662" cy="188" rx="40" ry="16.5" class="apple-touch-wave" id="appleTouchWave1" />
+                        
+                        <!-- Expanding radiant wave 2 (Secondary / Double-tap resonance) -->
+                        <ellipse cx="662" cy="188" rx="30" ry="12.5" class="apple-touch-wave wave-secondary" id="appleTouchWave2" />
+                        
+                        <!-- Concentric luminous ring -->
+                        <ellipse cx="662" cy="188" rx="20" ry="8.3" class="apple-touch-ring" id="appleTouchRing" />
+                        
+                        <!-- Contact glass glint core -->
+                        <ellipse cx="662" cy="188" rx="24" ry="10" class="apple-touch-core" id="appleTouchCore" />
                     </g>
+
+                    <!-- Interactive Clickable Hitbox for User Tap/Click -->
+                    <ellipse cx="662" cy="188" rx="415" ry="172" class="touch-disk-hitbox" id="touchDiskHitbox" title="Touch to test haptic / double-tap to switch mode" />
                 </svg>
 
                 <!-- Apple Taptic Ultrasonic Acoustic Ripple -->
-                <div class="apple-taptic-ripple" id="tapticRipple"></div>
+                <div class="apple-taptic-ripple" id="tapticRipple" style="display: none;"></div>
             </div>
         </div>
     </div>
@@ -828,6 +969,9 @@ async function startReading() {
                 if (line.startsWith("STATUS:")) handleStatus(line.substring(7));
                 else if (line.startsWith("CONFIG:")) handleConfig(line.substring(7));
                 else if (line.startsWith("SCROLL:")) handleScroll(line.substring(7));
+                else if (line.startsWith("MODE:")) handleModeLine(line.substring(5));
+                else if (line.startsWith("TOUCH:DOUBLE")) triggerTouchAnimation(true);
+                else if (line.startsWith("TOUCH:TAP")) triggerTouchAnimation(false);
             }
         }
     } catch (err) { console.error(err); }
@@ -840,60 +984,124 @@ async function startReading() {
 // =====================================================
 // Apple Precision Rotary Crown & Haptic Feedback
 // =====================================================
-let currentDialAngle = 0;
-let crownPillOffset = 0;
-let crownTimeout = null;
-let lastRippleTime = 0;
+// ---- Disk Ellipse Constants (exact mapping of user's white ring overlay) ----
+const DISK_CX = 670.1, DISK_CY = 258.1;    // center of top disk ellipse
+const DISK_RX = 423.0, DISK_RY = 225.6;    // semi-axes of the exact white ring
+const DISK_ROTATION = 2.74;                // 2.74 degrees tilt found in the perspective
+const DISK_ASPECT = DISK_RY / DISK_RX;     // 0.5333
 
-// Calibrated 360° hardware optical constants:
-// Measured on hardware: ~520 raw counts per 1 full 360° revolution
+const TICK_OUT_RX = 465.0;                 // outer tick ring — extended length
+const TICK_OUT_RY = TICK_OUT_RX * DISK_ASPECT; // 248.0px
+const TICK_COUNT = 48;                    // one tick every 7.5°
+
+// Calibrated 360° hardware optical constants
 const COUNTS_PER_REV = 520;
-const DEG_PER_COUNT = 360.0 / COUNTS_PER_REV; // ~0.6923° per count (exact 1:1 rotation)
+const DEG_PER_COUNT = 360.0 / COUNTS_PER_REV; // ~0.6923° per count
 
+let _dialCurrentAngle = 0;  // current rendered angle
+let _dialTargetAngle  = 0;  // target angle (lerped toward)
+let _dialAnimFrame    = null;
+let crownTimeout      = null;
+
+/** Returns a point on the tilted ellipse at angleDeg degrees */
+function ellipseXY(cx, cy, rx, ry, angleDeg, rotDeg = 0) {
+    const t = angleDeg * Math.PI / 180;
+    const theta = rotDeg * Math.PI / 180;
+    
+    // Tilted ellipse parametric equation to perfectly match perspective
+    const x = cx + rx * Math.cos(t) * Math.cos(theta) - ry * Math.sin(t) * Math.sin(theta);
+    const y = cy + rx * Math.cos(t) * Math.sin(theta) + ry * Math.sin(t) * Math.cos(theta);
+    return [x, y];
+}
+
+/** Build the tick lines at angle 0 and wire up data-index attributes */
 function initDialTicks() {
     const group = document.getElementById('dialTicksGroup');
     if (!group) return;
-    const cx = 668, cy = 300, rOut = 530;
-    const count = 48; // every 7.5 degrees for clean spacing and maximum visibility
-    let svgHtml = '';
-    for (let i = 0; i < count; i++) {
-        const rad = (i * 7.5) * Math.PI / 180;
-        const isMajor = (i % 4 === 0);  // every 30 degrees
-        const isMed   = (i % 2 === 0);  // every 15 degrees
-        const rIn = isMajor ? 445 : (isMed ? 472 : 492);
-        const cls = isMajor ? 'dial-tick major' : (isMed ? 'dial-tick med' : 'dial-tick');
-        const x1 = (cx + rIn * Math.cos(rad)).toFixed(1);
-        const y1 = (cy + rIn * Math.sin(rad)).toFixed(1);
-        const x2 = (cx + rOut * Math.cos(rad)).toFixed(1);
-        const y2 = (cy + rOut * Math.sin(rad)).toFixed(1);
-        svgHtml += `<line class="${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`;
+    let html = '';
+    for (let i = 0; i < TICK_COUNT; i++) {
+        const isIndicator = (i === 0);
+        const isThin = (i % 2 !== 0); // Odd ticks are thin
+        const cls   = isIndicator ? 'dial-tick indicator' : (isThin ? 'dial-tick' : 'dial-tick major');
+        let rInX, rOutX;
+        if (isIndicator) {
+            rInX = 423.0;  // Starts exactly at bezel edge
+            rOutX = 450.0; // Short
+        } else if (isThin) {
+            rInX = 428.0;  // Starts slightly outside bezel
+            rOutX = 485.0; // Thin lines are long, dim, outward
+        } else {
+            rInX = 428.0;  // Starts slightly outside bezel
+            rOutX = 450.0; // Thick major lines are short, bright, outward
+        }
+        const rInY  = rInX * DISK_ASPECT;
+        const rOutY = rOutX * DISK_ASPECT;
+        const aDeg  = (i / TICK_COUNT) * 360;
+        const [x1, y1] = ellipseXY(DISK_CX, DISK_CY, rInX, rInY, aDeg, DISK_ROTATION);
+        const [x2, y2] = ellipseXY(DISK_CX, DISK_CY, rOutX, rOutY, aDeg, DISK_ROTATION);
+        html += `<line class="${cls}" data-i="${i}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" />`;
     }
-    group.innerHTML = svgHtml;
+    group.innerHTML = html;
+    updateDialRender(0); // position pip correctly at startup
+}
+
+/** Reposition every tick and the pip for the given dial angle */
+function updateDialRender(angleDeg) {
+    const ticks = document.querySelectorAll('#dialTicksGroup line');
+    ticks.forEach((tick, i) => {
+        const isIndicator = (i === 0);
+        const isThin = (i % 2 !== 0);
+        let rInX, rOutX;
+        if (isIndicator) {
+            rInX = 423.0;
+            rOutX = 450.0;
+        } else if (isThin) {
+            rInX = 428.0;
+            rOutX = 485.0;
+        } else {
+            rInX = 428.0;
+            rOutX = 450.0;
+        }
+        const rInY = rInX * DISK_ASPECT;
+        const rOutY = rOutX * DISK_ASPECT;
+        const aDeg = (i / TICK_COUNT) * 360 + angleDeg;
+        const [x1, y1] = ellipseXY(DISK_CX, DISK_CY, rInX, rInY, aDeg, DISK_ROTATION);
+        const [x2, y2] = ellipseXY(DISK_CX, DISK_CY, rOutX, rOutY, aDeg, DISK_ROTATION);
+        tick.setAttribute('x1', x1.toFixed(1));
+        tick.setAttribute('y1', y1.toFixed(1));
+        tick.setAttribute('x2', x2.toFixed(1));
+        tick.setAttribute('y2', y2.toFixed(1));
+    });
+}
+
+/** Smooth lerp animation toward target angle */
+function _dialAnimStep() {
+    const diff = _dialTargetAngle - _dialCurrentAngle;
+    if (Math.abs(diff) < 0.12) {
+        _dialCurrentAngle = _dialTargetAngle;
+        updateDialRender(_dialCurrentAngle);
+        _dialAnimFrame = null;
+        return;
+    }
+    _dialCurrentAngle += diff * 0.28; // lerp factor: snappy but smooth
+    updateDialRender(_dialCurrentAngle);
+    _dialAnimFrame = requestAnimationFrame(_dialAnimStep);
 }
 
 function triggerAppleCrown(degAngleDelta) {
     const wrap = document.getElementById('deviceVisualizer');
-    const ripple = document.getElementById('tapticRipple');
     if (!wrap) return;
 
-    // Smoothly rotate the precision dial in 3D perspective with 1:1 physical calibration
-    currentDialAngle += degAngleDelta;
-    wrap.style.setProperty('--dial-angle', `${currentDialAngle}deg`);
-    wrap.classList.add('spinning');
+    _dialTargetAngle += degAngleDelta;
 
-    // Apple Taptic Ultrasonic Acoustic Ripple pulse
-    const now = performance.now();
-    if (ripple && (now - lastRippleTime > 75)) {
-        lastRippleTime = now;
-        ripple.classList.remove('pulse');
-        void ripple.offsetWidth; // force DOM reflow
-        ripple.classList.add('pulse');
+    // Kick off animation if not already running
+    if (!_dialAnimFrame) {
+        _dialAnimFrame = requestAnimationFrame(_dialAnimStep);
     }
 
+    wrap.classList.add('spinning');
     clearTimeout(crownTimeout);
-    crownTimeout = setTimeout(() => {
-        wrap.classList.remove('spinning');
-    }, 450);
+    crownTimeout = setTimeout(() => wrap.classList.remove('spinning'), 450);
 }
 
 function triggerRotationArrow(delta) {
@@ -915,6 +1123,7 @@ function updateLiveLedColor(hex) {
     const wrap = document.getElementById('deviceVisualizer');
     if (wrap) {
         wrap.style.setProperty('--led-color', hex);
+        wrap.style.setProperty('--touch-glow', hex);
         wrap.style.setProperty('--led-rgb', `${r}, ${g}, ${b}`);
         wrap.style.setProperty('--led-bri-factor', briFactor);
     }
@@ -937,6 +1146,15 @@ function handleScroll(dxStr) {
     }
 }
 
+function handleModeLine(modeName) {
+    document.getElementById('modeBadgeName').textContent = modeName;
+    const m = (config.modes || []).find(x => x.name === modeName);
+    if (m && m.c) {
+        updateLiveLedColor(m.c);
+    }
+    triggerTouchAnimation(true);
+}
+
 function handleStatus(json) {
     try {
         const d = JSON.parse(json);
@@ -948,6 +1166,108 @@ function handleStatus(json) {
             updateLiveLedColor(m.c);
         }
     } catch(e) {}
+}
+
+// =====================================================
+// Apple HomePod Radiant Touch Surface Interaction
+// =====================================================
+let tapticAudioCtx = null;
+
+function playWebTapticClick(isDouble = false) {
+    try {
+        if (!tapticAudioCtx) {
+            tapticAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (tapticAudioCtx.state === 'suspended') {
+            tapticAudioCtx.resume();
+        }
+        const now = tapticAudioCtx.currentTime;
+        const osc = tapticAudioCtx.createOscillator();
+        const gain = tapticAudioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(isDouble ? 340 : 260, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+        osc.connect(gain);
+        gain.connect(tapticAudioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+
+        if (isDouble) {
+            const osc2 = tapticAudioCtx.createOscillator();
+            const gain2 = tapticAudioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(420, now + 0.09);
+            gain2.gain.setValueAtTime(0.09, now + 0.09);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+            osc2.connect(gain2);
+            gain2.connect(tapticAudioCtx.destination);
+            osc2.start(now + 0.09);
+            osc2.stop(now + 0.14);
+        }
+    } catch(e) {}
+}
+
+function triggerTouchAnimation(isDoubleTap = false) {
+    const core = document.getElementById('appleTouchCore');
+    const wave1 = document.getElementById('appleTouchWave1');
+    const wave2 = document.getElementById('appleTouchWave2');
+    const ring = document.getElementById('appleTouchRing');
+    const wrap = document.getElementById('deviceVisualizer');
+    if (!wave1 || !core) return;
+
+    // Synchronize touch glow color with current active mode color
+    const dot = document.getElementById('modeBadgeDot');
+    const activeColor = dot ? dot.style.background : 'var(--accent)';
+    if (wrap && activeColor) {
+        wrap.style.setProperty('--touch-glow', activeColor);
+    }
+
+    // Reset animations via DOM reflow
+    [core, wave1, wave2, ring].forEach(el => {
+        if (el) {
+            el.classList.remove('active', 'ring-secondary');
+            void el.offsetWidth; // trigger reflow
+        }
+    });
+
+    core.classList.add('active');
+    wave1.classList.add('active');
+    ring.classList.add('active');
+
+    if (isDoubleTap && wave2) {
+        wave2.classList.add('active');
+        ring.classList.add('ring-secondary');
+    }
+
+    playWebTapticClick(isDoubleTap);
+}
+
+function initTouchDiskInteractions() {
+    const hitbox = document.getElementById('touchDiskHitbox');
+    if (!hitbox) return;
+
+    let clickTimer = null;
+
+    hitbox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (clickTimer === null) {
+            clickTimer = setTimeout(() => {
+                clickTimer = null;
+                // Single tap feedback
+                triggerTouchAnimation(false);
+                if (connected) sendCommand('TEST:HAPTIC');
+            }, 250);
+        } else {
+            // Double tap feedback
+            clearTimeout(clickTimer);
+            clickTimer = null;
+            triggerTouchAnimation(true);
+            if (connected) {
+                sendCommand('TEST:HAPTIC');
+            }
+        }
+    });
 }
 
 function handleConfig(json) {
@@ -1528,6 +1848,8 @@ if (scrollContainer && railTrack && railThumb) {
 
 // Initial color seeding
 updateLiveLedColor('#0055ff'); // Seed with Mode 0 default color
+initDialTicks();
+initTouchDiskInteractions();
 
 // --- Auto-reconnect on page load ---
 // The Web Serial API remembers previously granted ports.

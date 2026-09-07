@@ -20,6 +20,10 @@ USBCDC USBSerial;
 
 OmniScrollHID Mouse;
 
+// TinyUSB device mount & suspend hooks
+extern "C" bool tud_mounted(void);
+extern "C" bool tud_suspended(void);
+
 // -------------------------------------------------------
 // Pin Definitions
 // -------------------------------------------------------
@@ -87,6 +91,7 @@ ModeConfig modeList[MAX_MODES] = {
 
 int  currentModeIdx  = 0;
 int  accumulationX   = 0;
+int  subTickAcc      = 0; // Fractional remainder accumulator for high-res scrolling
 unsigned long lastScrollTime = 0;
 bool isScrolling = false;
 
@@ -108,6 +113,19 @@ float ledBrightness       = 1.0f; // 0.0–1.0 master dimmer
 unsigned long lastActivityTime = 0;
 int   idleDimMs           = 30000; // 0 = disabled
 bool  isIdleDimmed        = false;
+
+// -------------------------------------------------------
+// Host Connection & Standby State (Apple-Inspired)
+// -------------------------------------------------------
+enum UsbHostState {
+    USB_HOST_DISCONNECTED,
+    USB_HOST_CONNECTING,
+    USB_HOST_CONNECTED
+};
+
+UsbHostState hostState = USB_HOST_DISCONNECTED;
+unsigned long connectTransitionStartTime = 0;
+const unsigned long CONNECT_TRANSITION_MS = 450; // 450ms smooth cubic cross-fade
 
 // -------------------------------------------------------
 // Sensor
@@ -211,10 +229,85 @@ void setLedColor(uint8_t r, uint8_t g, uint8_t b) {
     }
 }
 
+void setLedColorDirect(uint8_t r, uint8_t g, uint8_t b) {
+    uint8_t gammaR = gamma8[r];
+    uint8_t gammaG = gamma8[g];
+    uint8_t gammaB = gamma8[b];
+
+    uint32_t fR = (uint32_t)constrain((int)(gammaR * cal_R * ledBrightness), 0, 255);
+    uint32_t fG = (uint32_t)constrain((int)(gammaG * cal_G * ledBrightness), 0, 255);
+    uint32_t fB = (uint32_t)constrain((int)(gammaB * cal_B * ledBrightness), 0, 255);
+
+    if (COMMON_ANODE) {
+        ledcWrite(LED_R_PIN, 255 - fR);
+        ledcWrite(LED_G_PIN, 255 - fG);
+        ledcWrite(LED_B_PIN, 255 - fB);
+    } else {
+        ledcWrite(LED_R_PIN, fR);
+        ledcWrite(LED_G_PIN, fG);
+        ledcWrite(LED_B_PIN, fB);
+    }
+}
+
 void applyModeColor() {
     setLedColor(modeList[currentModeIdx].color[0],
                 modeList[currentModeIdx].color[1],
                 modeList[currentModeIdx].color[2]);
+}
+
+// -------------------------------------------------------
+// Apple-Inspired Breathing & Cross-Fade Renderers
+// -------------------------------------------------------
+void renderAppleBreathing() {
+    static unsigned long lastUpdate = 0;
+    unsigned long now = millis();
+    if (now - lastUpdate < 15) return; // ~60 FPS smooth render
+    lastUpdate = now;
+
+    // 4.5s human resting respiratory cycle (Apple Patent US6658577B2)
+    float cycle = (float)(now % 4500) / 4500.0f;
+    // Continuous smooth sinusoidal wave (0 at start/end, 1 at midpoint)
+    float wave = (1.0f - cosf(cycle * 2.0f * (float)PI)) * 0.5f;
+    // Apple physiological breathing curve (Gamma 2.8 perceptual curve)
+    float breath = powf(wave, 2.8f);
+    // Floor at 4% so the LED never cuts out completely, peaks at 90%
+    float factor = 0.04f + 0.86f * breath;
+
+    // Apple MagSafe Amber: #FFA000 -> (255, 140, 0)
+    uint8_t r = (uint8_t)constrain((int)(255 * factor), 0, 255);
+    uint8_t g = (uint8_t)constrain((int)(140 * factor), 0, 255);
+    uint8_t b = 0;
+
+    setLedColorDirect(r, g, b);
+}
+
+void renderConnectingCrossfade() {
+    static unsigned long lastUpdate = 0;
+    unsigned long now = millis();
+    if (now - lastUpdate < 15) return;
+    lastUpdate = now;
+
+    unsigned long elapsed = now - connectTransitionStartTime;
+    if (elapsed >= CONNECT_TRANSITION_MS) {
+        hostState = USB_HOST_CONNECTED;
+        applyModeColor();
+        return;
+    }
+
+    float progress = (float)elapsed / (float)CONNECT_TRANSITION_MS;
+    // Smooth cubic ease-in-out
+    float ease = progress * progress * (3.0f - 2.0f * progress);
+
+    // Cross-fade from Amber (255, 140, 0) to current mode color
+    uint8_t targetR = modeList[currentModeIdx].color[0];
+    uint8_t targetG = modeList[currentModeIdx].color[1];
+    uint8_t targetB = modeList[currentModeIdx].color[2];
+
+    uint8_t curR = (uint8_t)constrain((int)(255 * (1.0f - ease) + targetR * ease), 0, 255);
+    uint8_t curG = (uint8_t)constrain((int)(140 * (1.0f - ease) + targetG * ease), 0, 255);
+    uint8_t curB = (uint8_t)constrain((int)(0   * (1.0f - ease) + targetB * ease), 0, 255);
+
+    setLedColorDirect(curR, curG, curB);
 }
 
 
@@ -245,11 +338,16 @@ void cycleMode() {
     prefs.putInt("curMode", currentModeIdx);
     prefs.end();
 
+    accumulationX = 0;
+    subTickAcc    = 0;
+
     hapticPlaying = false;
     noTone(HAPTIC_PIN);
     playHapticClick();
     
-    applyModeColor();
+    if (hostState == USB_HOST_CONNECTED) {
+        applyModeColor();
+    }
     Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
 }
 
@@ -334,11 +432,11 @@ void dispatchAction(int direction) {
     }
     else if (strcmp(n, "ZOOM") == 0) {
         Keyboard.press(KEY_LEFT_CTRL);
-        Mouse.scroll((int8_t)(direction));
+        Mouse.scroll(Mouse.isHighRes() ? (int16_t)(120 * direction) : (int16_t)direction);
         delay(2); Keyboard.releaseAll();
     }
     else if (strcmp(n, "H_SCROLL") == 0) {
-        Mouse.hScroll(direction); // Horizontal scroll
+        Mouse.hScroll(Mouse.isHighRes() ? (int16_t)(120 * direction) : (int16_t)direction);
     }
     else if (strcmp(n, "BRIGHTNESS") == 0) {
         // HID Usage 0x006F = Brightness Up, 0x0070 = Brightness Down
@@ -406,6 +504,7 @@ void parseSerialCommand(String& cmd) {
         json += ",\"touch\":"  + String(touch.getLastReading());
         json += ",\"baseline\":0";
         json += ",\"accX\":"   + String(accumulationX);
+        json += ",\"usb\":"    + String(hostState == USB_HOST_CONNECTED ? 1 : 0);
         json += "}";
         Serial.println("STATUS:" + json);
     }
@@ -505,7 +604,7 @@ extern "C" const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t lang
     } else {
         if (index == 1) str = "OmniScroll Project"; // Manufacturer
         else if (index == 2) str = "OmniScroll";        // Product
-        else if (index == 3) str = "OMNI-006";          // Serial
+        else if (index == 3) str = "OMNI-007";          // Serial
         else return NULL;
 
         chr_count = strlen(str);
@@ -526,9 +625,9 @@ void setup() {
     // Set USB descriptor strings BEFORE any USB or HID components begin
     USB.productName("OmniScroll");
     USB.manufacturerName("OmniScroll");
-    USB.serialNumber("OMNI-006"); 
+    USB.serialNumber("OMNI-007"); 
     USB.VID(0x303A); // Espressif standard VID
-    USB.PID(0x4F5A); // High-Res Mouse Descriptor cache bust
+    USB.PID(0x4F5B); // High-Res Mouse Descriptor cache bust (OMNI-007)
 
     Mouse.begin();
     ConsumerControl.begin();
@@ -569,12 +668,14 @@ void setup() {
     uint8_t pid = mx8650_read(0x00);
     Serial.printf("MX8650 PID: 0x%02X | CPI Level: %d\n", pid, sensorCPI);
 
-    // RGB hardware self-test diagnostic sweep at boot (120ms per channel)
-    setLedColor(255, 0, 0); delay(120); // Red
-    setLedColor(0, 255, 0); delay(120); // Green
-    setLedColor(0, 0, 255); delay(120); // Blue
+    // Check initial USB host connection state
+    if (tud_mounted() && !tud_suspended()) {
+        hostState = USB_HOST_CONNECTED;
+        applyModeColor();
+    } else {
+        hostState = USB_HOST_DISCONNECTED;
+    }
 
-    applyModeColor();
     lastActivityTime = millis();
     Serial.printf("Mode: %s\n", modeList[currentModeIdx].name);
 
@@ -592,20 +693,51 @@ void loop() {
         hapticPlaying = false;
     }
 
-    // --- Idle dim ---
-    if (idleDimMs > 0 && !isIdleDimmed && (millis() - lastActivityTime >= (unsigned long)idleDimMs)) {
-        isIdleDimmed = true;
-        applyModeColor();
+    // --- USB Host Connection & Standby Status (Apple Design Language) ---
+    bool isMounted = tud_mounted() && !tud_suspended();
+    if (isMounted) {
+        if (hostState == USB_HOST_DISCONNECTED) {
+            hostState = USB_HOST_CONNECTING;
+            connectTransitionStartTime = millis();
+            playHapticClick(); // Apple Taptic confirmation click
+            Serial.println("USB: Host Connected (Handshake complete)");
+        }
+    } else {
+        if (hostState != USB_HOST_DISCONNECTED) {
+            hostState = USB_HOST_DISCONNECTED;
+            isIdleDimmed = false;
+            Serial.println("USB: Host Disconnected / Standby");
+        }
+    }
+
+    if (hostState == USB_HOST_DISCONNECTED) {
+        renderAppleBreathing();
+    } else if (hostState == USB_HOST_CONNECTING) {
+        renderConnectingCrossfade();
+    } else {
+        // --- Idle dim (only when host is connected) ---
+        if (idleDimMs > 0 && !isIdleDimmed && (millis() - lastActivityTime >= (unsigned long)idleDimMs)) {
+            isIdleDimmed = true;
+            applyModeColor();
+        }
     }
 
     // --- Touch (with scroll lockout) ---
     bool inLockout = (millis() - lastScrollTime <= 200);
     if (inLockout) { touch.reset(); } else { touch.update(); }
 
+    static bool lastPhysicalTouchState = false;
+    bool isPhysicallyTouched = touch.isTouched();
+    if (isPhysicallyTouched && !lastPhysicalTouchState && !inLockout) {
+        Serial.println("TOUCH:TAP");
+    }
+    lastPhysicalTouchState = isPhysicallyTouched;
+
     if (touch.isDoubleTapped()) {
         if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
         cycleMode();
         lastActivityTime = millis();
+        Serial.println("TOUCH:DOUBLE");
     }
 
     if (touch.isLongPressed()) {
@@ -637,7 +769,6 @@ void loop() {
         int8_t dx = -(int8_t)mx8650_read(0x03); // Invert sensor orientation: clockwise rotation = positive
         if (dx != 0) {
             if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
-            accumulationX += dx;
             lastScrollTime = millis();
             lastActivityTime = millis();
             isScrolling = true; // Mark that a scroll session is active
@@ -648,21 +779,90 @@ void loop() {
             Serial.println("SCROLL:" + String(dx * dir));
 
             int thr = modeList[currentModeIdx].threshold;
+            if (thr <= 0) thr = 10;
 
-            if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
-                // Haptic-synchronized scroll: exactly 1 controlled scroll notch per haptic detent
+            if (hostState != USB_HOST_CONNECTED) {
+                // When in standby / disconnected, keep physical detent haptics active
+                accumulationX += dx;
                 while (accumulationX >= thr) {
-                    Mouse.scroll(dir);
                     playHapticClick();
                     accumulationX -= thr;
                 }
                 while (accumulationX <= -thr) {
-                    Mouse.scroll(-dir);
                     playHapticClick();
                     accumulationX += thr;
                 }
+            } else if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
+                if (Mouse.isHighRes()) {
+                    // High-Resolution Smooth Scrolling:
+                    // In Windows, 1 standard detent = 120 units of WHEEL_DELTA.
+                    // Stream fractional sub-ticks instantly on every raw optical count.
+                    // Sub-tick fractional accumulator eliminates rounding drift.
+                    subTickAcc += dx * 120 * dir;
+                    int toSend = subTickAcc / thr;
+                    if (toSend != 0) {
+                        Mouse.scroll((int16_t)toSend);
+                        subTickAcc -= toSend * thr;
+                    }
+
+                    // Haptic click at physical detent intervals (every thr counts)
+                    accumulationX += dx;
+                    while (accumulationX >= thr) {
+                        playHapticClick();
+                        accumulationX -= thr;
+                    }
+                    while (accumulationX <= -thr) {
+                        playHapticClick();
+                        accumulationX += thr;
+                    }
+                } else {
+                    // Fallback for legacy hosts: 1 standard notch per threshold detent
+                    accumulationX += dx;
+                    while (accumulationX >= thr) {
+                        Mouse.scroll(dir);
+                        playHapticClick();
+                        accumulationX -= thr;
+                    }
+                    while (accumulationX <= -thr) {
+                        Mouse.scroll(-dir);
+                        playHapticClick();
+                        accumulationX += thr;
+                    }
+                }
+            } else if (strcmp(modeList[currentModeIdx].name, "H_SCROLL") == 0) {
+                if (Mouse.isHighRes()) {
+                    subTickAcc += dx * 120 * dir;
+                    int toSend = subTickAcc / thr;
+                    if (toSend != 0) {
+                        Mouse.hScroll((int16_t)toSend);
+                        subTickAcc -= toSend * thr;
+                    }
+
+                    accumulationX += dx;
+                    while (accumulationX >= thr) {
+                        playHapticClick();
+                        accumulationX -= thr;
+                    }
+                    while (accumulationX <= -thr) {
+                        playHapticClick();
+                        accumulationX += thr;
+                    }
+                } else {
+                    accumulationX += dx;
+                    while (accumulationX >= thr) {
+                        Mouse.hScroll(dir);
+                        playHapticClick();
+                        accumulationX -= thr;
+                    }
+                    while (accumulationX <= -thr) {
+                        Mouse.hScroll(-dir);
+                        playHapticClick();
+                        accumulationX += thr;
+                    }
+                }
             } else {
                 // Other modes: dispatch discrete actions when threshold is reached
+                accumulationX += dx;
                 while (accumulationX >= thr) {
                     dispatchAction(dir);
                     accumulationX -= thr;

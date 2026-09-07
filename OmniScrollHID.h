@@ -4,16 +4,16 @@
 #include <Arduino.h>
 #include <USBHID.h>
 
-// Report IDs (avoid 1 to prevent collision with USBHIDKeyboard)
+// Report ID for unified mouse input and feature reports (avoid 1 to prevent collision with USBHIDKeyboard)
 #define REPORT_ID_MOUSE_INPUT      11
-#define REPORT_ID_MOUSE_HIGH_RES   12
 
-// Mouse Input Report Structure
+// Mouse Input Report Structure (7 bytes total)
 typedef struct __attribute__ ((packed)) {
     uint8_t buttons;
     int16_t x;
     int16_t y;
-    int8_t wheel;
+    int8_t  wheel;
+    int8_t  pan;
 } hid_omni_mouse_report_t;
 
 extern const uint8_t desc_hid_omni[];
@@ -23,20 +23,23 @@ private:
     USBHID hid;
     
     // Internal state
-    uint8_t res_multiplier; // Captured from SET_FEATURE
+    bool _hires_enabled;
     
 public:
     OmniScrollHID();
     void begin();
     
-    // High-res scroll
+    // Query whether OS has activated Resolution Multiplier
+    bool isHighRes() const { return _hires_enabled; }
+    
+    // Vertical scroll (sub-ticks when high-res is active, or notches)
     void scroll(int16_t dy);
     
-    // Kept for interface compatibility, does nothing for mouse
+    // Horizontal scroll (AC Pan)
+    void hScroll(int16_t dx);
+
+    // Kept for interface compatibility
     void releaseScroll();
-    
-    // Legacy horizontal scroll
-    void hScroll(int8_t amount);
 
     // USBHIDDevice overrides
     uint16_t _onGetDescriptor(uint8_t *buffer) override;
@@ -45,3 +48,4 @@ public:
 };
 
 #endif // OMNISCROLL_HID_H
+

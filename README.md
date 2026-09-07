@@ -2,7 +2,12 @@
 
 A custom haptic rotary dial built around a freely spinning ball bearing and an MX8650 optical sensor. Connects to any PC or Mac as a standard USB HID device — no drivers, no software. Configure it from any Chromium browser over the same USB cable using the Web Serial API.
 
+<p align="center">
+  <img src="docs/omniscroll_neutral.png" alt="OmniScroll Hardware" width="560">
+</p>
+
 ---
+
 
 ## Configure
 
