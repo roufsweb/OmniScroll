@@ -78,28 +78,41 @@
         }
 
         [data-theme="walnut"] {
-            --bg: #13100d;
-            --bg-mesh: radial-gradient(circle at 50% 0%, #291e17 0%, #13100d 75%);
-            --surface: #1d1713;
-            --surface-glass: rgba(29, 23, 19, 0.84);
-            --raised: #2a221b;
-            --raised-hover: #372d24;
-            --border: rgba(255, 190, 130, 0.09);
-            --border-hover: rgba(255, 190, 130, 0.22);
-            --text: #fef9f5;
-            --text-secondary: #d4c2b2;
-            --muted: #8d7a6e;
+            --bg: #100c09;
+            --bg-mesh: radial-gradient(circle at 50% -10%, #2b1e16 0%, #100c09 78%);
+            --surface: #1a130e;
+            --surface-glass: rgba(26, 19, 14, 0.9);
+            --surface-wood: 
+                radial-gradient(ellipse at 50% 0%, rgba(255, 185, 120, 0.08) 0%, transparent 70%),
+                repeating-linear-gradient(90deg, 
+                    rgba(255, 205, 150, 0.02) 0px, 
+                    rgba(255, 205, 150, 0.02) 1px, 
+                    rgba(0, 0, 0, 0.28) 2px, 
+                    rgba(0, 0, 0, 0.28) 3px, 
+                    transparent 4px, 
+                    transparent 8px,
+                    rgba(255, 180, 110, 0.028) 9px,
+                    transparent 14px
+                ),
+                linear-gradient(180deg, #241a13 0%, #17110c 100%);
+            --raised: #251b14;
+            --raised-hover: #34261c;
+            --border: rgba(212, 163, 115, 0.14);
+            --border-hover: rgba(212, 163, 115, 0.32);
+            --text: #fdf7f2;
+            --text-secondary: #d6c1b0;
+            --muted: #8d796b;
             --accent: #ffa000;
             --accent-rgb: 255, 160, 0;
             --accent-text: #000000;
-            --accent-glow: rgba(255, 160, 0, 0.38);
-            --header-bg: rgba(19, 16, 13, 0.88);
-            --card-shadow: 0 16px 42px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 215, 180, 0.06) inset;
-            --seg-bg: rgba(255, 190, 130, 0.08);
-            --seg-thumb-bg: rgba(255, 190, 130, 0.18);
-            --rail-bg: rgba(29, 23, 19, 0.84);
-            --rail-thumb: linear-gradient(180deg, #3d3126 0%, #241c15 100%);
-            --rail-groove: rgba(255, 190, 130, 0.08);
+            --accent-glow: rgba(255, 160, 0, 0.4);
+            --header-bg: rgba(18, 14, 10, 0.92);
+            --card-shadow: 0 18px 46px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 205, 150, 0.09) inset;
+            --seg-bg: rgba(255, 180, 100, 0.08);
+            --seg-thumb-bg: rgba(255, 180, 100, 0.18);
+            --rail-bg: rgba(26, 19, 14, 0.9);
+            --rail-thumb: linear-gradient(180deg, #423225 0%, #231912 100%);
+            --rail-groove: rgba(255, 180, 100, 0.08);
             --dial-tick-dim: rgba(255, 235, 215, 0.48);
             --dial-tick-med: rgba(255, 240, 225, 0.8);
             --dial-tick-major: #fff8f0;
@@ -107,8 +120,8 @@
             --dial-indicator-active: #ffa000;
             --dial-indicator-glow: rgba(255, 160, 0, 0.9);
             --touch-glow: #ffa000;
-            --device-shadow: drop-shadow(0 24px 44px rgba(0,0,0,0.7)) drop-shadow(0 4px 12px rgba(0,0,0,0.45));
-            --radius: 12px;
+            --device-shadow: drop-shadow(0 24px 44px rgba(0,0,0,0.8)) drop-shadow(0 4px 12px rgba(0,0,0,0.55));
+            --radius: 16px;
         }
 
         [data-theme="ultra"] {
@@ -340,64 +353,584 @@
 
         .mode-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 
-        /* ---- Main grid ---- */
+        /* ---- Main Grid & Cards ---- */
         main {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            max-width: 960px;
-            margin: 28px auto;
+            gap: 22px;
+            max-width: 980px;
+            margin: 24px auto;
             padding: 0 20px 60px;
+        }
+
+        @media (max-width: 820px) {
+            main { grid-template-columns: 1fr; }
         }
 
         .card {
             background: var(--surface-glass);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 22px;
+            padding: 24px;
             box-shadow: var(--card-shadow);
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            backdrop-filter: blur(28px) saturate(190%);
+            -webkit-backdrop-filter: blur(28px) saturate(190%);
+            transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
         }
 
         .card.full { grid-column: 1 / -1; }
 
-        .card-title {
+        .card-title-clean {
             font-size: 11px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.8px; color: var(--muted);
+            letter-spacing: 0.9px; color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        /* ---- Hero Stage Card (Left Column) ---- */
+        .hero-stage-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .stage-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: var(--raised);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .stage-led-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stage-mode-title {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: var(--text);
+        }
+
+        .stage-mode-tag {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--muted);
+            border-left: 1px solid var(--border);
+            padding-left: 8px;
+        }
+
+        .apple-pulse-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            font-size: 12px;
+            border-radius: 18px;
+        }
+
+        .pulse-icon {
+            font-size: 13px;
+        }
+
+        .crown-haptic-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .section-micro-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .apple-haptic-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .haptic-detent-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 4px;
+            background: var(--raised);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .haptic-detent-btn:hover {
+            border-color: var(--border-hover);
+            color: var(--text);
+            transform: translateY(-1px);
+        }
+
+        .haptic-detent-btn.active {
+            background: rgba(var(--accent-rgb), 0.14);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .haptic-detent-glyph {
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .haptic-detent-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        /* ---- Controls Card (Right Column) ---- */
+        .controls-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .capsule-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
         }
 
-        /* ---- Global sliders ---- */
-        .row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border);
+        .apple-capsule-slider {
+            position: relative;
+            height: 48px;
+            border-radius: 24px;
+            background: var(--raised);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            overflow: hidden;
+            user-select: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
         }
-        .row:last-child { border-bottom: none; }
 
-        .row-label { font-size: 13px; font-weight: 500; }
-        .row-val   { font-size: 12px; font-family: monospace; color: var(--accent); background: var(--raised); padding: 3px 8px; border-radius: 5px; border: 1px solid var(--border); }
+        .apple-capsule-slider:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
 
-        input[type=range] {
+        .capsule-fill {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: var(--fill-pct, 50%);
+            background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.14) 0%, rgba(var(--accent-rgb), 0.28) 100%);
+            border-right: 2.5px solid var(--accent);
+            border-radius: 24px 0 0 24px;
+            pointer-events: none;
+            transition: width 0.05s ease;
+        }
+
+        .capsule-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .capsule-icon {
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .capsule-name {
+            letter-spacing: 0.2px;
+        }
+
+        .capsule-val {
+            position: relative;
+            z-index: 2;
+            pointer-events: none;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: monospace;
+            color: var(--accent);
+            background: var(--surface-glass);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(8px);
+        }
+
+        .apple-capsule-slider input[type="range"] {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: ew-resize;
+            z-index: 3;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* CPI Selector */
+        .cpi-section {
+            margin-bottom: 20px;
+        }
+
+        .cpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .cpi-desc-hint {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--muted);
+        }
+
+        .apple-segmented-cpi {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background: var(--raised);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+        }
+
+        .cpi-pill {
+            padding: 8px 0;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            font: 600 12px 'Inter', sans-serif;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+
+        .cpi-pill:hover {
+            color: var(--text);
+        }
+
+        .cpi-pill.active {
+            background: var(--surface-glass);
+            color: var(--accent);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+        }
+
+        /* Apple Progressive Disclosure for Hardware Calibration */
+        .apple-disclosure {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--raised);
+            overflow: hidden;
+            transition: border-color 0.2s ease, background 0.3s ease;
+        }
+
+        .apple-disclosure[open] {
+            border-color: var(--border-hover);
+            background: var(--surface-glass);
+        }
+
+        .disclosure-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+        }
+
+        .disclosure-header::-webkit-details-marker {
+            display: none;
+        }
+
+        .disclosure-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .disclosure-chevron {
+            font-size: 14px;
+            color: var(--muted);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-block;
+        }
+
+        .apple-disclosure[open] .disclosure-chevron {
+            transform: rotate(90deg);
+        }
+
+        .disclosure-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .disclosure-badge {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .disclosure-body {
+            padding: 0 16px 16px;
+            border-top: 1px solid var(--border);
+            margin-top: 4px;
+            padding-top: 12px;
+        }
+
+        .cal-channel-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .cal-channel-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cal-channel-val {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text);
+            background: var(--raised);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .disclosure-body input[type=range] {
             -webkit-appearance: none;
-            width: 100%; height: 4px; margin: 10px 0;
+            width: 100%; height: 4px; margin: 8px 0 12px;
             background: var(--raised); border-radius: 2px;
         }
-        input[type=range]::-webkit-slider-thumb {
+
+        .disclosure-body input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 14px; height: 14px; border-radius: 50%;
-            background: var(--accent); cursor: pointer;
-            box-shadow: 0 0 8px var(--accent-glow);
-            transition: transform 0.12s;
+            width: 13px; height: 13px; border-radius: 50%;
+            background: var(--text); cursor: pointer;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
         }
-        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 
-        .cpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+        .cal-test-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
 
-        /* ---- Buttons ---- */
+        .micro-btn {
+            font-size: 10px;
+            padding: 6px 2px;
+            font-weight: 600;
+        }
+
+        /* ---- Mode Studio Card (Bottom Full Width) ---- */
+        .mode-studio-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .mode-studio-sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .apple-mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+            gap: 14px;
+        }
+
+        .apple-mode-card {
+            background: var(--raised);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 12px;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .apple-mode-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .apple-mode-card.disabled {
+            opacity: 0.38;
+        }
+
+        .apple-mode-card.active-mode {
+            border-color: var(--accent);
+            box-shadow: 0 0 16px var(--accent-glow), 0 0 0 1px var(--accent);
+        }
+
+        .mode-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .mode-card-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mode-led-glow {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            flex-shrink: 0;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .mode-led-glow:hover {
+            transform: scale(1.18);
+        }
+
+        .mode-name {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            color: var(--text);
+        }
+
+        .mode-sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        .mode-card-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+        }
+
+        .mode-control-chip {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--surface-glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 3px 6px;
+        }
+
+        .chip-icon {
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .hp-select-minimal {
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font: 600 11px 'Inter', sans-serif;
+            cursor: pointer;
+            width: 100%;
+            outline: none;
+        }
+
+        .hp-select-minimal option {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .mode-invert-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 8px;
+            background: var(--surface-glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font: 500 11px 'Inter', sans-serif;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .mode-invert-btn:hover {
+            color: var(--text);
+            border-color: var(--accent);
+        }
+
+        .mode-invert-btn.active {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: rgba(var(--accent-rgb), 0.1);
+        }
+
+        .invert-icon {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Buttons & Toggles */
         .btn {
             padding: 9px 16px; border-radius: 8px;
             border: 1px solid var(--border);
@@ -412,7 +945,6 @@
         .btn.primary:hover { filter: brightness(1.12); }
         .btn.full { width: 100%; margin-top: 14px; }
 
-        /* ---- Toggle ---- */
         .toggle-switch {
             position: relative;
             width: 36px;
@@ -457,27 +989,7 @@
             background: var(--accent);
         }
 
-        /* ---- Mode rows ---- */
-        .mode-row {
-            display: grid;
-            grid-template-columns: 1fr 90px auto auto auto;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .mode-row:last-child { border-bottom: none; }
-        .mode-row.disabled { opacity: 0.35; }
-        .mode-name { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
-        .mode-sub  { font-size: 11px; color: var(--muted); }
-
-        .hp-select {
-            background: var(--raised); border: 1px solid var(--border);
-            color: var(--text); font: 500 12px 'Inter'; border-radius: 5px;
-            padding: 5px 8px; width: 90px; cursor: pointer;
-        }
-
-        /* ---- Color swatch ---- */
+        /* Color swatch & modal */
         .color-swatch {
             width: 28px; height: 28px; border-radius: 50%;
             cursor: pointer; border: 2px solid transparent;
@@ -486,12 +998,11 @@
         }
         .color-swatch:hover { transform: scale(1.15); border-color: var(--accent); }
 
-        /* ---- Color Wheel Modal ---- */
         #colorModal {
             display: none;
             position: fixed; inset: 0;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
             z-index: 500;
             justify-content: center; align-items: center;
         }
@@ -500,10 +1011,11 @@
         .color-modal-box {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 24px;
-            width: 300px;
+            width: 320px;
             display: flex; flex-direction: column; gap: 16px;
+            box-shadow: var(--card-shadow);
         }
 
         .color-modal-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -517,11 +1029,12 @@
         .color-preview { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
         .hex-input {
             flex: 1; background: var(--raised); border: 1px solid var(--border);
-            color: var(--text); font: 500 14px monospace; border-radius: 5px;
+            color: var(--text); font: 500 14px monospace; border-radius: 6px;
             padding: 7px 10px;
         }
         .hex-input:focus { outline: none; border-color: var(--accent); }
 
+        .modal-actions { display: flex; gap: 8px; }
         .modal-actions .btn { flex: 1; }
 
         /* ---- Photorealistic Device Visualizer ---- */
@@ -957,15 +1470,18 @@
 <div class="app-scroll-container" id="appScrollContainer">
 <main>
 
-    <!-- Haptic Engine -->
-    <div class="card">
-        <div class="card-title">Haptic Engine</div>
-
-        <div style="display:grid; grid-template-columns: repeat(5,1fr); gap:6px;" id="profileGrid">
-            <!-- filled by JS -->
+    <!-- Left Column: The Hardware Stage (Device Hero + Active Mode Island + Crown Haptics) -->
+    <div class="card hero-stage-card">
+        <div class="stage-header">
+            <div class="stage-badge-pill" id="activeModeIsland">
+                <span class="stage-led-dot" id="activeModeGlow"></span>
+                <span class="stage-mode-title" id="activeModeTitle">SCROLL</span>
+                <span class="stage-mode-tag" id="activeModeTag">Vertical page scroll</span>
+            </div>
+            <button class="btn apple-pulse-btn" id="testHapticBtn" title="Test tactile detent pulse">
+                <span class="pulse-icon">〰️</span> <span>Test Haptic</span>
+            </button>
         </div>
-
-        <button class="btn full" id="testHapticBtn" style="margin-top:16px;">Test Haptic Pulse</button>
 
         <!-- Photorealistic Real Device Visualizer -->
         <div class="real-device-container">
@@ -1035,79 +1551,120 @@
                 <div class="apple-taptic-ripple" id="tapticRipple" style="display: none;"></div>
             </div>
         </div>
+
+        <!-- Digital Crown Haptic Feel Selector (Apple Watch style) -->
+        <div class="crown-haptic-section">
+            <div class="section-micro-label">CROWN DETENT PROFILE</div>
+            <div class="apple-haptic-strip" id="profileGrid">
+                <!-- filled by JS with Apple micro-tactile glyphs -->
+            </div>
+        </div>
     </div>
 
-    <!-- Global Settings -->
-    <div class="card">
-        <div class="card-title">Global Settings</div>
+    <!-- Right Column: Studio Controls (Apple Control Center Capsule Sliders) -->
+    <div class="card controls-card">
+        <div class="card-title-clean">Studio Controls</div>
 
-        <div class="row">
-            <span class="row-label">LED Master Brightness</span>
-            <span class="row-val" id="bri_val">100%</span>
-        </div>
-        <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()">
+        <div class="capsule-group">
+            <!-- Master Brightness Capsule -->
+            <div class="apple-capsule-slider" id="capsuleBri" style="--fill-pct: 100%;">
+                <div class="capsule-fill"></div>
+                <div class="capsule-content">
+                    <span class="capsule-icon">☀️</span>
+                    <span class="capsule-name">LED Brightness</span>
+                </div>
+                <span class="capsule-val" id="bri_val">100%</span>
+                <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()">
+            </div>
 
-        <!-- Individual Max Brightness (Hardware Calibration) -->
-        <div style="margin-top:12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
-            <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 8px; text-transform: uppercase;">Individual Max Brightness</div>
-            
-            <div class="row" style="font-size: 11px;">
-                <span style="color: #ff4757;">Red Max</span>
-                <span class="row-val" id="cal_r_val">100.0%</span>
+            <!-- Idle Sleep Timeout Capsule -->
+            <div class="apple-capsule-slider" id="capsuleIdle" style="--fill-pct: 25%;">
+                <div class="capsule-fill"></div>
+                <div class="capsule-content">
+                    <span class="capsule-icon">🌙</span>
+                    <span class="capsule-name">Idle Sleep</span>
+                </div>
+                <span class="capsule-val" id="idle_val">30s</span>
+                <input type="range" id="idle" min="0" max="120" step="5" value="30" oninput="onIdleInput()">
             </div>
-            <input type="range" id="cal_r" min="0" max="1000" value="1000" oninput="onCalInput('r')">
-            
-            <div class="row" style="font-size: 11px; margin-top: 4px;">
-                <span style="color: #2ed573;">Green Max</span>
-                <span class="row-val" id="cal_g_val">100.0%</span>
-            </div>
-            <input type="range" id="cal_g" min="0" max="1000" value="1000" oninput="onCalInput('g')">
-            
-            <div class="row" style="font-size: 11px; margin-top: 4px;">
-                <span style="color: #1e90ff;">Blue Max</span>
-                <span class="row-val" id="cal_b_val">100.0%</span>
-            </div>
-            <input type="range" id="cal_b" min="0" max="1000" value="1000" oninput="onCalInput('b')">
 
-            <!-- Hardware Channel Diagnostic Test -->
-            <div style="margin-top:10px; display:flex; gap:6px;">
-                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('R')">🔴 Red</button>
-                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('G')">🟢 Green</button>
-                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('B')">🔵 Blue</button>
-                <button class="btn" style="flex:1; font-size:10px; padding:6px 2px;" onclick="testLed('RESET')">Mode</button>
+            <!-- Touch Sensitivity Capsule -->
+            <div class="apple-capsule-slider" id="capsuleThr" style="--fill-pct: 24%;">
+                <div class="capsule-fill"></div>
+                <div class="capsule-content">
+                    <span class="capsule-icon">🪶</span>
+                    <span class="capsule-name">Touch Threshold</span>
+                </div>
+                <span class="capsule-val" id="thr_val">800</span>
+                <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="onThrInput()">
             </div>
         </div>
 
-        <div class="row" style="margin-top:8px;">
-            <span class="row-label">Idle Dim Timeout</span>
-            <span class="row-val" id="idle_val">30s</span>
+        <!-- Sensor CPI Segmented Selector -->
+        <div class="cpi-section">
+            <div class="cpi-header">
+                <span class="section-micro-label">OPTICAL TRACKING (CPI)</span>
+                <span class="cpi-desc-hint" id="cpiHint">Standard 800 DPI</span>
+            </div>
+            <div class="apple-segmented-cpi" id="cpiGrid">
+                <button class="cpi-pill" onclick="setCPI(0)">400</button>
+                <button class="cpi-pill active" onclick="setCPI(1)">800</button>
+                <button class="cpi-pill" onclick="setCPI(2)">1200</button>
+                <button class="cpi-pill" onclick="setCPI(3)">1600</button>
+            </div>
         </div>
-        <input type="range" id="idle" min="0" max="120" step="5" value="30" oninput="onIdleInput()">
 
-        <div class="row" style="margin-top:8px;">
-            <span class="row-label">Touch Sensitivity</span>
-            <span class="row-val" id="thr_val">800</span>
-        </div>
-        <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="onThrInput()">
+        <!-- Advanced Hardware RGB Calibration & Diagnostics (Progressive Disclosure) -->
+        <details class="apple-disclosure" id="hardwareCalDisclosure">
+            <summary class="disclosure-header">
+                <div class="disclosure-title-wrap">
+                    <span class="disclosure-chevron">›</span>
+                    <span class="disclosure-title">Hardware RGB Calibration</span>
+                </div>
+                <span class="disclosure-badge">Advanced</span>
+            </summary>
+            <div class="disclosure-body">
+                <div class="disclosure-sub">Fine-tune individual hardware channel limits to calibrate color accuracy and run diagnostic tests.</div>
 
-        <div class="row" style="margin-top: 16px;">
+                <div class="cal-channel-row">
+                    <span class="cal-channel-label" style="color: #ff5252;">🔴 Red Max</span>
+                    <span class="cal-channel-val" id="cal_r_val">100.0%</span>
+                </div>
+                <input type="range" id="cal_r" min="0" max="1000" value="1000" oninput="onCalInput('r')">
+
+                <div class="cal-channel-row">
+                    <span class="cal-channel-label" style="color: #2ed573;">🟢 Green Max</span>
+                    <span class="cal-channel-val" id="cal_g_val">100.0%</span>
+                </div>
+                <input type="range" id="cal_g" min="0" max="1000" value="1000" oninput="onCalInput('g')">
+
+                <div class="cal-channel-row">
+                    <span class="cal-channel-label" style="color: #1e90ff;">🔵 Blue Max</span>
+                    <span class="cal-channel-val" id="cal_b_val">100.0%</span>
+                </div>
+                <input type="range" id="cal_b" min="0" max="1000" value="1000" oninput="onCalInput('b')">
+
+                <div class="cal-test-grid">
+                    <button class="btn micro-btn" onclick="testLed('R')">🔴 Red</button>
+                    <button class="btn micro-btn" onclick="testLed('G')">🟢 Green</button>
+                    <button class="btn micro-btn" onclick="testLed('B')">🔵 Blue</button>
+                    <button class="btn micro-btn" onclick="testLed('RESET')">Mode</button>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- Full Width Bottom Section: Mode Studio -->
+    <div class="card full mode-studio-card">
+        <div class="mode-studio-header">
             <div>
-                <div class="row-label">Sensor Resolution (CPI)</div>
-                <div class="mode-sub" style="margin-top:3px;">Higher = faster rotation response</div>
+                <div class="card-title-clean" style="margin-bottom:2px;">Mode Studio</div>
+                <div class="mode-studio-sub">Select, customize LED color, haptics, and direction for each workflow mode.</div>
             </div>
         </div>
-        <div class="cpi-grid" id="cpiGrid">
-            <button class="btn" onclick="setCPI(0)">400</button>
-            <button class="btn active" onclick="setCPI(1)">800</button>
-            <button class="btn" onclick="setCPI(2)">1200</button>
-            <button class="btn" onclick="setCPI(3)">1600</button>
+        <div id="modeList" class="apple-mode-grid">
+            <!-- Dynamically populated into Apple Mode Cards by JS -->
         </div>
-    </div>
-
-    <!-- Mode Configuration -->
-    <div class="card full">
-        <div class="card-title">Mode Configuration</div>
-        <div id="modeList"><!-- filled by JS --></div>
     </div>
 
 </main>
@@ -1392,13 +1949,54 @@ function updateLiveLedColor(hex) {
     }
 }
 
+function updateActiveModeUI(modeName) {
+    if (!modeName) return;
+    const badgeName = document.getElementById('modeBadgeName');
+    if (badgeName) badgeName.textContent = modeName;
+
+    const heroTitle = document.getElementById('activeModeTitle');
+    if (heroTitle) heroTitle.textContent = modeName;
+
+    const heroTag = document.getElementById('activeModeTag');
+    if (heroTag) heroTag.textContent = MODE_DESCRIPTIONS[modeName] || 'Workflow mode';
+
+    const activeIdx = (config.modes || []).findIndex(x => x.name === modeName);
+    const m = activeIdx >= 0 ? config.modes[activeIdx] : null;
+
+    if (m && m.c) {
+        updateLiveLedColor(m.c);
+        const glowDot = document.getElementById('activeModeGlow');
+        if (glowDot) {
+            glowDot.style.background = '#' + m.c;
+            glowDot.style.boxShadow = `0 0 12px #${m.c}`;
+        }
+    }
+
+    // Highlight card in Mode Studio
+    document.querySelectorAll('.apple-mode-card').forEach((card, i) => {
+        card.classList.toggle('active-mode', i === activeIdx);
+    });
+}
+
 function handleDisconnect() {
     connected = false;
     clearInterval(statusInterval);
     document.getElementById('connBtn').classList.remove('connected');
     document.getElementById('connText').textContent = 'Connect Device';
-    document.getElementById('modeBadgeName').textContent = '—';
-    document.getElementById('modeBadgeDot').style.background = 'var(--muted)';
+    const badgeName = document.getElementById('modeBadgeName');
+    if (badgeName) badgeName.textContent = '—';
+    const heroTitle = document.getElementById('activeModeTitle');
+    if (heroTitle) heroTitle.textContent = 'OFFLINE';
+    const heroTag = document.getElementById('activeModeTag');
+    if (heroTag) heroTag.textContent = 'Device disconnected';
+    const dot = document.getElementById('modeBadgeDot');
+    if (dot) dot.style.background = 'var(--muted)';
+    const glowDot = document.getElementById('activeModeGlow');
+    if (glowDot) {
+        glowDot.style.background = 'var(--muted)';
+        glowDot.style.boxShadow = 'none';
+    }
+    document.querySelectorAll('.apple-mode-card').forEach(card => card.classList.remove('active-mode'));
     updateLiveLedColor('#333333');
 }
 
@@ -1410,24 +2008,14 @@ function handleScroll(dxStr) {
 }
 
 function handleModeLine(modeName) {
-    document.getElementById('modeBadgeName').textContent = modeName;
-    const m = (config.modes || []).find(x => x.name === modeName);
-    if (m && m.c) {
-        updateLiveLedColor(m.c);
-    }
+    updateActiveModeUI(modeName);
     triggerTouchAnimation(true);
 }
 
 function handleStatus(json) {
     try {
         const d = JSON.parse(json);
-        document.getElementById('modeBadgeName').textContent = d.mode;
-
-        // Find mode color and illuminate live diffuser
-        const m = config.modes.find(x => x.name === d.mode);
-        if (m && m.c) {
-            updateLiveLedColor(m.c);
-        }
+        updateActiveModeUI(d.mode);
     } catch(e) {}
 }
 
@@ -1564,15 +2152,37 @@ function sendModeConfig(idx) {
 }
 
 // =====================================================
-// UI Rendering
+// UI Rendering & Apple Capsule Sliders
 // =====================================================
+function updateCapsuleFills() {
+    const briEl = document.getElementById('bri');
+    const idleEl = document.getElementById('idle');
+    const thrEl = document.getElementById('thr');
+    
+    if (briEl) {
+        const pct = Math.max(0, Math.min(100, parseFloat(briEl.value) || 0));
+        document.getElementById('capsuleBri')?.style.setProperty('--fill-pct', `${pct}%`);
+    }
+    if (idleEl) {
+        const idleVal = parseFloat(idleEl.value) || 0;
+        const pct = Math.max(0, Math.min(100, (idleVal / 120) * 100));
+        document.getElementById('capsuleIdle')?.style.setProperty('--fill-pct', `${pct}%`);
+    }
+    if (thrEl) {
+        const thrVal = parseFloat(thrEl.value) || 100;
+        const pct = Math.max(0, Math.min(100, ((thrVal - 100) / 2900) * 100));
+        document.getElementById('capsuleThr')?.style.setProperty('--fill-pct', `${pct}%`);
+    }
+}
+
 function applyConfigToUI() {
     document.getElementById('bri').value  = config.bri;
     document.getElementById('idle').value = config.idle;
     document.getElementById('thr').value  = config.thr;
     document.getElementById('bri_val').textContent  = config.bri + '%';
-    document.getElementById('idle_val').textContent = config.idle + 's';
+    document.getElementById('idle_val').textContent = config.idle == 0 ? 'Off' : config.idle + 's';
     document.getElementById('thr_val').textContent  = config.thr;
+    updateCapsuleFills();
     
     // Set calibration sliders (firmware uses 0.0-1.0 float, UI uses 0-1000)
     if (config.cal_r !== undefined) {
@@ -1586,26 +2196,43 @@ function applyConfigToUI() {
 
     config.cpi = config.cpi || 1;
     renderCPIButtons();
-    renderHapticProfiles(config.modes[0]?.hp ?? 0); // will be per-mode in mode rows
+    renderHapticProfiles(config.modes[0]?.hp ?? 0);
     renderModeList();
 }
 
+const CPI_HINTS = [
+    "Ultra fine — 400 DPI",
+    "Standard precision — 800 DPI",
+    "Fast track — 1200 DPI",
+    "High velocity — 1600 DPI"
+];
+
 function renderCPIButtons() {
-    const btns = document.querySelectorAll('#cpiGrid .btn');
+    const btns = document.querySelectorAll('#cpiGrid .cpi-pill');
     btns.forEach((b, i) => b.classList.toggle('active', i === config.cpi));
+    const hint = document.getElementById('cpiHint');
+    if (hint && CPI_HINTS[config.cpi]) {
+        hint.textContent = CPI_HINTS[config.cpi];
+    }
 }
+
+const HAPTIC_GLYPHS = ["⚡", "🥁", "⏱️", "〰️", "⭕"];
 
 function renderHapticProfiles(activeProfile) {
     const grid = document.getElementById('profileGrid');
+    if (!grid) return;
     grid.innerHTML = '';
     PROFILES.forEach((name, i) => {
         const btn = document.createElement('button');
-        btn.className = 'btn' + (i === activeProfile ? ' active' : '');
-        btn.textContent = name;
+        btn.className = 'haptic-detent-btn' + (i === activeProfile ? ' active' : '');
+        btn.innerHTML = `<span class="haptic-detent-glyph">${HAPTIC_GLYPHS[i] || '•'}</span><span class="haptic-detent-label">${name}</span>`;
         btn.onclick = () => {
-            // Apply to all currently selected mode context (we'll handle per-mode in mode rows)
-            grid.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            grid.querySelectorAll('.haptic-detent-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            playWebTapticClick(false);
+            if (connected) {
+                sendCommand('TEST:HAPTIC');
+            }
         };
         grid.appendChild(btn);
     });
@@ -1613,75 +2240,102 @@ function renderHapticProfiles(activeProfile) {
 
 function renderModeList() {
     const list = document.getElementById('modeList');
+    if (!list) return;
     list.innerHTML = '';
 
     (config.modes || []).forEach((mode, idx) => {
-        const row = document.createElement('div');
-        row.className = 'mode-row' + (mode.en ? '' : ' disabled');
-        row.id = `mode-row-${idx}`;
+        const card = document.createElement('div');
+        card.className = 'apple-mode-card' + (mode.en ? '' : ' disabled');
+        card.id = `mode-card-${idx}`;
 
         const colorHex = '#' + (mode.c || '888888');
 
-        row.innerHTML = `
-            <div>
-                <div class="mode-name">${mode.name}</div>
-                <div class="mode-sub">${MODE_DESCRIPTIONS[mode.name] || ''}</div>
+        card.innerHTML = `
+            <div class="mode-card-header">
+                <div class="mode-card-badge">
+                    <div class="mode-led-glow" id="swatch_${idx}"
+                         style="background:${colorHex}; box-shadow: 0 0 10px ${colorHex}55;"
+                         title="Pick LED Color"
+                         onclick="openColorModal(${idx})"></div>
+                    <div>
+                        <div class="mode-name">${mode.name}</div>
+                        <div class="mode-sub">${MODE_DESCRIPTIONS[mode.name] || 'Custom mode'}</div>
+                    </div>
+                </div>
+                <label class="toggle-switch" title="Enable / Disable Mode">
+                    <input type="checkbox" id="en_${idx}" ${mode.en ? 'checked' : ''} onchange="onEnChange(${idx})">
+                    <div class="toggle-track"></div>
+                    <div class="toggle-thumb"></div>
+                </label>
             </div>
-            <select class="hp-select" id="hp_${idx}" onchange="onHPChange(${idx})">
-                ${PROFILES.map((p, i) => `<option value="${i}" ${i == mode.hp ? 'selected' : ''}>${p}</option>`).join('')}
-            </select>
-            <div class="color-swatch" id="swatch_${idx}"
-                 style="background:${colorHex}"
-                 title="Pick color"
-                 onclick="openColorModal(${idx})"></div>
-            <label class="toggle-switch" title="Invert direction">
-                <input type="checkbox" id="inv_${idx}" ${mode.inv ? 'checked' : ''} onchange="onInvChange(${idx})">
-                <div class="toggle-track"></div>
-                <div class="toggle-thumb"></div>
-            </label>
-            <label class="toggle-switch" title="Enable mode">
-                <input type="checkbox" id="en_${idx}" ${mode.en ? 'checked' : ''} onchange="onEnChange(${idx})">
-                <div class="toggle-track"></div>
-                <div class="toggle-thumb"></div>
-            </label>
+
+            <div class="mode-card-controls">
+                <div class="mode-control-chip" title="Haptic Detent Profile">
+                    <span class="chip-icon">⚡</span>
+                    <select class="hp-select-minimal" id="hp_${idx}" onchange="onHPChange(${idx})">
+                        ${PROFILES.map((p, i) => `<option value="${i}" ${i == mode.hp ? 'selected' : ''}>${p}</option>`).join('')}
+                    </select>
+                </div>
+
+                <button type="button" class="mode-invert-btn ${mode.inv ? 'active' : ''}" id="inv_btn_${idx}" onclick="toggleModeInvert(${idx})" title="Toggle Rotation Direction">
+                    <span class="invert-icon">⇄</span>
+                    <span>${mode.inv ? 'Inverted' : 'Standard'}</span>
+                </button>
+            </div>
         `;
-        list.appendChild(row);
+        list.appendChild(card);
     });
 
-    // Column headers
-    const legend = document.createElement('div');
-    legend.style.cssText = 'display:grid;grid-template-columns:1fr 90px auto auto auto;gap:12px;padding:12px 0 6px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;border-top:1px solid var(--border);margin-top:8px;';
-    legend.innerHTML = '<span>Mode</span><span>Haptic</span><span style="text-align:center">Color</span><span style="text-align:center">Invert</span><span style="text-align:center">Active</span>';
-    list.insertBefore(legend, list.firstChild);
+    // Re-highlight active mode card if any
+    const activeTitle = document.getElementById('activeModeTitle')?.textContent;
+    if (activeTitle) {
+        const activeIdx = (config.modes || []).findIndex(x => x.name === activeTitle);
+        if (activeIdx >= 0) {
+            document.getElementById(`mode-card-${activeIdx}`)?.classList.add('active-mode');
+        }
+    }
 }
 
 function onEnChange(idx) {
     config.modes[idx].en = document.getElementById(`en_${idx}`).checked ? 1 : 0;
-    document.getElementById(`mode-row-${idx}`).className = 'mode-row' + (config.modes[idx].en ? '' : ' disabled');
+    const card = document.getElementById(`mode-card-${idx}`);
+    if (card) {
+        card.classList.toggle('disabled', !config.modes[idx].en);
+    }
     sendModeConfig(idx);
 }
 
 function onHPChange(idx) {
-    config.modes[idx].hp = parseInt(document.getElementById(`hp_${idx}`).value);
+    config.modes[idx].hp = parseInt(document.getElementById(`hp_${idx}`).value, 10);
     sendModeConfig(idx);
 }
 
-function onInvChange(idx) {
-    config.modes[idx].inv = document.getElementById(`inv_${idx}`).checked ? 1 : 0;
+function toggleModeInvert(idx) {
+    if (!config.modes[idx]) return;
+    config.modes[idx].inv = config.modes[idx].inv ? 0 : 1;
+    const btn = document.getElementById(`inv_btn_${idx}`);
+    if (btn) {
+        btn.classList.toggle('active', config.modes[idx].inv === 1);
+        const label = btn.querySelector('span:last-child');
+        if (label) label.textContent = config.modes[idx].inv ? 'Inverted' : 'Standard';
+    }
     sendModeConfig(idx);
 }
 
 function onBriInput() {
     document.getElementById('bri_val').textContent = document.getElementById('bri').value + '%';
+    updateCapsuleFills();
     const dot = document.getElementById('modeBadgeDot');
     if (dot && dot.style.background) updateLiveLedColor(dot.style.background);
     sendGlobal();
 }
+
 function onCalInput(channel) {
     const v = document.getElementById('cal_' + channel).value;
     document.getElementById('cal_' + channel + '_val').textContent = (v / 10).toFixed(1) + '%';
     sendCommand(`SET:CAL:${channel.toUpperCase()}:${(v / 1000).toFixed(3)}`);
 }
+
 function testLed(ch) {
     sendCommand(`TEST:LED:${ch}`);
     if (ch === 'R') updateLiveLedColor('#ff0000');
@@ -1692,13 +2346,17 @@ function testLed(ch) {
         if (dot && dot.style.background) updateLiveLedColor(dot.style.background);
     }
 }
+
 function onIdleInput() {
     const v = document.getElementById('idle').value;
     document.getElementById('idle_val').textContent = v == 0 ? 'Off' : v + 's';
+    updateCapsuleFills();
     sendGlobal();
 }
+
 function onThrInput() {
     document.getElementById('thr_val').textContent = document.getElementById('thr').value;
+    updateCapsuleFills();
     sendGlobal();
 }
 
@@ -1895,9 +2553,24 @@ function confirmColor() {
     const hex = rgbToHex(r, g, b);
 
     config.modes[colorModalTargetMode].c = hex;
-    document.getElementById('swatch_' + colorModalTargetMode).style.background = '#' + hex;
+    const swatch = document.getElementById('swatch_' + colorModalTargetMode);
+    if (swatch) {
+        swatch.style.background = '#' + hex;
+        swatch.style.boxShadow = `0 0 10px #${hex}55`;
+    }
     
-    // Actually save this time
+    // If this is currently active mode, update live diffuser and stage glow
+    const activeTitle = document.getElementById('activeModeTitle')?.textContent;
+    if (config.modes[colorModalTargetMode].name === activeTitle) {
+        updateLiveLedColor(hex);
+        const glowDot = document.getElementById('activeModeGlow');
+        if (glowDot) {
+            glowDot.style.background = '#' + hex;
+            glowDot.style.boxShadow = `0 0 12px #${hex}`;
+        }
+    }
+
+    // Actually save to device
     sendModeConfig(colorModalTargetMode);
     closeColorModal();
 }
@@ -1922,6 +2595,8 @@ config.modes = [
 renderModeList();
 renderCPIButtons();
 renderHapticProfiles(0);
+updateCapsuleFills();
+updateActiveModeUI('SCROLL');
 
 // --- Initialize Visualizer & Precision Dial Ticks ---
 initDialTicks();
