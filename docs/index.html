@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="walnut">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,39 +8,51 @@
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="shortcut icon" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root, [data-theme="obsidian"] {
-            --bg: #090a0d;
-            --bg-mesh: radial-gradient(circle at 50% 0%, #151821 0%, #090a0d 75%);
-            --surface: #13151c;
-            --surface-glass: rgba(19, 21, 28, 0.78);
-            --raised: #1c1f2b;
-            --raised-hover: #242838;
-            --border: rgba(255, 255, 255, 0.08);
-            --border-hover: rgba(255, 255, 255, 0.18);
-            --text: #f3f4f6;
-            --text-secondary: #9ca3af;
-            --muted: #6b7280;
-            --accent: #00d4ff;
-            --accent-rgb: 0, 212, 255;
+    <style>        :root, [data-theme="walnut"] {
+            --bg: #100c09;
+            --bg-mesh: radial-gradient(circle at 50% -10%, #2b1e16 0%, #100c09 78%);
+            --surface: #1a130e;
+            --surface-glass: rgba(26, 19, 14, 0.9);
+            --surface-wood: 
+                radial-gradient(ellipse at 50% 0%, rgba(255, 185, 120, 0.08) 0%, transparent 70%),
+                repeating-linear-gradient(90deg, 
+                    rgba(255, 205, 150, 0.02) 0px, 
+                    rgba(255, 205, 150, 0.02) 1px, 
+                    rgba(0, 0, 0, 0.28) 2px, 
+                    rgba(0, 0, 0, 0.28) 3px, 
+                    transparent 4px, 
+                    transparent 8px, 
+                    rgba(255, 180, 110, 0.028) 9px, 
+                    transparent 14px
+                ),
+                linear-gradient(180deg, #241a13 0%, #17110c 100%);
+            --raised: #251b14;
+            --raised-hover: #34261c;
+            --border: rgba(212, 163, 115, 0.14);
+            --border-hover: rgba(212, 163, 115, 0.32);
+            --text: #fdf7f2;
+            --text-secondary: #d6c1b0;
+            --muted: #8d796b;
+            --accent: #ffa000;
+            --accent-rgb: 255, 160, 0;
             --accent-text: #000000;
-            --accent-glow: rgba(0, 212, 255, 0.38);
-            --header-bg: rgba(12, 13, 17, 0.85);
-            --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
-            --seg-bg: rgba(255, 255, 255, 0.06);
-            --seg-thumb-bg: rgba(255, 255, 255, 0.14);
-            --rail-bg: rgba(19, 21, 28, 0.8);
-            --rail-thumb: linear-gradient(180deg, #2b3040 0%, #181b24 100%);
-            --rail-groove: rgba(255, 255, 255, 0.07);
-            --dial-tick-dim: rgba(255, 255, 255, 0.45);
-            --dial-tick-med: rgba(255, 255, 255, 0.75);
-            --dial-tick-major: #ffffff;
-            --dial-indicator: rgba(0, 212, 255, 0.55);
-            --dial-indicator-active: #00d4ff;
-            --dial-indicator-glow: rgba(0, 212, 255, 0.85);
-            --touch-glow: #00d4ff;
-            --device-shadow: drop-shadow(0 24px 44px rgba(0,0,0,0.65)) drop-shadow(0 4px 12px rgba(0,0,0,0.4));
-            --radius: 12px;
+            --accent-glow: rgba(255, 160, 0, 0.4);
+            --header-bg: rgba(18, 14, 10, 0.92);
+            --card-shadow: 0 18px 46px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 205, 150, 0.09) inset;
+            --seg-bg: rgba(255, 180, 100, 0.08);
+            --seg-thumb-bg: rgba(255, 180, 100, 0.18);
+            --rail-bg: rgba(26, 19, 14, 0.9);
+            --rail-thumb: linear-gradient(180deg, #423225 0%, #231912 100%);
+            --rail-groove: rgba(255, 180, 100, 0.08);
+            --dial-tick-dim: rgba(255, 235, 215, 0.48);
+            --dial-tick-med: rgba(255, 240, 225, 0.8);
+            --dial-tick-major: #fff8f0;
+            --dial-indicator: rgba(255, 160, 0, 0.65);
+            --dial-indicator-active: #ffa000;
+            --dial-indicator-glow: rgba(255, 160, 0, 0.9);
+            --touch-glow: #ffa000;
+            --device-shadow: drop-shadow(0 24px 44px rgba(0,0,0,0.8)) drop-shadow(0 4px 12px rgba(0,0,0,0.55));
+            --radius: 16px;
         }
 
         [data-theme="aluminum"] {
@@ -77,51 +89,38 @@
             --radius: 12px;
         }
 
-        [data-theme="walnut"] {
-            --bg: #100c09;
-            --bg-mesh: radial-gradient(circle at 50% -10%, #2b1e16 0%, #100c09 78%);
-            --surface: #1a130e;
-            --surface-glass: rgba(26, 19, 14, 0.9);
-            --surface-wood: 
-                radial-gradient(ellipse at 50% 0%, rgba(255, 185, 120, 0.08) 0%, transparent 70%),
-                repeating-linear-gradient(90deg, 
-                    rgba(255, 205, 150, 0.02) 0px, 
-                    rgba(255, 205, 150, 0.02) 1px, 
-                    rgba(0, 0, 0, 0.28) 2px, 
-                    rgba(0, 0, 0, 0.28) 3px, 
-                    transparent 4px, 
-                    transparent 8px,
-                    rgba(255, 180, 110, 0.028) 9px,
-                    transparent 14px
-                ),
-                linear-gradient(180deg, #241a13 0%, #17110c 100%);
-            --raised: #251b14;
-            --raised-hover: #34261c;
-            --border: rgba(212, 163, 115, 0.14);
-            --border-hover: rgba(212, 163, 115, 0.32);
-            --text: #fdf7f2;
-            --text-secondary: #d6c1b0;
-            --muted: #8d796b;
-            --accent: #ffa000;
-            --accent-rgb: 255, 160, 0;
+        [data-theme="obsidian"] {
+            --bg: #090a0d;
+            --bg-mesh: radial-gradient(circle at 50% 0%, #151821 0%, #090a0d 75%);
+            --surface: #13151c;
+            --surface-glass: rgba(19, 21, 28, 0.78);
+            --raised: #1c1f2b;
+            --raised-hover: #242838;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            --text: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --muted: #6b7280;
+            --accent: #00d4ff;
+            --accent-rgb: 0, 212, 255;
             --accent-text: #000000;
-            --accent-glow: rgba(255, 160, 0, 0.4);
-            --header-bg: rgba(18, 14, 10, 0.92);
-            --card-shadow: 0 18px 46px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 205, 150, 0.09) inset;
-            --seg-bg: rgba(255, 180, 100, 0.08);
-            --seg-thumb-bg: rgba(255, 180, 100, 0.18);
-            --rail-bg: rgba(26, 19, 14, 0.9);
-            --rail-thumb: linear-gradient(180deg, #423225 0%, #231912 100%);
-            --rail-groove: rgba(255, 180, 100, 0.08);
-            --dial-tick-dim: rgba(255, 235, 215, 0.48);
-            --dial-tick-med: rgba(255, 240, 225, 0.8);
-            --dial-tick-major: #fff8f0;
-            --dial-indicator: rgba(255, 160, 0, 0.65);
-            --dial-indicator-active: #ffa000;
-            --dial-indicator-glow: rgba(255, 160, 0, 0.9);
-            --touch-glow: #ffa000;
-            --device-shadow: drop-shadow(0 24px 44px rgba(0,0,0,0.8)) drop-shadow(0 4px 12px rgba(0,0,0,0.55));
-            --radius: 16px;
+            --accent-glow: rgba(0, 212, 255, 0.38);
+            --header-bg: rgba(12, 13, 17, 0.85);
+            --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+            --seg-bg: rgba(255, 255, 255, 0.06);
+            --seg-thumb-bg: rgba(255, 255, 255, 0.14);
+            --rail-bg: rgba(19, 21, 28, 0.8);
+            --rail-thumb: linear-gradient(180deg, #2b3040 0%, #181b24 100%);
+            --rail-groove: rgba(255, 255, 255, 0.07);
+            --dial-tick-dim: rgba(255, 255, 255, 0.45);
+            --dial-tick-med: rgba(255, 255, 255, 0.75);
+            --dial-tick-major: #ffffff;
+            --dial-indicator: rgba(0, 212, 255, 0.55);
+            --dial-indicator-active: #00d4ff;
+            --dial-indicator-glow: rgba(0, 212, 255, 0.85);
+            --touch-glow: #00d4ff;
+            --device-shadow: drop-shadow(0 24px 44px rgba(0,0,0,0.65)) drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+            --radius: 12px;
         }
 
         [data-theme="ultra"] {
@@ -1500,7 +1499,7 @@
     <!-- Apple-style Segmented Theme Switcher -->
     <div class="apple-theme-segmented" id="themeSegmented" role="radiogroup" aria-label="Appearance Theme">
         <div class="theme-slider-pill" id="themeSliderPill"></div>
-        <button class="theme-seg-btn active" data-theme="obsidian" role="radio" aria-checked="true" title="Obsidian Studio (Pro Dark)">
+        <button class="theme-seg-btn" data-theme="obsidian" role="radio" aria-checked="false" title="Obsidian Studio (Pro Dark)">
             <span class="theme-swatch swatch-obsidian"></span>
             <span class="theme-title">Obsidian</span>
         </button>
@@ -1508,7 +1507,7 @@
             <span class="theme-swatch swatch-aluminum"></span>
             <span class="theme-title">Aluminum</span>
         </button>
-        <button class="theme-seg-btn" data-theme="walnut" role="radio" aria-checked="false" title="Nordic Walnut & Amber MagSafe">
+        <button class="theme-seg-btn active" data-theme="walnut" role="radio" aria-checked="true" title="Nordic Walnut & Amber MagSafe">
             <span class="theme-swatch swatch-walnut"></span>
             <span class="theme-title">Walnut</span>
         </button>
@@ -2914,7 +2913,7 @@ function initThemeSwitcher() {
     const pill = document.getElementById('themeSliderPill');
     if (!segmented || !pill) return;
     const buttons = segmented.querySelectorAll('.theme-seg-btn');
-    const savedTheme = localStorage.getItem('omniscroll_theme') || 'obsidian';
+    const savedTheme = localStorage.getItem('omniscroll_theme') || 'walnut';
 
     function updatePillPosition(btn) {
         if (!btn) return;
