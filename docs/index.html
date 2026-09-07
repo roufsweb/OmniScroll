@@ -498,8 +498,22 @@
         }
 
         .haptic-detent-glyph {
-            font-size: 15px;
-            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            color: var(--muted);
+            transition: color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .haptic-detent-btn:hover .haptic-detent-glyph {
+            color: var(--text);
+            transform: scale(1.12);
+        }
+
+        .haptic-detent-btn.active .haptic-detent-glyph {
+            color: var(--accent);
         }
 
         .haptic-detent-label {
@@ -566,8 +580,18 @@
         }
 
         .capsule-icon {
-            font-size: 16px;
-            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            color: var(--muted);
+            transition: color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .apple-capsule-slider:hover .capsule-icon {
+            color: var(--accent);
+            transform: scale(1.08);
         }
 
         .capsule-name {
@@ -767,10 +791,26 @@
             margin-top: 10px;
         }
 
+        .cal-color-pip {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .cal-color-pip.r { background: #ff453a; box-shadow: 0 0 6px rgba(255, 69, 58, 0.45); }
+        .cal-color-pip.g { background: #32d74b; box-shadow: 0 0 6px rgba(50, 215, 75, 0.45); }
+        .cal-color-pip.b { background: #0a84ff; box-shadow: 0 0 6px rgba(10, 132, 255, 0.45); }
+        .cal-color-pip.mode { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+
         .micro-btn {
             font-size: 10px;
             padding: 6px 2px;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
         /* ---- Mode Studio Card (Bottom Full Width) ---- */
@@ -846,6 +886,29 @@
 
         .mode-led-glow:hover {
             transform: scale(1.18);
+        }        .sf-icon {
+            display: inline-block;
+            vertical-align: middle;
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+
+        .mode-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mode-title-icon {
+            color: var(--muted);
+            display: inline-flex;
+            align-items: center;
+            transition: color 0.2s ease;
+        }
+
+        .apple-mode-card:hover .mode-title-icon,
+        .apple-mode-card.active-mode .mode-title-icon {
+            color: var(--accent);
         }
 
         .mode-name {
@@ -873,16 +936,18 @@
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             background: var(--surface-glass);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 3px 6px;
+            padding: 4px 6px;
         }
 
         .chip-icon {
-            font-size: 12px;
-            line-height: 1;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
         }
 
         .hp-select-minimal {
@@ -903,7 +968,7 @@
         .mode-invert-btn {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             padding: 5px 8px;
             background: var(--surface-glass);
             border: 1px solid var(--border);
@@ -912,6 +977,7 @@
             color: var(--muted);
             cursor: pointer;
             transition: all 0.18s ease;
+            white-space: nowrap;
         }
 
         .mode-invert-btn:hover {
@@ -926,8 +992,9 @@
         }
 
         .invert-icon {
-            font-size: 12px;
-            font-weight: 700;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
         }
 
         /* Buttons & Toggles */
@@ -1479,7 +1546,12 @@
                 <span class="stage-mode-tag" id="activeModeTag">Vertical page scroll</span>
             </div>
             <button class="btn apple-pulse-btn" id="testHapticBtn" title="Test tactile detent pulse">
-                <span class="pulse-icon">〰️</span> <span>Test Haptic</span>
+                <span class="pulse-icon">
+                    <svg class="sf-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12h3l2-6 4 12 4-8 2 5 2-3h3"></path>
+                    </svg>
+                </span>
+                <span>Test Haptic</span>
             </button>
         </div>
 
@@ -1570,7 +1642,12 @@
             <div class="apple-capsule-slider" id="capsuleBri" style="--fill-pct: 100%;">
                 <div class="capsule-fill"></div>
                 <div class="capsule-content">
-                    <span class="capsule-icon">☀️</span>
+                    <span class="capsule-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="4"></circle>
+                            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+                        </svg>
+                    </span>
                     <span class="capsule-name">LED Brightness</span>
                 </div>
                 <span class="capsule-val" id="bri_val">100%</span>
@@ -1581,7 +1658,11 @@
             <div class="apple-capsule-slider" id="capsuleIdle" style="--fill-pct: 25%;">
                 <div class="capsule-fill"></div>
                 <div class="capsule-content">
-                    <span class="capsule-icon">🌙</span>
+                    <span class="capsule-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </span>
                     <span class="capsule-name">Idle Sleep</span>
                 </div>
                 <span class="capsule-val" id="idle_val">30s</span>
@@ -1592,8 +1673,13 @@
             <div class="apple-capsule-slider" id="capsuleThr" style="--fill-pct: 24%;">
                 <div class="capsule-fill"></div>
                 <div class="capsule-content">
-                    <span class="capsule-icon">🪶</span>
-                    <span class="capsule-name">Touch Threshold</span>
+                    <span class="capsule-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0"></path>
+                        </svg>
+                    </span>
+                    <span class="capsule-name">Touch Sensitivity</span>
                 </div>
                 <span class="capsule-val" id="thr_val">800</span>
                 <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="onThrInput()">
@@ -1627,28 +1713,28 @@
                 <div class="disclosure-sub">Fine-tune individual hardware channel limits to calibrate color accuracy and run diagnostic tests.</div>
 
                 <div class="cal-channel-row">
-                    <span class="cal-channel-label" style="color: #ff5252;">🔴 Red Max</span>
+                    <span class="cal-channel-label"><span class="cal-color-pip r"></span> Red Channel</span>
                     <span class="cal-channel-val" id="cal_r_val">100.0%</span>
                 </div>
                 <input type="range" id="cal_r" min="0" max="1000" value="1000" oninput="onCalInput('r')">
 
                 <div class="cal-channel-row">
-                    <span class="cal-channel-label" style="color: #2ed573;">🟢 Green Max</span>
+                    <span class="cal-channel-label"><span class="cal-color-pip g"></span> Green Channel</span>
                     <span class="cal-channel-val" id="cal_g_val">100.0%</span>
                 </div>
                 <input type="range" id="cal_g" min="0" max="1000" value="1000" oninput="onCalInput('g')">
 
                 <div class="cal-channel-row">
-                    <span class="cal-channel-label" style="color: #1e90ff;">🔵 Blue Max</span>
+                    <span class="cal-channel-label"><span class="cal-color-pip b"></span> Blue Channel</span>
                     <span class="cal-channel-val" id="cal_b_val">100.0%</span>
                 </div>
                 <input type="range" id="cal_b" min="0" max="1000" value="1000" oninput="onCalInput('b')">
 
                 <div class="cal-test-grid">
-                    <button class="btn micro-btn" onclick="testLed('R')">🔴 Red</button>
-                    <button class="btn micro-btn" onclick="testLed('G')">🟢 Green</button>
-                    <button class="btn micro-btn" onclick="testLed('B')">🔵 Blue</button>
-                    <button class="btn micro-btn" onclick="testLed('RESET')">Mode</button>
+                    <button class="btn micro-btn" onclick="testLed('R')"><span class="cal-color-pip r"></span> Red</button>
+                    <button class="btn micro-btn" onclick="testLed('G')"><span class="cal-color-pip g"></span> Green</button>
+                    <button class="btn micro-btn" onclick="testLed('B')"><span class="cal-color-pip b"></span> Blue</button>
+                    <button class="btn micro-btn" onclick="testLed('RESET')"><span class="cal-color-pip mode"></span> Active</button>
                 </div>
             </div>
         </details>
@@ -2216,7 +2302,18 @@ function renderCPIButtons() {
     }
 }
 
-const HAPTIC_GLYPHS = ["⚡", "🥁", "⏱️", "〰️", "⭕"];
+const HAPTIC_SVGS = [
+    // Click: Sharp transient step pulse
+    `<svg class="sf-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l2-8 4 16 3-8h6"/></svg>`,
+    // Thud: Weighted low-frequency pulse
+    `<svg class="sf-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+    // Tick: Precision crown dial index
+    `<svg class="sf-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="6" x2="12" y2="12"/></svg>`,
+    // Soft: Smooth gentle harmonic wave
+    `<svg class="sf-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c3-4 6-4 8 0s5 4 8 0 4-4 4-4"/></svg>`,
+    // Off: Clean muted circle slash
+    `<svg class="sf-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/></svg>`
+];
 
 function renderHapticProfiles(activeProfile) {
     const grid = document.getElementById('profileGrid');
@@ -2225,7 +2322,7 @@ function renderHapticProfiles(activeProfile) {
     PROFILES.forEach((name, i) => {
         const btn = document.createElement('button');
         btn.className = 'haptic-detent-btn' + (i === activeProfile ? ' active' : '');
-        btn.innerHTML = `<span class="haptic-detent-glyph">${HAPTIC_GLYPHS[i] || '•'}</span><span class="haptic-detent-label">${name}</span>`;
+        btn.innerHTML = `<span class="haptic-detent-glyph">${HAPTIC_SVGS[i] || ''}</span><span class="haptic-detent-label">${name}</span>`;
         btn.onclick = () => {
             grid.querySelectorAll('.haptic-detent-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -2237,6 +2334,17 @@ function renderHapticProfiles(activeProfile) {
         grid.appendChild(btn);
     });
 }
+
+const MODE_ICONS = {
+    "SCROLL": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/></svg>`,
+    "VOLUME": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`,
+    "TIMELINE": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 4v16M17 4v16M2 12h20"></path></svg>`,
+    "ZOOM": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>`,
+    "H_SCROLL": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/></svg>`,
+    "BRIGHTNESS": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>`,
+    "TABBING": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 21V9"></path></svg>`,
+    "UNDO_REDO": `<svg class="sf-icon mode-title-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>`
+};
 
 function renderModeList() {
     const list = document.getElementById('modeList');
@@ -2258,7 +2366,10 @@ function renderModeList() {
                          title="Pick LED Color"
                          onclick="openColorModal(${idx})"></div>
                     <div>
-                        <div class="mode-name">${mode.name}</div>
+                        <div class="mode-title-wrap">
+                            ${MODE_ICONS[mode.name] || ''}
+                            <span class="mode-name">${mode.name}</span>
+                        </div>
                         <div class="mode-sub">${MODE_DESCRIPTIONS[mode.name] || 'Custom mode'}</div>
                     </div>
                 </div>
@@ -2271,14 +2382,25 @@ function renderModeList() {
 
             <div class="mode-card-controls">
                 <div class="mode-control-chip" title="Haptic Detent Profile">
-                    <span class="chip-icon">⚡</span>
+                    <span class="chip-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 12h3l2-5 4 10 4-7 2 4 2-2h3"></path>
+                        </svg>
+                    </span>
                     <select class="hp-select-minimal" id="hp_${idx}" onchange="onHPChange(${idx})">
                         ${PROFILES.map((p, i) => `<option value="${i}" ${i == mode.hp ? 'selected' : ''}>${p}</option>`).join('')}
                     </select>
                 </div>
 
                 <button type="button" class="mode-invert-btn ${mode.inv ? 'active' : ''}" id="inv_btn_${idx}" onclick="toggleModeInvert(${idx})" title="Toggle Rotation Direction">
-                    <span class="invert-icon">⇄</span>
+                    <span class="invert-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="7 10 3 14 7 18"></polyline>
+                            <path d="M21 14H3"></path>
+                            <polyline points="17 14 21 10 17 6"></polyline>
+                            <path d="M3 10h18"></path>
+                        </svg>
+                    </span>
                     <span>${mode.inv ? 'Inverted' : 'Standard'}</span>
                 </button>
             </div>
