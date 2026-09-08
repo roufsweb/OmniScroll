@@ -390,27 +390,6 @@ void loadPrefs() {
         currentModeIdx = prefs.getInt("curMode", 0);
         if (currentModeIdx >= MAX_MODES || !modeList[currentModeIdx].enabled) currentModeIdx = 0;
     }
-
-    // Load global settings
-    if (prefs.isKey("touch_thr")) {
-        long thr = prefs.getLong("touch_thr", 800);
-        if (thr >= 100 && thr <= 2000) {
-            touch.setThreshold(thr);
-        } else {
-            touch.setThreshold(800);
-            prefs.putLong("touch_thr", 800);
-        }
-    }
-    if (prefs.isKey("bri")) {
-        ledBrightness = prefs.getFloat("bri", 1.0f);
-    }
-    if (prefs.isKey("idle_ms")) {
-        idleDimMs = prefs.getInt("idle_ms", 30000);
-    }
-    if (prefs.isKey("cpi")) {
-        sensorCPI = prefs.getUChar("cpi", 1);
-        if (sensorCPI > 3) sensorCPI = 1;
-    }
     prefs.end();
 }
 
@@ -431,13 +410,6 @@ void savePrefs() {
     prefs.putFloat("cal_B", cal_B);
     prefs.putBool("cal_max_v1", true);
     prefs.putInt("curMode", currentModeIdx);
-
-    // Save global settings
-    prefs.putLong("touch_thr", touch.getThreshold());
-    prefs.putFloat("bri", ledBrightness);
-    prefs.putInt("idle_ms", idleDimMs);
-    prefs.putUChar("cpi", sensorCPI);
-
     prefs.end();
 }
 
@@ -683,12 +655,10 @@ void setup() {
     ledcWrite(LED_B_PIN, 0);
     digitalWrite(SCLK_PIN, HIGH);
 
-    // Initialize capacitive touch hardware
-    touch.begin();
-
     // Load all persistent settings from NVS
     loadPrefs();
 
+    touch.begin();
     Serial.printf("Touch Threshold: %ld\n", touch.getThreshold());
 
     // Disable MX8650 sleep for continuous polling

@@ -559,40 +559,11 @@
             position: absolute;
             top: 0; left: 0; bottom: 0;
             width: var(--fill-pct, 50%);
-            background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.10) 0%, rgba(var(--accent-rgb), 0.28) 100%);
-            border-radius: 24px;
+            background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.14) 0%, rgba(var(--accent-rgb), 0.28) 100%);
+            border-right: 2.5px solid var(--accent);
+            border-radius: 24px 0 0 24px;
             pointer-events: none;
-            transition: width 0.05s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-        }
-
-        /* Apple Control Center / Google M3 Expressive tactile floating pill indicator */
-        .capsule-fill::after {
-            content: '';
-            position: absolute;
-            right: 4px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 20px;
-            background: var(--accent);
-            border-radius: 4px;
-            box-shadow: 0 0 10px var(--accent-glow), 0 1px 3px rgba(0, 0, 0, 0.35);
-            transition: height 0.2s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-            opacity: 0.95;
-        }
-
-        .apple-capsule-slider:hover .capsule-fill::after,
-        .apple-capsule-slider:active .capsule-fill::after {
-            height: 26px;
-            width: 4.5px;
-            background: #ffffff;
-            box-shadow: 0 0 14px var(--accent-glow), 0 2px 6px rgba(0, 0, 0, 0.45);
-            opacity: 1;
-        }
-
-        .apple-capsule-slider.is-zero .capsule-fill::after {
-            opacity: 0;
+            transition: width 0.05s ease;
         }
 
         .capsule-content {
@@ -631,16 +602,14 @@
             z-index: 2;
             pointer-events: none;
             font-size: 12px;
-            font-weight: 600;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 700;
+            font-family: monospace;
             color: var(--accent);
             background: var(--surface-glass);
-            padding: 3px 9px;
-            border-radius: 8px;
+            padding: 3px 8px;
+            border-radius: 6px;
             border: 1px solid var(--border);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+            backdrop-filter: blur(8px);
         }
 
         .apple-capsule-slider input[type="range"] {
@@ -1681,7 +1650,7 @@
                     <span class="capsule-name">LED Brightness</span>
                 </div>
                 <span class="capsule-val" id="bri_val">100%</span>
-                <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()" onchange="sendGlobal(true)">
+                <input type="range" id="bri" min="0" max="100" value="100" oninput="onBriInput()">
             </div>
 
             <!-- Idle Sleep Timeout Capsule -->
@@ -1696,11 +1665,11 @@
                     <span class="capsule-name">Idle Sleep</span>
                 </div>
                 <span class="capsule-val" id="idle_val">30s</span>
-                <input type="range" id="idle" min="0" max="120" step="5" value="30" oninput="onIdleInput()" onchange="sendGlobal(true)">
+                <input type="range" id="idle" min="0" max="120" step="5" value="30" oninput="onIdleInput()">
             </div>
 
             <!-- Touch Sensitivity Capsule -->
-            <div class="apple-capsule-slider" id="capsuleThr" style="--fill-pct: 24%;" title="Touch Sensitivity (0 to 100)">
+            <div class="apple-capsule-slider" id="capsuleThr" style="--fill-pct: 24%;">
                 <div class="capsule-fill"></div>
                 <div class="capsule-content">
                     <span class="capsule-icon">
@@ -1711,8 +1680,8 @@
                     </span>
                     <span class="capsule-name">Touch Sensitivity</span>
                 </div>
-                <span class="capsule-val" id="thr_val">24%</span>
-                <input type="range" id="thr" min="0" max="100" step="1" value="24" oninput="onThrInput()" onchange="sendGlobal(true)">
+                <span class="capsule-val" id="thr_val">800</span>
+                <input type="range" id="thr" min="100" max="3000" step="50" value="800" oninput="onThrInput()">
             </div>
         </div>
 
@@ -2247,28 +2216,12 @@ function handleConfig(json) {
 
 // =====================================================
 // Sending Settings
-let sendGlobalTimer = null;
-function sendGlobal(immediate = false) {
-    if (sendGlobalTimer) {
-        clearTimeout(sendGlobalTimer);
-        sendGlobalTimer = null;
-    }
-    const send = () => {
-        const bri    = document.getElementById('bri').value;
-        const idle   = document.getElementById('idle').value;
-        const thrPct = Math.max(0, Math.min(100, parseInt(document.getElementById('thr').value, 10) || 0));
-        // Direct mapping from last min/max: 0% -> 100 (min threshold), 100% -> 3000 (max threshold)
-        const rawThr = Math.round(100 + (thrPct / 100) * (3000 - 100));
-        config.bri  = parseInt(bri, 10);
-        config.idle = parseInt(idle, 10);
-        config.thr  = rawThr;
-        sendCommand(`SET:BRI:${bri},IDLE:${idle},THR:${rawThr}`);
-    };
-    if (immediate) {
-        send();
-    } else {
-        sendGlobalTimer = setTimeout(send, 120);
-    }
+// =====================================================
+function sendGlobal() {
+    const bri  = document.getElementById('bri').value;
+    const idle = document.getElementById('idle').value;
+    const thr  = document.getElementById('thr').value;
+    sendCommand(`SET:BRI:${bri},IDLE:${idle},THR:${thr}`);
 }
 
 function setCPI(level) {
@@ -2287,45 +2240,33 @@ function sendModeConfig(idx) {
 // UI Rendering & Apple Capsule Sliders
 // =====================================================
 function updateCapsuleFills() {
-    const briEl  = document.getElementById('bri');
+    const briEl = document.getElementById('bri');
     const idleEl = document.getElementById('idle');
-    const thrEl  = document.getElementById('thr');
+    const thrEl = document.getElementById('thr');
     
     if (briEl) {
         const pct = Math.max(0, Math.min(100, parseFloat(briEl.value) || 0));
-        const capsule = document.getElementById('capsuleBri');
-        capsule?.style.setProperty('--fill-pct', `${pct}%`);
-        capsule?.classList.toggle('is-zero', pct === 0);
+        document.getElementById('capsuleBri')?.style.setProperty('--fill-pct', `${pct}%`);
     }
     if (idleEl) {
         const idleVal = parseFloat(idleEl.value) || 0;
         const pct = Math.max(0, Math.min(100, (idleVal / 120) * 100));
-        const capsule = document.getElementById('capsuleIdle');
-        capsule?.style.setProperty('--fill-pct', `${pct}%`);
-        capsule?.classList.toggle('is-zero', idleVal === 0);
+        document.getElementById('capsuleIdle')?.style.setProperty('--fill-pct', `${pct}%`);
     }
     if (thrEl) {
-        const pct = Math.max(0, Math.min(100, parseFloat(thrEl.value) || 0));
-        const capsule = document.getElementById('capsuleThr');
-        capsule?.style.setProperty('--fill-pct', `${pct}%`);
-        capsule?.classList.toggle('is-zero', pct === 0);
+        const thrVal = parseFloat(thrEl.value) || 100;
+        const pct = Math.max(0, Math.min(100, ((thrVal - 100) / 2900) * 100));
+        document.getElementById('capsuleThr')?.style.setProperty('--fill-pct', `${pct}%`);
     }
 }
 
 function applyConfigToUI() {
     document.getElementById('bri').value  = config.bri;
     document.getElementById('idle').value = config.idle;
-    
-    // Convert raw firmware threshold (100-3000) to UI percentage (0-100%)
-    // min 100 -> 0%, max 3000 -> 100% (default 800 -> 24%)
-    const rawThr = (config.thr !== undefined && config.thr !== null) ? config.thr : 800;
-    const clampedThr = Math.max(100, Math.min(3000, rawThr));
-    const thrPct = Math.round(((clampedThr - 100) / 2900) * 100);
-    document.getElementById('thr').value = thrPct;
-    
+    document.getElementById('thr').value  = config.thr;
     document.getElementById('bri_val').textContent  = config.bri + '%';
     document.getElementById('idle_val').textContent = config.idle == 0 ? 'Off' : config.idle + 's';
-    document.getElementById('thr_val').textContent  = thrPct + '%';
+    document.getElementById('thr_val').textContent  = config.thr;
     updateCapsuleFills();
     
     // Set calibration sliders (firmware uses 0.0-1.0 float, UI uses 0-1000)
@@ -2535,7 +2476,7 @@ function onIdleInput() {
 }
 
 function onThrInput() {
-    document.getElementById('thr_val').textContent = document.getElementById('thr').value + '%';
+    document.getElementById('thr_val').textContent = document.getElementById('thr').value;
     updateCapsuleFills();
     sendGlobal();
 }
