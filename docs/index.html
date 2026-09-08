@@ -1700,7 +1700,7 @@
             </div>
 
             <!-- Touch Sensitivity Capsule -->
-            <div class="apple-capsule-slider" id="capsuleThr" style="--fill-pct: 76%;" title="Touch Sensitivity (0% = Least sensitive, 100% = Most sensitive)">
+            <div class="apple-capsule-slider" id="capsuleThr" style="--fill-pct: 24%;" title="Touch Sensitivity (0 to 100)">
                 <div class="capsule-fill"></div>
                 <div class="capsule-content">
                     <span class="capsule-icon">
@@ -1711,8 +1711,8 @@
                     </span>
                     <span class="capsule-name">Touch Sensitivity</span>
                 </div>
-                <span class="capsule-val" id="thr_val">76%</span>
-                <input type="range" id="thr" min="0" max="100" step="1" value="76" oninput="onThrInput()" onchange="sendGlobal(true)">
+                <span class="capsule-val" id="thr_val">24%</span>
+                <input type="range" id="thr" min="0" max="100" step="1" value="24" oninput="onThrInput()" onchange="sendGlobal(true)">
             </div>
         </div>
 
@@ -2257,8 +2257,8 @@ function sendGlobal(immediate = false) {
         const bri    = document.getElementById('bri').value;
         const idle   = document.getElementById('idle').value;
         const thrPct = Math.max(0, Math.min(100, parseInt(document.getElementById('thr').value, 10) || 0));
-        // Map 0% (least sensitive -> 3000) to 100% (most sensitive -> 100)
-        const rawThr = Math.round(3000 - (thrPct / 100) * (3000 - 100));
+        // Direct mapping from last min/max: 0% -> 100 (min threshold), 100% -> 3000 (max threshold)
+        const rawThr = Math.round(100 + (thrPct / 100) * (3000 - 100));
         config.bri  = parseInt(bri, 10);
         config.idle = parseInt(idle, 10);
         config.thr  = rawThr;
@@ -2317,10 +2317,10 @@ function applyConfigToUI() {
     document.getElementById('idle').value = config.idle;
     
     // Convert raw firmware threshold (100-3000) to UI percentage (0-100%)
-    // 100 = 100% (most sensitive), 3000 = 0% (least sensitive)
+    // min 100 -> 0%, max 3000 -> 100% (default 800 -> 24%)
     const rawThr = (config.thr !== undefined && config.thr !== null) ? config.thr : 800;
     const clampedThr = Math.max(100, Math.min(3000, rawThr));
-    const thrPct = Math.round(((3000 - clampedThr) / 2900) * 100);
+    const thrPct = Math.round(((clampedThr - 100) / 2900) * 100);
     document.getElementById('thr').value = thrPct;
     
     document.getElementById('bri_val').textContent  = config.bri + '%';

@@ -394,8 +394,11 @@ void loadPrefs() {
     // Load global settings
     if (prefs.isKey("touch_thr")) {
         long thr = prefs.getLong("touch_thr", 800);
-        if (thr >= 100 && thr <= 100000) {
+        if (thr >= 100 && thr <= 2000) {
             touch.setThreshold(thr);
+        } else {
+            touch.setThreshold(800);
+            prefs.putLong("touch_thr", 800);
         }
     }
     if (prefs.isKey("bri")) {
@@ -680,10 +683,12 @@ void setup() {
     ledcWrite(LED_B_PIN, 0);
     digitalWrite(SCLK_PIN, HIGH);
 
+    // Initialize capacitive touch hardware
+    touch.begin();
+
     // Load all persistent settings from NVS
     loadPrefs();
 
-    touch.begin();
     Serial.printf("Touch Threshold: %ld\n", touch.getThreshold());
 
     // Disable MX8650 sleep for continuous polling
