@@ -390,6 +390,20 @@ void loadPrefs() {
         currentModeIdx = prefs.getInt("curMode", 0);
         if (currentModeIdx >= MAX_MODES || !modeList[currentModeIdx].enabled) currentModeIdx = 0;
     }
+
+    // Load global preferences
+    if (prefs.isKey("idle_ms")) {
+        idleDimMs = prefs.getInt("idle_ms", 30000);
+        if (idleDimMs < 0 || idleDimMs > 300000) idleDimMs = 30000;
+    }
+    if (prefs.isKey("bri")) {
+        ledBrightness = prefs.getFloat("bri", 1.0f);
+        if (ledBrightness < 0.0f || ledBrightness > 1.0f) ledBrightness = 1.0f;
+    }
+    if (prefs.isKey("cpi")) {
+        sensorCPI = prefs.getUChar("cpi", 1);
+        if (sensorCPI > 3) sensorCPI = 1;
+    }
     prefs.end();
 }
 
@@ -410,6 +424,11 @@ void savePrefs() {
     prefs.putFloat("cal_B", cal_B);
     prefs.putBool("cal_max_v1", true);
     prefs.putInt("curMode", currentModeIdx);
+
+    // Save global preferences
+    prefs.putInt("idle_ms", idleDimMs);
+    prefs.putFloat("bri", ledBrightness);
+    prefs.putUChar("cpi", sensorCPI);
     prefs.end();
 }
 
@@ -551,7 +570,7 @@ void parseSerialCommand(String& cmd) {
 
                 // Global keys
                 if      (key == "BRI")  { ledBrightness = constrain(val.toInt(), 0, 100) / 100.0f; applyModeColor(); }
-                else if (key == "IDLE") { idleDimMs = val.toInt() * 1000; }
+                else if (key == "IDLE") { idleDimMs = constrain(val.toInt(), 0, 300) * 1000; }
                 else if (key == "CPI")  { sensorCPI = constrain(val.toInt(), 0, 3); setSensorCPI(sensorCPI); }
                 else if (key == "THR")  { touch.setThreshold(val.toInt()); }
 
