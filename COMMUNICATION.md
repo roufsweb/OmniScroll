@@ -14,7 +14,7 @@ Used to apply settings dynamically and save them to NVS (Non-Volatile Storage). 
 * `SET:BRI:<0-100>` - Set global master LED brightness (percent).
 * `SET:IDLE:<seconds>` - Set time before the LED dims (0 = disable).
 * `SET:CPI:<0-3>` - Set MX8650 optical sensor DPI (0=400, 1=800, 2=1200, 3=1600).
-* `SET:THR:<number>` - Set global capacitive touch threshold.
+* `SET:THR:<number>` - Set global capacitive touch threshold (100–3000). The Web UI exposes this as a 0% to 100% sensitivity slider (0% = 3000, 76% default = 800, 100% = 100).
 
 **Hardware White Balance Calibration:**
 * `SET:CAL:R:<float>` - Red channel scaling (0.0 to 1.0)
