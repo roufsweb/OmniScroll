@@ -13,6 +13,7 @@ public:
 
     bool isDoubleTapped();
     bool isLongPressed();
+    bool isSingleTapped();
 
     bool isTouched();
 
@@ -35,6 +36,7 @@ private:
 
     bool _doubleTappedFlag;
     bool _longPressFlag;
+    bool _singleTappedFlag;
 
     // Timing constants
     const unsigned long DOUBLE_TAP_MAX_DELAY = 600;  // ms — window to detect second tap

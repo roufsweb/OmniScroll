@@ -15,10 +15,12 @@ Used to apply settings dynamically and save them to NVS (Non-Volatile Storage). 
 * `SET:IDLE:<seconds>` - Set time before the LED dims (0 = disable).
 * `SET:CPI:<0-3>` - Set MX8650 optical sensor DPI (0=400, 1=800, 2=1200, 3=1600).
 * `SET:THR:<number>` - Set global capacitive touch threshold (100–3000). The Web UI exposes this as a 0% to 100% sensitivity slider (0% = 3000, 76% default = 800, 100% = 100).
-* `SET:FLICK_FWD:<0-24>` - Set Flick Forward action (0=Off, 1=BrowBack, 2=BrowFwd, 3=Undo, 4=Redo, 5=MediaPrev, 6=MediaNext, 7=TabPrev, 8=TabNext, 9=DeskPrev, 10=DeskNext, 11=VolDown, 12=VolUp, 13=Copy, 14=Paste, 15=NextMode, 16=PrevMode, 17..24=DirectMode).
-* `SET:FLICK_REV:<0-24>` - Set Flick Back action (same actions as above).
+* `SET:FLICK_FWD:<0-25>` - Set Flick Forward action (0=Off, 1=BrowBack, 2=BrowFwd, 3=Undo, 4=Redo [Ctrl+Shift+Z], 5=MediaPrev, 6=MediaNext, 7=TabPrev, 8=TabNext, 9=DeskPrev, 10=DeskNext, 11=VolDown, 12=VolUp, 13=Copy, 14=Paste, 15=NextMode, 16=PrevMode, 17..24=DirectMode, 25=PlayPause).
+* `SET:FLICK_REV:<0-25>` - Set Flick Back action (same actions as above).
 * `SET:TSPIN:<0-5>` - Set Touch & Spin modifier action (0=Off, 1=H-Scroll, 2=Universal Zoom, 3=Turbo 4x, 4=Timeline Scrub, 5=Quick Volume).
 * `SET:GESTURE_PROFILE:<S>,<R>,<T>` - Sets the initial adaptive gesture centroid parameters (Stroke, Recoil, Dwell).
+* `SET:GESTURE_REJECT` - Human-in-the-loop mis-trigger rejection. Rolls back TinyOL neural prototype centroids in volatile SRAM to the exact state before the last flick, suppresses NVS write (`gestureLearnedDirty = false`), triggers an 80Hz haptic rejection buzz, and flashes the LED amber/red.
+* `SET:GESTURE_RESET` - Resets on-device TinyOL centroids back to the factory calibrated mathematical baseline (`S=85, R=52, T=24`) and commits to NVS.
 
 **Hardware White Balance Calibration:**
 * `SET:CAL:R:<float>` - Red channel scaling (0.0 to 1.0)
@@ -83,5 +85,8 @@ CONFIG:{
 * `TOUCH:DOUBLE` - Broadcast when a capacitive double-tap is registered. Triggers the dual-harmonic resonant wave in the Web UI.
 * `GESTURE:FLICK:FWD` - Broadcast when a forward flick gesture is recognized and dispatched.
 * `GESTURE:FLICK:REV` - Broadcast when a reverse flick gesture is recognized and dispatched.
-* `GESTURE:LEARNED:S=<val>,R=<val>,T=<val>` - Broadcast when the on-device TinyOL engine adapts personal prototype centroids to the user's kinematic signature.
+* `GESTURE:LEARNED:S=<val>,R=<val>,T=<val>` - Broadcast when the on-device TinyOL engine adapts personal prototype centroids to the user's kinematic signature. Triggers a radiant Cyan pulse on the physical LED and updates the Web UI neural card.
+* `GESTURE:REJECTED:ROLLBACK_OK` - Broadcast when a mis-triggered flick is successfully rolled back via physical single-tap or Web UI reject button.
+* `GESTURE:REJECTED:NO_PREV_DATA` - Broadcast if a rejection is requested when no prior gesture snapshot exists.
+* `GESTURE:RESET:OK` - Broadcast when gesture centroids are reset back to factory baseline.
 

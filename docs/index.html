@@ -1146,23 +1146,41 @@
             transform: translateX(-50%) translateY(16px);
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px 8px 12px;
-            background: rgba(20, 18, 14, 0.72);
+            gap: 10px;
+            padding: 8px 12px 8px 14px;
+            background: rgba(20, 18, 14, 0.82);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
             border: 1px solid rgba(255, 160, 0, 0.28);
             border-radius: 100px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,160,0,0.1);
-            pointer-events: none;
+            pointer-events: auto;
             opacity: 0;
-            transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.16,1,0.3,1);
+            transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.16,1,0.3,1), border-color 0.25s ease, box-shadow 0.25s ease;
             z-index: 20;
         }
 
         #gestureBadge.visible {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
+        }
+
+        #gestureBadge.neural-learn {
+            border-color: rgba(0, 240, 220, 0.5);
+            box-shadow: 0 4px 24px rgba(0, 240, 220, 0.25), 0 0 0 1px rgba(0, 240, 220, 0.2);
+        }
+
+        #gestureBadge.neural-learn .gesture-badge-icon {
+            color: #00f0dc;
+        }
+
+        #gestureBadge.rejection-badge {
+            border-color: rgba(255, 60, 0, 0.5);
+            box-shadow: 0 4px 24px rgba(255, 60, 0, 0.25), 0 0 0 1px rgba(255, 60, 0, 0.2);
+        }
+
+        #gestureBadge.rejection-badge .gesture-badge-icon {
+            color: #ff3c00;
         }
 
         .gesture-badge-icon {
@@ -1177,6 +1195,159 @@
             color: rgba(255, 240, 210, 0.95);
             letter-spacing: 0.02em;
         }
+
+        .gesture-reject-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 9px;
+            color: rgba(255, 255, 255, 0.88);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .gesture-reject-btn:hover {
+            background: rgba(255, 60, 0, 0.35);
+            border-color: rgba(255, 60, 0, 0.7);
+            color: #fff;
+            transform: scale(1.04);
+        }
+
+        /* -------------------------------------------------------
+           Adaptive TinyOL Neural Engine Card
+        ------------------------------------------------------- */
+        .apple-neural-card {
+            background: var(--raised);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 14px 16px;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .apple-neural-card.pulse-learn {
+            border-color: rgba(0, 240, 220, 0.6);
+            box-shadow: 0 0 20px rgba(0, 240, 220, 0.25);
+        }
+        .apple-neural-card.pulse-reject {
+            border-color: rgba(255, 60, 0, 0.6);
+            box-shadow: 0 0 20px rgba(255, 60, 0, 0.25);
+        }
+        .neural-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .neural-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .neural-icon {
+            color: #00f0dc;
+            display: flex;
+            align-items: center;
+        }
+        .neural-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: 0.2px;
+        }
+        .neural-badge-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #00f0dc;
+            background: rgba(0, 240, 220, 0.1);
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 240, 220, 0.2);
+        }
+        .neural-pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00f0dc;
+            box-shadow: 0 0 6px #00f0dc;
+            animation: neuralPulse 2s infinite;
+        }
+        @keyframes neuralPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+        .neural-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.18);
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .neural-metric-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .neural-metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--subtext);
+            margin-bottom: 2px;
+        }
+        .neural-metric-val {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+        .neural-metric-sub {
+            font-size: 10px;
+            color: var(--subtext);
+            margin-top: 1px;
+        }
+        .neural-card-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .apple-subtle-btn {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .apple-subtle-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .apple-subtle-btn:active {
+            transform: translateY(0);
+        }
+
 
         .apple-mode-grid {
             display: grid;
@@ -1921,6 +2092,7 @@
             <div id="gestureBadge" role="status" aria-live="polite">
                 <span class="gesture-badge-icon"></span>
                 <span class="gesture-badge-text"></span>
+                <button type="button" class="gesture-reject-btn" id="gestureRejectBtn" onclick="rejectLastGestureWeb(event)" title="Report mis-trigger &amp; rollback" style="display:none;">✕ Reject</button>
             </div>
             <div class="real-device-wrapper" id="deviceVisualizer">
                 <!-- Base Hardware: High-speed optimized WebP with PNG fallback -->
@@ -2112,6 +2284,53 @@
                     </button>
                     <div class="custom-dropdown-menu" id="tspinMenu"></div>
                     <input type="hidden" id="tspinSelect" value="1">
+                </div>
+            </div>
+
+            <!-- Adaptive TinyOL Neural Engine Telemetry & Feedback -->
+            <div class="apple-neural-card" id="neuralCard">
+                <div class="neural-card-header">
+                    <div class="neural-header-left">
+                        <span class="neural-icon">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5V11a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.5c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4z"/>
+                                <path d="M9 18a3 3 0 0 0 6 0v-2H9v2z"/>
+                                <line x1="12" y1="13" x2="12" y2="16"/>
+                            </svg>
+                        </span>
+                        <span class="neural-title">TinyOL Neural Engine</span>
+                    </div>
+                    <div class="neural-badge-status" id="neuralBadgeStatus">
+                        <span class="neural-pulse-dot"></span>
+                        <span>Learning Active</span>
+                    </div>
+                </div>
+                <div class="neural-metrics-grid">
+                    <div class="neural-metric-item">
+                        <span class="neural-metric-label">Stroke Travel</span>
+                        <span class="neural-metric-val" id="tinyolMuS">110.0</span>
+                        <span class="neural-metric-sub">counts (~76°)</span>
+                    </div>
+                    <div class="neural-metric-item">
+                        <span class="neural-metric-label">Snap Recoil</span>
+                        <span class="neural-metric-val" id="tinyolMuR">85.0</span>
+                        <span class="neural-metric-sub">counts (~59°)</span>
+                    </div>
+                    <div class="neural-metric-item">
+                        <span class="neural-metric-label">Turnaround</span>
+                        <span class="neural-metric-val" id="tinyolMuT">25.0</span>
+                        <span class="neural-metric-sub">milliseconds</span>
+                    </div>
+                </div>
+                <div class="neural-card-actions">
+                    <button type="button" class="apple-subtle-btn" onclick="rejectLastGestureWeb(event)" id="webRejectBtn" title="Reject last gesture if it mis-triggered">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        Reject Mis-trigger
+                    </button>
+                    <button type="button" class="apple-subtle-btn" onclick="resetTinyOLBaseline()" title="Reset centroids to factory golden baseline">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+                        Reset Baseline
+                    </button>
                 </div>
             </div>
         </div>
@@ -2689,19 +2908,97 @@ const GESTURE_BADGE_LABELS = {
     'TSPIN':      { text: 'Touch Spin', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 2l-2 4-4-2"/></svg>' }
 };
 let gestureBadgeTimeout = null;
+
 function handleGestureEvent(type) {
-    const info = GESTURE_BADGE_LABELS[type];
-    if (!info) return;
     const badge = document.getElementById('gestureBadge');
     if (!badge) return;
-    badge.querySelector('.gesture-badge-icon').innerHTML = info.icon;
-    badge.querySelector('.gesture-badge-text').textContent = info.text;
+
+    badge.classList.remove('neural-learn', 'rejection-badge');
+    const rejectBtn = document.getElementById('gestureRejectBtn');
+
+    if (type.startsWith('LEARNED:')) {
+        // Format: LEARNED:S=114.2,R=87.5,T=24.1
+        const parts = type.substring(8).split(',');
+        let s = 110, r = 85, t = 25;
+        parts.forEach(p => {
+            const [k, v] = p.split('=');
+            if (k === 'S') s = parseFloat(v) || s;
+            if (k === 'R') r = parseFloat(v) || r;
+            if (k === 'T') t = parseFloat(v) || t;
+        });
+        updateTinyOLUI(s, r, t, true);
+
+        badge.querySelector('.gesture-badge-icon').innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5V11a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.5c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4z"/><path d="M9 18a3 3 0 0 0 6 0v-2H9v2z"/><line x1="12" y1="13" x2="12" y2="16"/></svg>`;
+        badge.querySelector('.gesture-badge-text').textContent = `TinyOL Adapted (${s.toFixed(0)} | ${r.toFixed(0)} | ${t.toFixed(0)}ms)`;
+        badge.classList.add('neural-learn');
+        if (rejectBtn) rejectBtn.style.display = 'inline-block';
+    }
+    else if (type.startsWith('REJECTED') || type.startsWith('ROLLEDBACK:')) {
+        if (type.startsWith('ROLLEDBACK:')) {
+            const parts = type.substring(11).split(',');
+            let s = 110, r = 85, t = 25;
+            parts.forEach(p => {
+                const [k, v] = p.split('=');
+                if (k === 'S') s = parseFloat(v) || s;
+                if (k === 'R') r = parseFloat(v) || r;
+                if (k === 'T') t = parseFloat(v) || t;
+            });
+            updateTinyOLUI(s, r, t, false, true);
+        }
+        badge.querySelector('.gesture-badge-icon').innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9.5" y1="9" x2="14.5" y2="14"/><line x1="14.5" y1="9" x2="9.5" y2="14"/></svg>`;
+        badge.querySelector('.gesture-badge-text').textContent = 'Mis-trigger Rejected (Rolled Back)';
+        badge.classList.add('rejection-badge');
+        if (rejectBtn) rejectBtn.style.display = 'none';
+    }
+    else {
+        const info = GESTURE_BADGE_LABELS[type];
+        if (!info) return;
+        badge.querySelector('.gesture-badge-icon').innerHTML = info.icon;
+        badge.querySelector('.gesture-badge-text').textContent = info.text;
+        if (rejectBtn) rejectBtn.style.display = type.startsWith('FLICK:') ? 'inline-block' : 'none';
+    }
+
     badge.classList.remove('visible');
-    // Force reflow to restart animation
     void badge.offsetWidth;
     badge.classList.add('visible');
     if (gestureBadgeTimeout) clearTimeout(gestureBadgeTimeout);
-    gestureBadgeTimeout = setTimeout(() => badge.classList.remove('visible'), 1400);
+    gestureBadgeTimeout = setTimeout(() => badge.classList.remove('visible'), 2400);
+}
+
+function rejectLastGestureWeb(e) {
+    if (e) e.stopPropagation();
+    sendCommand("SET:GESTURE_REJECT");
+    handleGestureEvent("REJECTED:ROLLBACK_OK");
+    const card = document.getElementById('neuralCard');
+    if (card) {
+        card.classList.add('pulse-reject');
+        setTimeout(() => card.classList.remove('pulse-reject'), 1000);
+    }
+}
+
+function resetTinyOLBaseline() {
+    sendCommand("SET:GESTURE_PROFILE:110,85,25");
+    updateTinyOLUI(110, 85, 25, false);
+}
+
+function updateTinyOLUI(s, r, t, isAdapted = false, isRejected = false) {
+    const elS = document.getElementById('tinyolMuS');
+    const elR = document.getElementById('tinyolMuR');
+    const elT = document.getElementById('tinyolMuT');
+    if (elS) elS.textContent = parseFloat(s).toFixed(1);
+    if (elR) elR.textContent = parseFloat(r).toFixed(1);
+    if (elT) elT.textContent = parseFloat(t).toFixed(1);
+
+    const card = document.getElementById('neuralCard');
+    if (card) {
+        if (isAdapted) {
+            card.classList.add('pulse-learn');
+            setTimeout(() => card.classList.remove('pulse-learn'), 1200);
+        } else if (isRejected) {
+            card.classList.add('pulse-reject');
+            setTimeout(() => card.classList.remove('pulse-reject'), 1200);
+        }
+    }
 }
 
 // =====================================================
@@ -2769,6 +3066,11 @@ function applyConfigToUI() {
     updateGestureDropdownUI('FLICK_FWD', fwdVal);
     updateGestureDropdownUI('FLICK_REV', revVal);
     updateGestureDropdownUI('TSPIN', tspinVal);
+
+    // Restore TinyOL centroids if available
+    if (config.g_mu_s !== undefined) {
+        updateTinyOLUI(config.g_mu_s, config.g_mu_r, config.g_mu_t);
+    }
 }
 
 // =====================================================
@@ -2792,10 +3094,12 @@ const GESTURE_MENU_ITEMS = [
     { value: 24, label: "Undo/Redo Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>` },
     { group: "Editing" },
     { value: 3, label: "Undo", badge: "Ctrl+Z", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>` },
-    { value: 4, label: "Redo", badge: "Ctrl+Y", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>` },
+    { value: 4, label: "Redo", badge: "Ctrl+Shift+Z", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>` },
     { group: "Media" },
     { value: 5, label: "Media Previous", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>` },
     { value: 6, label: "Media Next", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>` },
+    { value: 25, label: "Play / Pause", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="5" x2="19" y2="19"/></svg>` },
+
     { group: "Tabs" },
     { value: 7, label: "Previous Tab", badge: "Ctrl+Shift+Tab", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>` },
     { value: 8, label: "Next Tab", badge: "Ctrl+Tab", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>` },

@@ -138,6 +138,14 @@ const float   GESTURE_LEARN_ALPHA = 0.08f;  // Recursive learning rate (EMA)
 bool          gestureLearnedDirty = false;  // True when centroids modified in SRAM
 unsigned long gestureLastLearnedMs = 0;      // Timestamp of last centroid update
 
+// Pre-adaptation snapshot for lossless human rollback on rejection
+float         prevGestureMuS      = 110.0f;
+float         prevGestureMuR      = 85.0f;
+float         prevGestureMuT      = 25.0f;
+bool          lastFlickAdapted    = false;
+unsigned long lastFlickFireMs     = 0;
+const unsigned long GESTURE_FEEDBACK_WINDOW_MS = 2500; // 2.5s window to reject
+
 // Mathematical bounds & physical envelopes
 const int     FLICK_PRIME_THRESH          = 10;   // Spotting threshold (~6.9°)
 const int     FLICK_COMMIT_THRESH         = 25;   // Minimum stroke to commit (~17.3°)
@@ -506,8 +514,8 @@ void loadPrefs() {
     }
 
     // Load gesture settings
-    flickFwdAction  = constrain(prefs.getUChar("flick_fwd", 2), 0, 24);
-    flickRevAction  = constrain(prefs.getUChar("flick_rev", 1), 0, 24);
+    flickFwdAction  = constrain(prefs.getUChar("flick_fwd", 2), 0, 25);
+    flickRevAction  = constrain(prefs.getUChar("flick_rev", 1), 0, 25);
     touchSpinAction = constrain(prefs.getUChar("tspin_act", 1), 0, 5);
 
     // Load adaptive gesture prototype centroids (TinyOL)
@@ -625,62 +633,94 @@ void playHapticDoubleClick() {
     hapticPlaying = false;
 }
 
-// Non-blocking LED flash: 150ms warm-white burst on gesture fire,
-// auto-returns to mode color. Does NOT interfere with haptic or scroll.
-void triggerGestureFlash() {
-    // Warm white flash — perceptually distinct from mode color
-    setLedColorDirect(255, 245, 200);
-    gestureLedFlashing  = true;
+// Non-blocking LED flash: 150ms burst on gesture fire.
+// Warm-white burst on standard flick; radiant Cyan/Teal pulse when TinyOL adapts.
+void triggerGestureFlash(bool isNeuralLearned = false) {
+    if (isNeuralLearned) {
+        setLedColorDirect(0, 240, 220); // Radiant Cyan/Teal — TinyOL neural learning indicator!
+    } else {
+        setLedColorDirect(255, 245, 200); // Warm white — standard gesture confirmation
+    }
+    gestureLedFlashing   = true;
     gestureLedFlashStart = millis();
+}
+
+// Human-in-the-Loop Rejection: restores exact pre-flick snapshot,
+// prevents false centroid persistence, and gives error feedback.
+void rejectLastGesture() {
+    if (lastFlickAdapted) {
+        gestureMuS = prevGestureMuS;
+        gestureMuR = prevGestureMuR;
+        gestureMuT = prevGestureMuT;
+        lastFlickAdapted = false;
+        gestureLearnedDirty = false; // Discard dirty flag: false centroids NEVER write to NVS
+        Serial.printf("GESTURE:ROLLEDBACK:S=%.1f,R=%.1f,T=%.1f\n", gestureMuS, gestureMuR, gestureMuT);
+    }
+    lastFlickFireMs = 0; // Close feedback window
+
+    // Error haptic thud: low-frequency buzz
+    hapticPlaying = false;
+    noTone(HAPTIC_PIN);
+    tone(HAPTIC_PIN, 80);
+    delay(45);
+    noTone(HAPTIC_PIN);
+
+    // Amber/Red error LED burst (250ms)
+    setLedColorDirect(255, 50, 0);
+    gestureLedFlashing   = true;
+    gestureLedFlashStart = millis();
+
+    Serial.println("GESTURE:REJECTED:ROLLBACK_OK");
 }
 
 // Unified single-action dispatcher: maps action ID to HID command.
 // Used by both Flick Forward and Flick Back independently.
+// Uses robust 20ms hold timing so OS media frameworks and app event loops never drop events.
 void dispatchSingleAction(uint8_t action) {
     switch (action) {
         case 0:  break; // Disabled
         case 1:  // Browser Back (Alt+Left)
             Keyboard.press(KEY_LEFT_ALT); Keyboard.press(KEY_LEFT_ARROW);
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 2:  // Browser Forward (Alt+Right)
             Keyboard.press(KEY_LEFT_ALT); Keyboard.press(KEY_RIGHT_ARROW);
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 3:  // Undo (Ctrl+Z)
             Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('z');
-            delay(2); Keyboard.releaseAll(); break;
-        case 4:  // Redo (Ctrl+Y)
-            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('y');
-            delay(2); Keyboard.releaseAll(); break;
-        case 5:  // Media Previous
+            delay(20); Keyboard.releaseAll(); break;
+        case 4:  // Redo (Ctrl+Shift+Z universal)
+            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_LEFT_SHIFT); Keyboard.press('z');
+            delay(20); Keyboard.releaseAll(); break;
+        case 5:  // Media Previous (0x00B6)
             ConsumerControl.press(CONSUMER_CONTROL_SCAN_PREVIOUS);
-            delay(2); ConsumerControl.release(); break;
-        case 6:  // Media Next
+            delay(20); ConsumerControl.release(); break;
+        case 6:  // Media Next (0x00B5)
             ConsumerControl.press(CONSUMER_CONTROL_SCAN_NEXT);
-            delay(2); ConsumerControl.release(); break;
+            delay(20); ConsumerControl.release(); break;
         case 7:  // Previous Tab (Ctrl+Shift+Tab)
             Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_LEFT_SHIFT); Keyboard.press(KEY_TAB);
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 8:  // Next Tab (Ctrl+Tab)
             Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_TAB);
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 9:  // Previous Desktop (Win+Ctrl+Left)
             Keyboard.press(KEY_LEFT_GUI); Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_LEFT_ARROW);
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 10: // Next Desktop (Win+Ctrl+Right)
             Keyboard.press(KEY_LEFT_GUI); Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_RIGHT_ARROW);
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 11: // Volume Down
             ConsumerControl.press(CONSUMER_CONTROL_VOLUME_DECREMENT);
-            delay(2); ConsumerControl.release(); break;
+            delay(20); ConsumerControl.release(); break;
         case 12: // Volume Up
             ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
-            delay(2); ConsumerControl.release(); break;
+            delay(20); ConsumerControl.release(); break;
         case 13: // Copy (Ctrl+C)
             Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('c');
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 14: // Paste (Ctrl+V)
             Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('v');
-            delay(2); Keyboard.releaseAll(); break;
+            delay(20); Keyboard.releaseAll(); break;
         case 15: // Next Mode (Cycle forward)
             cycleMode();
             break;
@@ -691,6 +731,9 @@ void dispatchSingleAction(uint8_t action) {
         case 21: case 22: case 23: case 24: // Direct Mode Jump (0 to 7)
             switchToMode(action - 17);
             break;
+        case 25: // Play / Pause (0x00CD)
+            ConsumerControl.press(CONSUMER_CONTROL_PLAY_PAUSE);
+            delay(20); ConsumerControl.release(); break;
     }
 }
 
@@ -922,8 +965,16 @@ int updateFlickEngine(int8_t dx) {
                     float dT = (T - gestureMuT) / GESTURE_SIGMA_T;
                     float d2 = dS*dS + dR*dR + dT*dT;
 
+                    lastFlickAdapted = false;
+
                     // High-confidence learning zone (d^2 <= 1.5, >= 95% confidence)
                     if (d2 <= 1.5f) {
+                        // Snapshot prior state for lossless human rollback on rejection
+                        prevGestureMuS   = gestureMuS;
+                        prevGestureMuR   = gestureMuR;
+                        prevGestureMuT   = gestureMuT;
+                        lastFlickAdapted = true;
+
                         gestureMuS = (1.0f - GESTURE_LEARN_ALPHA) * gestureMuS + GESTURE_LEARN_ALPHA * S;
                         gestureMuR = (1.0f - GESTURE_LEARN_ALPHA) * gestureMuR + GESTURE_LEARN_ALPHA * R;
                         gestureMuT = (1.0f - GESTURE_LEARN_ALPHA) * gestureMuT + GESTURE_LEARN_ALPHA * T;
@@ -931,11 +982,12 @@ int updateFlickEngine(int8_t dx) {
                         gestureMuS = constrain(gestureMuS, (float)FLICK_COMMIT_THRESH, 240.0f);
                         gestureMuR = constrain(gestureMuR, (float)FLICK_REVERSAL_MIN, 200.0f);
                         gestureMuT = constrain(gestureMuT, 10.0f, 60.0f);
-                        gestureLearnedDirty = true;
+                        gestureLearnedDirty  = true;
                         gestureLastLearnedMs = now;
                         Serial.printf("GESTURE:LEARNED:S=%.1f,R=%.1f,T=%.1f\n", gestureMuS, gestureMuR, gestureMuT);
                     }
 
+                    lastFlickFireMs    = now;
                     flickState         = FLICK_COOLDOWN;
                     flickStateEnterMs  = now;
                     flickTravelAcc     = 0;
@@ -1010,6 +1062,9 @@ void parseSerialCommand(String& cmd) {
     else if (cmd == "GET:GESTURE_PROFILE") {
         Serial.printf("GESTURE_PROFILE:{\"s\":%.1f,\"r\":%.1f,\"t\":%.1f}\n", gestureMuS, gestureMuR, gestureMuT);
     }
+    else if (cmd == "SET:GESTURE_REJECT") {
+        rejectLastGesture();
+    }
     else if (cmd.startsWith("SET:GESTURE_PROFILE:")) {
         // Format: SET:GESTURE_PROFILE:<S>,<R>,<T>
         String params = cmd.substring(20);
@@ -1067,8 +1122,8 @@ void parseSerialCommand(String& cmd) {
                 else if (key == "IDLE") { idleDimMs = constrain(val.toInt(), 0, 300) * 1000; }
                 else if (key == "STREAM") { streamTelemetry = (val.toInt() == 1); }
                 else if (key == "THR")  { touch.setThreshold(val.toInt()); }
-                else if (key == "FLICK_FWD"){ flickFwdAction  = constrain(val.toInt(), 0, 24); }
-                else if (key == "FLICK_REV"){ flickRevAction  = constrain(val.toInt(), 0, 24); }
+                else if (key == "FLICK_FWD"){ flickFwdAction  = constrain(val.toInt(), 0, 25); }
+                else if (key == "FLICK_REV"){ flickRevAction  = constrain(val.toInt(), 0, 25); }
                 else if (key == "TSPIN")    { touchSpinAction = constrain(val.toInt(), 0, 5); }
 
                 // Mode target selector
@@ -1302,8 +1357,17 @@ void loop() {
         // Long press = mode cycle in reverse (wraps around)
         // Allowed ONLY when stationary, not in Touch & Spin, and wheel was NOT rotated
         if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
+        cycleModePrev();
         Serial.println("LONGPRESS");
         lastActivityTime = millis();
+    }
+
+    // Single-tap feedback & mis-trigger rejection:
+    // If a flick fired within the last 2.5 seconds, a single tap immediately rolls back the gesture!
+    if (touch.isSingleTapped() && !touchSpinActive && !touchRotated) {
+        if (millis() - lastFlickFireMs < GESTURE_FEEDBACK_WINDOW_MS) {
+            rejectLastGesture();
+        }
     }
 
     // --- Physical button ---
@@ -1366,7 +1430,7 @@ void loop() {
                     if (action != 0) {
                         dispatchSingleAction(action);
                         playHapticDoubleClick();
-                        triggerGestureFlash();
+                        triggerGestureFlash(lastFlickAdapted);
                         Serial.println(flickResult > 0 ? "GESTURE:FLICK:FWD" : "GESTURE:FLICK:REV");
                     }
                     // Always clear accumulator on confirmed flick (even if action=disabled)
