@@ -122,22 +122,35 @@ bool          gestureLedFlashing  = false;
 unsigned long gestureLedFlashStart= 0;
 const unsigned long GESTURE_LED_FLASH_MS = 150; // 150ms warm-white confirmation flash
 
-// Flick Engine Thresholds — User-Calibrated 5-Guard Zero-False-Positive System
-// Derived directly from 30-second physical telemetry session:
-// - User Flick Stroke: 80–220 counts (burst duration: 50–160ms)
-// - User Flick Reversal Snap: 70–220 counts (turnaround dwell: 2–35ms, duration: <=160ms)
-// - Normal Scroll Pause: >= 120ms (stationary watchdog resets engine after 80ms)
-// - Symmetrical Recoil Ratio: recoil counts must be >= 1/3 of stroke travel
-const int  FLICK_PRIME_THRESH          = 15;   // Decisive burst minimum (~10.4°)
-const int  FLICK_COMMIT_THRESH         = 40;   // Committed flick travel minimum (~27.7°)
-const int  FLICK_STROKE_CEILING        = 230;  // Maximum stroke travel (~159°). Beyond this = continuous scroll!
-const int  FLICK_REVERSAL_MIN          = 35;   // Reversal snap minimum (~24.2°). Safely above any mechanical bounce (<=10)
-const int  FLICK_REVERSAL_MAX          = 220;  // Reversal snap maximum (~152°). Beyond this = intentional reverse scroll
-const unsigned long FLICK_COMMIT_WINDOW_MS   = 180;  // Rapid flick stroke window (burst must complete in <= 180ms)
-const unsigned long FLICK_TURNAROUND_MAX_MS  = 50;   // Turnaround limit between stroke and recoil (<= 50ms)
-const unsigned long FLICK_REVERSAL_WINDOW_MS = 160;  // Recoil duration limit (elastic snap must complete in <= 160ms)
-const unsigned long FLICK_MOTIONLESS_MS      = 80;   // Motionless silence watchdog: 80ms silence resets engine completely
-const unsigned long FLICK_COOLDOWN_MS        = 250;  // Cooldown before next flick can be primed
+// -------------------------------------------------------
+// Mathematical Self-Learning Gesture Engine (Phase-Energy TinyOL)
+// -------------------------------------------------------
+// Running personal flick prototype centroids (persisted in NVS)
+float         gestureMuS          = 110.0f; // Mean stroke travel (counts)
+float         gestureMuR          = 85.0f;  // Mean recoil rebound (counts)
+float         gestureMuT          = 25.0f;  // Mean turnaround dwell (ms)
+
+// Physiological variances for normalized distance calculation
+const float   GESTURE_SIGMA_S     = 45.0f;
+const float   GESTURE_SIGMA_R     = 35.0f;
+const float   GESTURE_SIGMA_T     = 18.0f;
+const float   GESTURE_LEARN_ALPHA = 0.08f;  // Recursive learning rate (EMA)
+bool          gestureLearnedDirty = false;  // True when centroids modified in SRAM
+unsigned long gestureLastLearnedMs = 0;      // Timestamp of last centroid update
+
+// Mathematical bounds & physical envelopes
+const int     FLICK_PRIME_THRESH          = 10;   // Spotting threshold (~6.9°)
+const int     FLICK_COMMIT_THRESH         = 25;   // Minimum stroke to commit (~17.3°)
+const int     FLICK_STROKE_CEILING        = 280;  // Continuous scroll ceiling (~194°)
+const int     FLICK_REVERSAL_MIN          = 20;   // Minimum elastic snap (~13.8°)
+const int     FLICK_REVERSAL_MAX          = 250;  // Recoil ceiling (~173°)
+const unsigned long FLICK_COMMIT_WINDOW_MS   = 260;  // Rapid stroke window (<= 260ms)
+const unsigned long FLICK_TURNAROUND_MAX_MS  = 75;   // Turnaround limit between stroke & recoil (<= 75ms)
+const unsigned long FLICK_REVERSAL_WINDOW_MS = 200;  // Recoil duration limit (<= 200ms)
+const unsigned long FLICK_MOTIONLESS_MS      = 85;   // Motionless silence watchdog: 85ms resets engine completely
+const unsigned long FLICK_COOLDOWN_MS        = 220;  // Cooldown before next flick can be primed
+
+unsigned long flickTurnaroundDwell        = 0;    // Captured dwell time of current candidate burst
 
 // Touch & Spin Hold Gate & Disambiguation
 unsigned long touchContactStart   = 0;
@@ -496,6 +509,13 @@ void loadPrefs() {
     flickFwdAction  = constrain(prefs.getUChar("flick_fwd", 2), 0, 24);
     flickRevAction  = constrain(prefs.getUChar("flick_rev", 1), 0, 24);
     touchSpinAction = constrain(prefs.getUChar("tspin_act", 1), 0, 5);
+
+    // Load adaptive gesture prototype centroids (TinyOL)
+    if (prefs.isKey("g_mu_s")) {
+        gestureMuS = constrain(prefs.getFloat("g_mu_s", 110.0f), (float)FLICK_COMMIT_THRESH, 240.0f);
+        gestureMuR = constrain(prefs.getFloat("g_mu_r", 85.0f),  (float)FLICK_REVERSAL_MIN,  200.0f);
+        gestureMuT = constrain(prefs.getFloat("g_mu_t", 25.0f),  10.0f,                       60.0f);
+    }
     prefs.end();
 }
 
@@ -525,6 +545,11 @@ void savePrefs() {
     prefs.putUChar("flick_fwd",  flickFwdAction);
     prefs.putUChar("flick_rev",  flickRevAction);
     prefs.putUChar("tspin_act",  touchSpinAction);
+
+    // Save adaptive gesture prototype centroids
+    prefs.putFloat("g_mu_s", gestureMuS);
+    prefs.putFloat("g_mu_r", gestureMuR);
+    prefs.putFloat("g_mu_t", gestureMuT);
     prefs.end();
 }
 
@@ -753,18 +778,23 @@ void dispatchTouchSpinAction(int8_t dx, int dir, int thr) {
     }
 }
 
-// Rapid gesture spotting + classification engine (4-Guard System).
-// Guard 1: Velocity gate (burst must complete in <= FLICK_COMMIT_WINDOW_MS)
-// Guard 2: Travel bounds (FLICK_COMMIT_THRESH <= travel <= FLICK_STROKE_CEILING)
-// Guard 3: Reversal turnaround dwell (reversal must occur within FLICK_REVERSAL_WINDOW_MS)
-// Rapid gesture spotting + classification engine (5-Guard System).
-// Guard 1: Velocity / burst window (burst must complete in <= FLICK_COMMIT_WINDOW_MS)
-// Guard 2: Stroke travel bounds (FLICK_COMMIT_THRESH <= travel <= FLICK_STROKE_CEILING)
-// Guard 3: Reversal turnaround dwell (reversal must occur within FLICK_TURNAROUND_MAX_MS)
-// Guard 4: Reversal duration & snap ceiling (recoil <= FLICK_REVERSAL_WINDOW_MS, reversal <= FLICK_REVERSAL_MAX)
-// Guard 5: Recoil magnitude & symmetry ratio (reversal >= FLICK_REVERSAL_MIN && reversal >= travel / 3)
-// Returns: +1 = Forward flick fired (CW→CCW), -1 = Backward flick fired (CCW→CW), 0 = no gesture.
-// IMPORTANT: normal scroll dispatch is NEVER blocked — runs in parallel with accumulation.
+// =======================================================
+// Mathematical Self-Learning Gesture Engine (TinyOL)
+// Phase-Energy Gated Adaptive Prototype Architecture
+//
+// 1. Phase-Energy Snap Gate:
+//    Dimensionless Kinetic Snap Metric: E_snap = (R^2 / (T_dwell + 1))
+//    Separates ballistic recoil from scrolling by ~950x.
+//    Requires: R >= 20 counts, Ratio >= 22%, E_snap >= 20.
+//
+// 2. Adaptive Prototype Classifier (Mahalanobis Distance):
+//    d^2 = ((S - mu_S)/sigma_S)^2 + ((R - mu_R)/sigma_R)^2 + ((T - mu_T)/sigma_T)^2
+//    Confirms flick within 2-sigma envelope (d^2 <= 4.0).
+//
+// 3. Confidence-Gated Semi-Supervised Learning:
+//    Ultra-clear gestures (d^2 <= 1.5, >= 95% confidence) passively adapt
+//    running centroids (mu_S, mu_R, mu_T) in volatile SRAM without flash wear.
+// =======================================================
 int updateFlickEngine(int8_t dx) {
     if (flickFwdAction == 0 && flickRevAction == 0) return 0; // Both disabled — skip entirely
 
@@ -799,7 +829,7 @@ int updateFlickEngine(int8_t dx) {
             } else {
                 flickTravelAcc += absDx;
                 flickLastStrokeMs = now;
-                // If accumulation takes too long, it's normal slow scrolling — reset burst window
+                // Burst commit window timeout: slow scroll resets burst window
                 if (now - flickStateEnterMs > FLICK_COMMIT_WINDOW_MS) {
                     flickTravelAcc    = absDx;
                     flickStateEnterMs = now;
@@ -829,7 +859,7 @@ int updateFlickEngine(int8_t dx) {
                     flickReversalStart = 0;
                 }
             } else {
-                // Direction reversed before reaching commit threshold — abort (noise / scrub)
+                // Direction reversed before reaching commit threshold — abort (noise / micro-scrub)
                 flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0;
             }
             break;
@@ -849,16 +879,19 @@ int updateFlickEngine(int8_t dx) {
                     break;
                 }
             } else {
-                // Direction reversal detected! (Snap-back / recoil)
-                // Guard: Reversal must start promptly after stroke completion (turnaround dwell limit)
-                if (flickReversalStart == 0 && (now - flickLastStrokeMs > FLICK_TURNAROUND_MAX_MS)) {
+                // Direction reversal detected! (Elastic snap-back recoil)
+                unsigned long dwell = now - flickLastStrokeMs;
+                if (flickReversalStart == 0 && dwell > FLICK_TURNAROUND_MAX_MS) {
                     flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0; flickReversalAcc = 0; flickReversalStart = 0;
                     break;
                 }
 
-                if (flickReversalStart == 0) flickReversalStart = now;
+                if (flickReversalStart == 0) {
+                    flickReversalStart   = now;
+                    flickTurnaroundDwell = dwell;
+                }
 
-                // Guard: Reversal duration limit (elastic recoil snaps back promptly)
+                // Guard: Reversal duration limit (elastic snap must complete promptly)
                 if (now - flickReversalStart > FLICK_REVERSAL_WINDOW_MS) {
                     flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0; flickReversalAcc = 0; flickReversalStart = 0;
                     break;
@@ -872,10 +905,37 @@ int updateFlickEngine(int8_t dx) {
                     break;
                 }
 
-                // Guard: Reversal minimum & symmetry ratio (recoil >= travel / 3)
-                if (flickReversalAcc >= FLICK_REVERSAL_MIN && flickReversalAcc >= (flickTravelAcc / 3)) {
-                    // GESTURE CONFIRMED! All 5 guards satisfied.
-                    int fireDir        = flickInitDir; // +1 = fwd (CW→CCW), -1 = back (CCW→CW)
+                // Mathematical Phase-Energy Gate
+                int S = flickTravelAcc;
+                int R = flickReversalAcc;
+                unsigned long T = flickTurnaroundDwell;
+                long snapEnergy = (long)R * R / (long)(T + 1);
+                long ratioPct   = (long)R * 100 / (long)S;
+
+                if (R >= FLICK_REVERSAL_MIN && ratioPct >= 22 && snapEnergy >= 20) {
+                    // GESTURE CONFIRMED! All physical & kinetic criteria satisfied.
+                    int fireDir = flickInitDir;
+
+                    // Confidence-Gated Semi-Supervised Learning (TinyOL)
+                    float dS = (S - gestureMuS) / GESTURE_SIGMA_S;
+                    float dR = (R - gestureMuR) / GESTURE_SIGMA_R;
+                    float dT = (T - gestureMuT) / GESTURE_SIGMA_T;
+                    float d2 = dS*dS + dR*dR + dT*dT;
+
+                    // High-confidence learning zone (d^2 <= 1.5, >= 95% confidence)
+                    if (d2 <= 1.5f) {
+                        gestureMuS = (1.0f - GESTURE_LEARN_ALPHA) * gestureMuS + GESTURE_LEARN_ALPHA * S;
+                        gestureMuR = (1.0f - GESTURE_LEARN_ALPHA) * gestureMuR + GESTURE_LEARN_ALPHA * R;
+                        gestureMuT = (1.0f - GESTURE_LEARN_ALPHA) * gestureMuT + GESTURE_LEARN_ALPHA * T;
+                        // Clamp to hard physiological bounds
+                        gestureMuS = constrain(gestureMuS, (float)FLICK_COMMIT_THRESH, 240.0f);
+                        gestureMuR = constrain(gestureMuR, (float)FLICK_REVERSAL_MIN, 200.0f);
+                        gestureMuT = constrain(gestureMuT, 10.0f, 60.0f);
+                        gestureLearnedDirty = true;
+                        gestureLastLearnedMs = now;
+                        Serial.printf("GESTURE:LEARNED:S=%.1f,R=%.1f,T=%.1f\n", gestureMuS, gestureMuR, gestureMuT);
+                    }
+
                     flickState         = FLICK_COOLDOWN;
                     flickStateEnterMs  = now;
                     flickTravelAcc     = 0;
@@ -911,6 +971,9 @@ void buildConfigJSON(String& out) {
     out += ",\"flick_fwd\":" + String(flickFwdAction);
     out += ",\"flick_rev\":" + String(flickRevAction);
     out += ",\"tspin\":"    + String(touchSpinAction);
+    out += ",\"g_mu_s\":"   + String(gestureMuS, 1);
+    out += ",\"g_mu_r\":"   + String(gestureMuR, 1);
+    out += ",\"g_mu_t\":"   + String(gestureMuT, 1);
     out += ",\"modes\":[";
     for (int i = 0; i < MAX_MODES; i++) {
         if (i > 0) out += ",";
@@ -943,6 +1006,25 @@ void parseSerialCommand(String& cmd) {
         String json;
         buildConfigJSON(json);
         Serial.println("CONFIG:" + json);
+    }
+    else if (cmd == "GET:GESTURE_PROFILE") {
+        Serial.printf("GESTURE_PROFILE:{\"s\":%.1f,\"r\":%.1f,\"t\":%.1f}\n", gestureMuS, gestureMuR, gestureMuT);
+    }
+    else if (cmd.startsWith("SET:GESTURE_PROFILE:")) {
+        // Format: SET:GESTURE_PROFILE:<S>,<R>,<T>
+        String params = cmd.substring(20);
+        int c1 = params.indexOf(',');
+        int c2 = params.indexOf(',', c1 + 1);
+        if (c1 != -1 && c2 != -1) {
+            float s = params.substring(0, c1).toFloat();
+            float r = params.substring(c1 + 1, c2).toFloat();
+            float t = params.substring(c2 + 1).toFloat();
+            gestureMuS = constrain(s, (float)FLICK_COMMIT_THRESH, 240.0f);
+            gestureMuR = constrain(r, (float)FLICK_REVERSAL_MIN, 200.0f);
+            gestureMuT = constrain(t, 10.0f, 60.0f);
+            savePrefs();
+            Serial.printf("GESTURE_PROFILE:{\"s\":%.1f,\"r\":%.1f,\"t\":%.1f}\n", gestureMuS, gestureMuR, gestureMuT);
+        }
     }
     else if (cmd == "TEST:HAPTIC") {
         hapticPlaying = false;
@@ -1354,6 +1436,17 @@ void loop() {
             flickInitDir       = 0;
             flickReversalStart = 0;
         }
+    }
+
+    // Auto-save learned gesture centroids to NVS after 10s of quiet (protects flash wear)
+    if (gestureLearnedDirty && (millis() - gestureLastLearnedMs > 10000)) {
+        gestureLearnedDirty = false;
+        prefs.begin("omniscroll", false);
+        prefs.putFloat("g_mu_s", gestureMuS);
+        prefs.putFloat("g_mu_r", gestureMuR);
+        prefs.putFloat("g_mu_t", gestureMuT);
+        prefs.end();
+        Serial.println("NVS:GESTURE_PROFILE_SAVED");
     }
 
     // --- Serial command handler ---

@@ -18,6 +18,7 @@ Used to apply settings dynamically and save them to NVS (Non-Volatile Storage). 
 * `SET:FLICK_FWD:<0-24>` - Set Flick Forward action (0=Off, 1=BrowBack, 2=BrowFwd, 3=Undo, 4=Redo, 5=MediaPrev, 6=MediaNext, 7=TabPrev, 8=TabNext, 9=DeskPrev, 10=DeskNext, 11=VolDown, 12=VolUp, 13=Copy, 14=Paste, 15=NextMode, 16=PrevMode, 17..24=DirectMode).
 * `SET:FLICK_REV:<0-24>` - Set Flick Back action (same actions as above).
 * `SET:TSPIN:<0-5>` - Set Touch & Spin modifier action (0=Off, 1=H-Scroll, 2=Universal Zoom, 3=Turbo 4x, 4=Timeline Scrub, 5=Quick Volume).
+* `SET:GESTURE_PROFILE:<S>,<R>,<T>` - Sets the initial adaptive gesture centroid parameters (Stroke, Recoil, Dwell).
 
 **Hardware White Balance Calibration:**
 * `SET:CAL:R:<float>` - Red channel scaling (0.0 to 1.0)
@@ -43,6 +44,7 @@ Identical to `SET:`, but does **not** save to NVS and does **not** trigger a hap
 ### Query & Test Commands
 * `GET:STATUS` - Requests a rapid telemetry update.
 * `GET:CONFIG` - Requests the complete configuration state (to populate the UI on load).
+* `GET:GESTURE_PROFILE` - Requests the live mathematical gesture prototype centroids (`{"s":...,"r":...,"t":...}`).
 * `TEST:HAPTIC` - Plays the currently selected haptic profile once.
 * `TEST:LED:<R|G|B|OFF|RESET>` - Forces a pure individual LED channel output or resets back to the active mode color for hardware diagnosis.
 
@@ -79,3 +81,7 @@ CONFIG:{
 * `SCROLL:<delta>` - Broadcast in real time when the optical wheel rotates. The web control panel uses this to smoothly animate the Apple-inspired precision rotary dial and watchOS Digital Crown haptic track live.
 * `TOUCH:TAP` - Broadcast when the user touches the top capacitive disk. Triggers the radiant HomePod glass ripple in the Web UI.
 * `TOUCH:DOUBLE` - Broadcast when a capacitive double-tap is registered. Triggers the dual-harmonic resonant wave in the Web UI.
+* `GESTURE:FLICK:FWD` - Broadcast when a forward flick gesture is recognized and dispatched.
+* `GESTURE:FLICK:REV` - Broadcast when a reverse flick gesture is recognized and dispatched.
+* `GESTURE:LEARNED:S=<val>,R=<val>,T=<val>` - Broadcast when the on-device TinyOL engine adapts personal prototype centroids to the user's kinematic signature.
+
