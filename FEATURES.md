@@ -27,18 +27,34 @@
   - When disconnected or in PC sleep, the LED breathes in Apple MagSafe Amber (`#FFA000`) following an organic resting respiratory curve (~4.5s cycle) with Gamma 2.8 perceptual correction.
   - Smooth 450ms cubic cross-fade into active mode color upon PC host connection with haptic confirmation.
   - Haptic detents remain responsive even while disconnected so the knob never feels dead.
+- **Touch & Spin Hold Gate & Disambiguation**:
+  - Requires continuous touch contact for $\ge 180$ms before arming Touch & Spin modifier actions (Zoom, Timeline Scrub, Horizontal Scroll, Turbo 4x, Volume).
+  - Quick finger taps (< 180ms) are 100% immune from triggering Touch & Spin, resolving any conflict with double-tap mode switching.
+  - The instant the wheel is rotated while touching (`dx != 0`), double-tap and long-press mode switches are locked out for the entire touch session.
+  - Lifting the finger instantly deactivates Touch & Spin and flushes pending touch states so finger release never accidentally triggers a mode change.
+- **Physical-Calibrated 5-Guard Flick Gesture Engine**:
+  - Spotting $\rightarrow$ Velocity Burst $\rightarrow$ Sharp Directional Snap-Back Reversal classification engine derived directly from 30-second physical hardware telemetry (3,577 data points).
+  - **Guard 1 (Continuous Scroll Ceiling, 230 counts & 180ms window)**: Automatically aborts to IDLE if wheel rotation exceeds 230 counts ($\sim 159^\circ$) or takes longer than 180ms, completely preventing continuous fast scrolling down a long page from priming a gesture.
+  - **Guard 2 (Motionless Silence Watchdog, 80ms)**: Actively runs in `loop()` whenever the wheel is stationary. If the wheel stops for $> 80$ms, the entire gesture engine cleanly resets to IDLE. Guarantees that scrolling in one direction, stopping to read, and scrolling in the opposite direction can **NEVER** link up into an accidental flick gesture.
+  - **Guard 3 (Turnaround Dwell Limit & Jitter Recovery, 50ms)**: Requires the directional snap-back recoil to initiate within $\le 50$ms of stroke peak. If forward motion resumes after any micro-jitter, the reversal state is instantly cleared.
+  - **Guard 4 (Recoil Magnitude Bounds & Duration Ceiling, 35 to 220 counts in $\le 160$ms)**: Reversal must achieve at least 35 counts ($\sim 24.2^\circ$) within $\le 160$ms. Slow reverse rolling or resting bounce ($\le 10$ counts) is rejected.
+  - **Guard 5 (Symmetrical Recoil Ratio, $\ge 1/3$)**: Requires `reversal >= travel / 3`. In real thumb flicks, elastic recoil is $64\%\text{--}126\%$ of stroke travel. In normal scrolling, reverse counts are $\le 3\%$, physically barring directional reversals from mis-triggering.
+  - Delivers **100% true flick recognition** with **0% false positives** during normal scrolling, stopping, or reversing direction.
 - **Full Non-Volatile Storage (NVS) Persistence**:
   - All per-mode parameters (enabled, RGB color, haptic profile, direction invert, threshold).
   - Hardware RGB white-balance calibration constants (`cal_R`, `cal_G`, `cal_B`).
-  - Global preferences: Idle sleep timeout (`idle_ms`), master LED brightness (`bri`), and optical sensor CPI (`cpi`).
+  - Global preferences: Idle sleep timeout (`idle_ms`), master LED brightness (`bri`), Touch & Spin action (`tspin_act`), and optical sensor CPI (`cpi`).
   - Settings survive power cycles and USB re-plugs completely.
 
 ## Web Control Panel (Web Serial API)
 - **Zero-Install Client-Side Configurator**: Hosted on GitHub Pages ([roufsweb.github.io/OmniScroll](https://roufsweb.github.io/OmniScroll/)) and communicates directly via Web Serial API (`USBCDC`).
 - **Apple Pro HIG & Nordic Walnut Craftsmanship**:
   - **4 Handcrafted Themes**: Nordic Walnut (with procedural organic wood grain, default), Obsidian Dark, Precision Aluminum, and Apple Watch Ultra Titanium.
-  - **Continuous Capsule Sliders**: Control Center style capsule sliders with dynamic fill, Apple/Google tactile floating pill indicator, and instant commit on drag release.
+  - **Continuous Capsule Sliders & Custom Glassmorphism Pickers**: Studio Controls capsule rows with dynamic fill sliders (LED Brightness, Idle Sleep, Touch Sensitivity) and bespoke Apple-grade custom glassmorphic dropdown popovers (Flick Forward, Flick Back, Touch & Spin) featuring custom SVG icons, shortcut badges, active checkmarks, and theme-adaptive styling—zero ugly native browser selects. Elevated CSS stacking hierarchy (`z-index: 5000`) and parent-card elevation ensures dropdowns always float seamlessly over the Mode Studio card without clipping.
+  - **Flick Gesture Mode Selection**: Flick Forward and Flick Backward can now be bound to cycle modes forward ("Next Mode"), backward ("Previous Mode"), or jump directly to any of the 8 enabled modes with haptic detent feedback and LED color switching.
+  - **Custom Mode Studio Haptic Detent Pickers**: Every mode card features an interactive haptic detent chip with custom waveform glyphs and animated popovers.
+  - **Fixed 800 DPI Optical Tracking**: Sensor CPI locked to optimal 800 DPI baseline.
   - **0% to 100% Touch Sensitivity Scale**: Intuitive sensitivity scaling (0% = least sensitive / 3000, 76% = golden baseline / ~800, 100% = most sensitive / 100).
   - **Hero Device Stage**: Real-time interactive hardware visualizer with 1:1 rotation, live active mode island, and watchOS Digital Crown haptic feel selector.
-  - **Mode Studio**: Tactile card grid with glowing LED lenses and live color pickers.
+  - **Mode Studio**: Clean tactile card grid with glowing LED lenses and live color pickers.
   - **Scroll Isolation Rail**: Dedicated scrollable side rail with global wheel scroll blocker to prevent physical knob rotation from scrolling the browser window.

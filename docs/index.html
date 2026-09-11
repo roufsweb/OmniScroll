@@ -523,9 +523,22 @@
 
         /* ---- Controls Card (Right Column) ---- */
         .controls-card {
+            position: relative;
+            z-index: 30;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+        }
+
+        .mode-studio-card {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card.dropdown-active-parent,
+        .card:has(.apple-custom-dropdown.open) {
+            position: relative;
+            z-index: 5000 !important;
         }
 
         .capsule-group {
@@ -653,57 +666,6 @@
             z-index: 3;
             margin: 0;
             padding: 0;
-        }
-
-        /* CPI Selector */
-        .cpi-section {
-            margin-bottom: 20px;
-        }
-
-        .cpi-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .cpi-desc-hint {
-            font-size: 11px;
-            font-weight: 500;
-            color: var(--muted);
-        }
-
-        .apple-segmented-cpi {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            background: var(--raised);
-            padding: 4px;
-            border-radius: 14px;
-            border: 1px solid var(--border);
-        }
-
-        .cpi-pill {
-            padding: 8px 0;
-            border: none;
-            background: transparent;
-            color: var(--muted);
-            font: 600 12px 'Inter', sans-serif;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            text-align: center;
-        }
-
-        .cpi-pill:hover {
-            color: var(--text);
-        }
-
-        .cpi-pill.active {
-            background: var(--surface-glass);
-            color: var(--accent);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border);
         }
 
         /* Apple Progressive Disclosure for Hardware Calibration */
@@ -857,6 +819,365 @@
             margin-top: 3px;
         }
 
+        /* -------------------------------------------------------
+           Apple Capsule Dropdown Controls (Gestures & Shortcuts)
+        ------------------------------------------------------- */
+        .apple-capsule-row {
+            position: relative;
+            height: 48px;
+            border-radius: 24px;
+            background: var(--raised);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px 0 16px;
+            user-select: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+        }
+
+        .apple-capsule-row:hover,
+        .apple-capsule-row:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .apple-capsule-row .capsule-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .apple-capsule-row .capsule-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(var(--accent-rgb), 0.12);
+            color: var(--accent);
+            transition: color 0.2s ease, background 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .apple-capsule-row:hover .capsule-icon,
+        .apple-capsule-row:focus-within .capsule-icon {
+            background: rgba(var(--accent-rgb), 0.24);
+            transform: scale(1.08);
+        }
+
+        .apple-capsule-row .capsule-name {
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+
+        /* -------------------------------------------------------
+           Apple Custom Glassmorphism Dropdowns & Popovers
+        ------------------------------------------------------- */
+        .apple-custom-dropdown {
+            position: relative;
+            user-select: none;
+        }
+
+        .dropdown-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            background: var(--surface-glass);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 11.5px;
+            font-weight: 600;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            cursor: pointer;
+            outline: none;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background 0.2s ease;
+        }
+
+        .dropdown-trigger:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+            color: var(--accent);
+            background: var(--raised-hover);
+        }
+
+        .apple-custom-dropdown.open .dropdown-trigger {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .dropdown-chevron {
+            color: var(--muted);
+            flex-shrink: 0;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+        }
+
+        .dropdown-trigger:hover .dropdown-chevron,
+        .apple-custom-dropdown.open .dropdown-chevron {
+            color: var(--accent);
+        }
+
+        .apple-custom-dropdown.open .dropdown-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Capsule Trigger Variant (for Studio Controls) */
+        .capsule-trigger {
+            padding: 6px 10px;
+            width: 175px;
+        }
+
+        .capsule-trigger .trigger-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .capsule-trigger .trigger-label {
+            flex: 1;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-left: 2px;
+        }
+
+        /* Floating Menu Popover */
+        .custom-dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 10000;
+            min-width: 220px;
+            max-height: 280px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            isolation: isolate;
+            background: var(--surface);
+            border: 1px solid var(--border-hover);
+            border-radius: 14px;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            padding: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(var(--accent-rgb), 0.35) transparent;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.96) translateY(-6px);
+            transform-origin: top right;
+            transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.18s;
+            pointer-events: none;
+        }
+
+        .custom-dropdown-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-dropdown-menu::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-dropdown-menu::-webkit-scrollbar-thumb {
+            background: rgba(var(--accent-rgb), 0.3);
+            border-radius: 4px;
+        }
+
+        .custom-dropdown-menu::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        .custom-dropdown-menu.drop-up {
+            top: auto;
+            bottom: calc(100% + 6px);
+            transform-origin: bottom right;
+            transform: scale(0.96) translateY(6px);
+        }
+
+        .apple-custom-dropdown.open .custom-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+
+        .custom-dropdown-menu--compact {
+            min-width: 140px;
+            max-height: 220px;
+            left: 0;
+            right: auto;
+            transform-origin: top left;
+        }
+
+        .custom-dropdown-menu--compact.drop-up {
+            transform-origin: bottom left;
+        }
+
+        /* Group Header */
+        .dropdown-group-header {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 8px 8px 3px;
+            margin-top: 4px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            user-select: none;
+        }
+
+        .dropdown-group-header:first-child {
+            margin-top: 0;
+            border-top: none;
+            padding-top: 4px;
+        }
+
+        /* Dropdown Item */
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: 500;
+            color: var(--text);
+            transition: background 0.12s ease, color 0.12s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(var(--accent-rgb), 0.14);
+            color: var(--accent);
+        }
+
+        .dropdown-item.selected {
+            background: rgba(var(--accent-rgb), 0.18);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .dropdown-item-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .dropdown-item .item-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            color: var(--muted);
+            transition: color 0.12s ease;
+        }
+
+        .dropdown-item:hover .item-icon,
+        .dropdown-item.selected .item-icon {
+            color: var(--accent);
+        }
+
+        .dropdown-item .item-label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .dropdown-item-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .dropdown-item .item-badge {
+            font-size: 9.5px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            padding: 2px 5px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item:hover .item-badge,
+        .dropdown-item.selected .item-badge {
+            border-color: rgba(var(--accent-rgb), 0.25);
+            color: var(--accent);
+        }
+
+        .dropdown-item .item-check {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+        }
+
+        /* -------------------------------------------------------
+           Live Gesture Badge — glass-morphism overlay on hero stage
+        ------------------------------------------------------- */
+        #gestureBadge {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px 8px 12px;
+            background: rgba(20, 18, 14, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 160, 0, 0.28);
+            border-radius: 100px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,160,0,0.1);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.16,1,0.3,1);
+            z-index: 20;
+        }
+
+        #gestureBadge.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .gesture-badge-icon {
+            display: flex;
+            align-items: center;
+            color: rgba(255, 160, 0, 0.9);
+        }
+
+        .gesture-badge-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 240, 210, 0.95);
+            letter-spacing: 0.02em;
+        }
+
         .apple-mode-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
@@ -872,13 +1193,29 @@
             flex-direction: column;
             justify-content: space-between;
             gap: 12px;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
         }
 
         .apple-mode-card:hover {
             border-color: var(--border-hover);
             transform: translateY(-2px);
+        }
+
+        .apple-mode-card.dropdown-active-parent,
+        .apple-mode-card:has(.apple-custom-dropdown.open) {
+            z-index: 1000 !important;
+            transform: none !important;
+        }
+
+        .apple-capsule-row.dropdown-active-parent,
+        .apple-capsule-row:has(.apple-custom-dropdown.open) {
+            z-index: 1000 !important;
+        }
+
+        .apple-custom-dropdown.open {
+            position: relative;
+            z-index: 5001 !important;
         }
 
         .apple-mode-card.disabled {
@@ -962,37 +1299,30 @@
             padding-top: 10px;
         }
 
-        .mode-control-chip {
+        .mode-hp-dropdown {
             flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: var(--surface-glass);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 4px 6px;
+            min-width: 0;
         }
 
-        .chip-icon {
-            color: var(--muted);
+        .chip-trigger {
+            width: 100%;
+            padding: 5px 8px;
+            border-radius: 8px;
+            font: 600 11px 'Inter', sans-serif;
+            gap: 5px;
+        }
+
+        .chip-trigger .trigger-icon {
             display: flex;
             align-items: center;
+            color: var(--accent);
             flex-shrink: 0;
         }
 
-        .hp-select-minimal {
-            border: none;
-            background: transparent;
-            color: var(--text);
-            font: 600 11px 'Inter', sans-serif;
-            cursor: pointer;
-            width: 100%;
-            outline: none;
-        }
-
-        .hp-select-minimal option {
-            background: var(--surface);
-            color: var(--text);
+        .chip-trigger .trigger-label {
+            flex: 1;
+            text-align: left;
+            white-space: nowrap;
         }
 
         .mode-invert-btn {
@@ -1586,7 +1916,12 @@
         </div>
 
         <!-- Photorealistic Real Device Visualizer -->
-        <div class="real-device-container">
+        <div class="real-device-container" style="position:relative;">
+            <!-- Live Gesture Badge overlay -->
+            <div id="gestureBadge" role="status" aria-live="polite">
+                <span class="gesture-badge-icon"></span>
+                <span class="gesture-badge-text"></span>
+            </div>
             <div class="real-device-wrapper" id="deviceVisualizer">
                 <!-- Base Hardware: High-speed optimized WebP with PNG fallback -->
                 <picture>
@@ -1714,19 +2049,70 @@
                 <span class="capsule-val" id="thr_val">76%</span>
                 <input type="range" id="thr" min="0" max="100" step="1" value="76" oninput="onThrInput()" onchange="sendGlobal(true)">
             </div>
-        </div>
 
-        <!-- Sensor CPI Segmented Selector -->
-        <div class="cpi-section">
-            <div class="cpi-header">
-                <span class="section-micro-label">OPTICAL TRACKING (CPI)</span>
-                <span class="cpi-desc-hint" id="cpiHint">Standard 800 DPI</span>
+            <div class="section-micro-label" style="margin-top: 6px; margin-bottom: -2px;">GESTURES &amp; SHORTCUTS</div>
+
+            <!-- Flick Forward Capsule -->
+            <div class="apple-capsule-row" title="Flick Forward (CW → CCW)">
+                <div class="capsule-content">
+                    <span class="capsule-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14M13 6l6 6-6 6"/>
+                        </svg>
+                    </span>
+                    <span class="capsule-name">Flick Forward</span>
+                </div>
+                <div class="apple-custom-dropdown capsule-dropdown" id="flickFwdDropdown">
+                    <button type="button" class="dropdown-trigger capsule-trigger" onclick="toggleCustomDropdown('flickFwdDropdown')">
+                        <span class="trigger-icon" id="flickFwdTriggerIcon"></span>
+                        <span class="trigger-label" id="flickFwdTriggerLabel"></span>
+                        <svg class="dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="custom-dropdown-menu" id="flickFwdMenu"></div>
+                    <input type="hidden" id="flickFwdSelect" value="2">
+                </div>
             </div>
-            <div class="apple-segmented-cpi" id="cpiGrid">
-                <button class="cpi-pill" onclick="setCPI(0)">400</button>
-                <button class="cpi-pill active" onclick="setCPI(1)">800</button>
-                <button class="cpi-pill" onclick="setCPI(2)">1200</button>
-                <button class="cpi-pill" onclick="setCPI(3)">1600</button>
+
+            <!-- Flick Back Capsule -->
+            <div class="apple-capsule-row" title="Flick Back (CCW → CW)">
+                <div class="capsule-content">
+                    <span class="capsule-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5M11 6l-6 6 6 6"/>
+                        </svg>
+                    </span>
+                    <span class="capsule-name">Flick Back</span>
+                </div>
+                <div class="apple-custom-dropdown capsule-dropdown" id="flickRevDropdown">
+                    <button type="button" class="dropdown-trigger capsule-trigger" onclick="toggleCustomDropdown('flickRevDropdown')">
+                        <span class="trigger-icon" id="flickRevTriggerIcon"></span>
+                        <span class="trigger-label" id="flickRevTriggerLabel"></span>
+                        <svg class="dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="custom-dropdown-menu" id="flickRevMenu"></div>
+                    <input type="hidden" id="flickRevSelect" value="1">
+                </div>
+            </div>
+
+            <!-- Touch & Spin Capsule -->
+            <div class="apple-capsule-row" title="Touch &amp; Spin (Hold &amp; Scroll)">
+                <div class="capsule-content">
+                    <span class="capsule-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 12A10 10 0 0 0 12 2"/><path d="M20 4l2-2-2-2"/>
+                        </svg>
+                    </span>
+                    <span class="capsule-name">Touch &amp; Spin</span>
+                </div>
+                <div class="apple-custom-dropdown capsule-dropdown" id="tspinDropdown">
+                    <button type="button" class="dropdown-trigger capsule-trigger" onclick="toggleCustomDropdown('tspinDropdown')">
+                        <span class="trigger-icon" id="tspinTriggerIcon"></span>
+                        <span class="trigger-label" id="tspinTriggerLabel"></span>
+                        <svg class="dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="custom-dropdown-menu" id="tspinMenu"></div>
+                    <input type="hidden" id="tspinSelect" value="1">
+                </div>
             </div>
         </div>
 
@@ -1848,7 +2234,7 @@ const MODE_DESCRIPTIONS = {
 };
 
 let config = {
-    bri: 100, idle: 30, cpi: 1, thr: 800,
+    bri: 100, idle: 30, thr: 800,
     modes: []
 };
 
@@ -1908,6 +2294,7 @@ async function startReading() {
                 else if (line.startsWith("MODE:")) handleModeLine(line.substring(5));
                 else if (line.startsWith("TOUCH:DOUBLE")) triggerTouchAnimation(true);
                 else if (line.startsWith("TOUCH:TAP")) triggerTouchAnimation(false);
+                else if (line.startsWith("GESTURE:")) handleGestureEvent(line.substring(8));
             }
         }
     } catch (err) { console.error(err); }
@@ -2272,16 +2659,49 @@ function sendGlobal(immediate = false) {
     }
 }
 
-function setCPI(level) {
-    config.cpi = level;
-    renderCPIButtons();
-    sendCommand(`SET:CPI:${level}`);
-}
+
 
 function sendModeConfig(idx) {
     const m = config.modes[idx];
     if (!m) return;
     sendCommand(`SET:MODE:${idx},EN:${m.en},CS:${m.c},HP:${m.hp},INV:${m.inv},MTHR:${m.thr}`);
+}
+
+function sendGestureAction(type, idx) {
+    if (type === 'FLICK_FWD') {
+        config.flick_fwd = idx;
+        sendCommand(`SET:FLICK_FWD:${idx}`);
+    } else if (type === 'FLICK_REV') {
+        config.flick_rev = idx;
+        sendCommand(`SET:FLICK_REV:${idx}`);
+    } else { // TSPIN
+        config.tspin = idx;
+        sendCommand(`SET:TSPIN:${idx}`);
+    }
+    playWebTapticClick(false);
+}
+
+// Live Gesture Badge — triggered by GESTURE:* serial events
+const GESTURE_BADGE_LABELS = {
+    'FLICK:FWD':  { text: 'Forward',    icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' },
+    'FLICK:REV':  { text: 'Back',       icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>' },
+    'TSPIN:START':{ text: 'Touch Spin', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 2l-2 4-4-2"/></svg>' },
+    'TSPIN':      { text: 'Touch Spin', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 2l-2 4-4-2"/></svg>' }
+};
+let gestureBadgeTimeout = null;
+function handleGestureEvent(type) {
+    const info = GESTURE_BADGE_LABELS[type];
+    if (!info) return;
+    const badge = document.getElementById('gestureBadge');
+    if (!badge) return;
+    badge.querySelector('.gesture-badge-icon').innerHTML = info.icon;
+    badge.querySelector('.gesture-badge-text').textContent = info.text;
+    badge.classList.remove('visible');
+    // Force reflow to restart animation
+    void badge.offsetWidth;
+    badge.classList.add('visible');
+    if (gestureBadgeTimeout) clearTimeout(gestureBadgeTimeout);
+    gestureBadgeTimeout = setTimeout(() => badge.classList.remove('visible'), 1400);
 }
 
 // =====================================================
@@ -2339,26 +2759,208 @@ function applyConfigToUI() {
         document.getElementById('cal_b_val').textContent = (config.cal_b * 100).toFixed(1) + '%';
     }
 
-    config.cpi = config.cpi || 1;
-    renderCPIButtons();
     renderHapticProfiles(config.modes[0]?.hp ?? 0);
     renderModeList();
+
+    // Restore gesture settings from CONFIG
+    const fwdVal   = (config.flick_fwd !== undefined) ? config.flick_fwd : 2;
+    const revVal   = (config.flick_rev !== undefined) ? config.flick_rev : 1;
+    const tspinVal = (config.tspin     !== undefined) ? config.tspin     : 1;
+    updateGestureDropdownUI('FLICK_FWD', fwdVal);
+    updateGestureDropdownUI('FLICK_REV', revVal);
+    updateGestureDropdownUI('TSPIN', tspinVal);
 }
 
-const CPI_HINTS = [
-    "Ultra fine — 400 DPI",
-    "Standard precision — 800 DPI",
-    "Fast track — 1200 DPI",
-    "High velocity — 1600 DPI"
+// =====================================================
+// Apple Custom Dropdown System & Option Items
+// =====================================================
+const GESTURE_MENU_ITEMS = [
+    { value: 0, label: "Disabled", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>` },
+    { group: "Navigation" },
+    { value: 1, label: "Browser Back", badge: "Alt+←", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>` },
+    { value: 2, label: "Browser Forward", badge: "Alt+→", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>` },
+    { group: "Mode Selection" },
+    { value: 15, label: "Next Mode", badge: "Cycle", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 12 8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>` },
+    { value: 16, label: "Previous Mode", badge: "Cycle Rev", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 8 12 12 16"/><line x1="16" y1="12" x2="8" y2="12"/></svg>` },
+    { value: 17, label: "Scroll Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><polyline points="8 12 12 8 16 12"/></svg>` },
+    { value: 18, label: "Volume Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>` },
+    { value: 19, label: "Timeline Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg>` },
+    { value: 20, label: "Zoom Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>` },
+    { value: 21, label: "H-Scroll Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="2" y1="12" x2="22" y2="12"/></svg>` },
+    { value: 22, label: "Brightness Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2"/></svg>` },
+    { value: 23, label: "Tabbing Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>` },
+    { value: 24, label: "Undo/Redo Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>` },
+    { group: "Editing" },
+    { value: 3, label: "Undo", badge: "Ctrl+Z", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>` },
+    { value: 4, label: "Redo", badge: "Ctrl+Y", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>` },
+    { group: "Media" },
+    { value: 5, label: "Media Previous", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>` },
+    { value: 6, label: "Media Next", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>` },
+    { group: "Tabs" },
+    { value: 7, label: "Previous Tab", badge: "Ctrl+Shift+Tab", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>` },
+    { value: 8, label: "Next Tab", badge: "Ctrl+Tab", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>` },
+    { group: "Desktops" },
+    { value: 9, label: "Previous Desktop", badge: "Win+Ctrl+←", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
+    { value: 10, label: "Next Desktop", badge: "Win+Ctrl+→", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
+    { group: "Audio" },
+    { value: 11, label: "Volume Down", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>` },
+    { value: 12, label: "Volume Up", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>` },
+    { group: "Clipboard" },
+    { value: 13, label: "Copy", badge: "Ctrl+C", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>` },
+    { value: 14, label: "Paste", badge: "Ctrl+V", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>` }
 ];
 
-function renderCPIButtons() {
-    const btns = document.querySelectorAll('#cpiGrid .cpi-pill');
-    btns.forEach((b, i) => b.classList.toggle('active', i === config.cpi));
-    const hint = document.getElementById('cpiHint');
-    if (hint && CPI_HINTS[config.cpi]) {
-        hint.textContent = CPI_HINTS[config.cpi];
+const TSPIN_MENU_ITEMS = [
+    { value: 0, label: "Disabled", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>` },
+    { value: 1, label: "Horizontal Scroll", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="2" y1="12" x2="22" y2="12"/></svg>` },
+    { value: 2, label: "Universal Zoom", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>` },
+    { value: 3, label: "Turbo 4x Speed", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>` },
+    { value: 4, label: "Timeline Scrub", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg>` },
+    { value: 5, label: "Quick Volume", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>` }
+];
+
+function toggleCustomDropdown(dropdownId) {
+    const el = document.getElementById(dropdownId);
+    if (!el) return;
+    const isOpen = el.classList.contains('open');
+    closeAllCustomDropdowns();
+    if (!isOpen) {
+        el.classList.add('open');
+        const parentCard = el.closest('.apple-mode-card, .apple-capsule-row');
+        if (parentCard) parentCard.classList.add('dropdown-active-parent');
+        const mainCard = el.closest('.card');
+        if (mainCard) mainCard.classList.add('dropdown-active-parent');
+
+        const menu = el.querySelector('.custom-dropdown-menu');
+        if (menu) {
+            const rect = el.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow < 280 && rect.top > 280) {
+                menu.classList.add('drop-up');
+            } else {
+                menu.classList.remove('drop-up');
+            }
+        }
     }
+}
+
+function closeAllCustomDropdowns() {
+    document.querySelectorAll('.apple-custom-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.dropdown-active-parent').forEach(p => p.classList.remove('dropdown-active-parent'));
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.apple-custom-dropdown')) {
+        closeAllCustomDropdowns();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAllCustomDropdowns();
+});
+
+function renderCustomDropdownMenu(menuId, items, selectedValue, onSelectCallback) {
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    let html = '';
+    items.forEach(item => {
+        if (item.group) {
+            html += `<div class="dropdown-group-header">${item.group}</div>`;
+        } else {
+            const isSel = (item.value === selectedValue);
+            html += `
+                <div class="dropdown-item ${isSel ? 'selected' : ''}" onclick="${onSelectCallback}(${item.value})">
+                    <div class="dropdown-item-left">
+                        <span class="item-icon">${item.icon}</span>
+                        <span class="item-label">${item.label}</span>
+                    </div>
+                    <div class="dropdown-item-right">
+                        ${item.badge ? `<span class="item-badge">${item.badge}</span>` : ''}
+                        <span class="item-check">${isSel ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    menu.innerHTML = html;
+}
+
+function updateGestureDropdownUI(type, value) {
+    let items, triggerIconId, triggerLabelId, menuId, inputId;
+    if (type === 'FLICK_FWD') {
+        items = GESTURE_MENU_ITEMS;
+        triggerIconId = 'flickFwdTriggerIcon';
+        triggerLabelId = 'flickFwdTriggerLabel';
+        menuId = 'flickFwdMenu';
+        inputId = 'flickFwdSelect';
+    } else if (type === 'FLICK_REV') {
+        items = GESTURE_MENU_ITEMS;
+        triggerIconId = 'flickRevTriggerIcon';
+        triggerLabelId = 'flickRevTriggerLabel';
+        menuId = 'flickRevMenu';
+        inputId = 'flickRevSelect';
+    } else { // TSPIN
+        items = TSPIN_MENU_ITEMS;
+        triggerIconId = 'tspinTriggerIcon';
+        triggerLabelId = 'tspinTriggerLabel';
+        menuId = 'tspinMenu';
+        inputId = 'tspinSelect';
+    }
+
+    const item = items.find(x => x.value === value) || items[0];
+    const iconEl = document.getElementById(triggerIconId);
+    const labelEl = document.getElementById(triggerLabelId);
+    const inputEl = document.getElementById(inputId);
+    if (iconEl) iconEl.innerHTML = item.icon;
+    if (labelEl) labelEl.textContent = item.label;
+    if (inputEl) inputEl.value = item.value;
+
+    const cbName = (type === 'FLICK_FWD') ? "selectGestureFwd" : (type === 'FLICK_REV') ? "selectGestureRev" : "selectGestureTSpin";
+    renderCustomDropdownMenu(menuId, items, value, cbName);
+}
+
+function selectGestureFwd(val) {
+    updateGestureDropdownUI('FLICK_FWD', val);
+    closeAllCustomDropdowns();
+    sendGestureAction('FLICK_FWD', val);
+}
+
+function selectGestureRev(val) {
+    updateGestureDropdownUI('FLICK_REV', val);
+    closeAllCustomDropdowns();
+    sendGestureAction('FLICK_REV', val);
+}
+
+function selectGestureTSpin(val) {
+    updateGestureDropdownUI('TSPIN', val);
+    closeAllCustomDropdowns();
+    sendGestureAction('TSPIN', val);
+}
+
+function selectModeHP(modeIdx, hpVal) {
+    if (!config.modes[modeIdx]) return;
+    config.modes[modeIdx].hp = hpVal;
+    const inputEl = document.getElementById(`hp_${modeIdx}`);
+    if (inputEl) inputEl.value = hpVal;
+    
+    // Update chip trigger icon and label
+    const dropdown = document.getElementById(`modeHpDropdown_${modeIdx}`);
+    if (dropdown) {
+        const icon = dropdown.querySelector('.trigger-icon');
+        const label = dropdown.querySelector('.trigger-label');
+        if (icon) icon.innerHTML = HAPTIC_SVGS[hpVal];
+        if (label) label.textContent = PROFILES[hpVal];
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        items.forEach((it, idx) => {
+            it.classList.toggle('selected', idx === hpVal);
+            const check = it.querySelector('.item-check');
+            if (check) check.innerHTML = (idx === hpVal) ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+        });
+    }
+
+    closeAllCustomDropdowns();
+    sendModeConfig(modeIdx);
+    playWebTapticClick(false);
 }
 
 const HAPTIC_SVGS = [
@@ -2440,15 +3042,22 @@ function renderModeList() {
             </div>
 
             <div class="mode-card-controls">
-                <div class="mode-control-chip" title="Haptic Detent Profile">
-                    <span class="chip-icon">
-                        <svg class="sf-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 12h3l2-5 4 10 4-7 2 4 2-2h3"></path>
-                        </svg>
-                    </span>
-                    <select class="hp-select-minimal" id="hp_${idx}" onchange="onHPChange(${idx})">
-                        ${PROFILES.map((p, i) => `<option value="${i}" ${i == mode.hp ? 'selected' : ''}>${p}</option>`).join('')}
-                    </select>
+                <div class="apple-custom-dropdown mode-hp-dropdown" id="modeHpDropdown_${idx}">
+                    <button type="button" class="dropdown-trigger chip-trigger" onclick="toggleCustomDropdown('modeHpDropdown_${idx}')" title="Haptic Detent Profile">
+                        <span class="trigger-icon">${HAPTIC_SVGS[mode.hp]}</span>
+                        <span class="trigger-label">${PROFILES[mode.hp]}</span>
+                        <svg class="dropdown-chevron" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="custom-dropdown-menu custom-dropdown-menu--compact">
+                        ${PROFILES.map((p, i) => `
+                            <div class="dropdown-item ${i === mode.hp ? 'selected' : ''}" onclick="selectModeHP(${idx}, ${i})">
+                                <span class="item-icon">${HAPTIC_SVGS[i]}</span>
+                                <span class="item-label">${p}</span>
+                                <span class="item-check">${i === mode.hp ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <input type="hidden" id="hp_${idx}" value="${mode.hp}">
                 </div>
 
                 <button type="button" class="mode-invert-btn ${mode.inv ? 'active' : ''}" id="inv_btn_${idx}" onclick="toggleModeInvert(${idx})" title="Toggle Rotation Direction">
@@ -2774,10 +3383,12 @@ config.modes = [
     {name:"UNDO_REDO",  en:0, c:"e74c3c", hp:1, inv:0, thr:15},
 ];
 renderModeList();
-renderCPIButtons();
 renderHapticProfiles(0);
 updateCapsuleFills();
 updateActiveModeUI('SCROLL');
+updateGestureDropdownUI('FLICK_FWD', 2);
+updateGestureDropdownUI('FLICK_REV', 1);
+updateGestureDropdownUI('TSPIN', 1);
 
 // --- Initialize Visualizer & Precision Dial Ticks ---
 initDialTicks();
@@ -2828,6 +3439,10 @@ if (wrapEl) {
 // =====================================================
 // Block physical wheel / mouse scroll from scrolling the document page
 window.addEventListener('wheel', (e) => {
+    // Allow wheel scrolling inside open custom dropdown menus
+    if (e.target.closest('.custom-dropdown-menu')) {
+        return;
+    }
     // If user is directly hovering the device visualizer, allow it to spin the dial
     if (e.target.closest('#deviceVisualizer')) {
         return;

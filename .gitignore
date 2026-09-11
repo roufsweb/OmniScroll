@@ -6,6 +6,7 @@ __pycache__/
 # Development tools (not for public repo)
 upload.py
 .agents/
+tools/
 
 # AI Agent & Session files (never commit)
 AGENTS.md
@@ -18,6 +19,7 @@ scratch/
 # Serial/debug logs
 *.txt
 *.log
+*.csv
 
 # Editor
 .vscode/

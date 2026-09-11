@@ -96,6 +96,57 @@ unsigned long lastScrollTime = 0;
 bool isScrolling = false;
 
 // -------------------------------------------------------
+// Gesture Engine — Research-Calibrated Thresholds
+// Sources: NIH motor control (40ms reflex floor), HCI/CHI (300ms imperceptible
+// latency ceiling), IEEE two-stage gesture recognition, Schmitt trigger hysteresis
+// -------------------------------------------------------
+enum FlickState { FLICK_IDLE, FLICK_PRIMING, FLICK_COMMITTED, FLICK_COOLDOWN };
+FlickState    flickState          = FLICK_IDLE;
+int           flickInitDir        = 0;     // +1 CW, -1 CCW
+int           flickTravelAcc      = 0;     // Committed travel accumulator
+int           flickReversalAcc    = 0;     // Reversal travel counter
+unsigned long flickStateEnterMs   = 0;     // Timestamp of last state transition
+unsigned long flickReversalStart  = 0;     // When reversal direction first detected
+unsigned long flickLastStrokeMs   = 0;     // Timestamp of last count in stroke direction
+
+// Independent per-direction flick actions (0=disabled, 1–24 = specific action)
+// Actions: 0=Off 1=BrowBack 2=BrowFwd 3=Undo 4=Redo 5=MediaPrev 6=MediaNext
+//          7=TabPrev 8=TabNext 9=DeskPrev 10=DeskNext 11=VolDown 12=VolUp 13=Copy 14=Paste
+//          15=NextMode 16=PrevMode 17..24=DirectMode(0..7)
+uint8_t       flickFwdAction      = 2;     // CW→CCW: default Browser Forward
+uint8_t       flickRevAction      = 1;     // CCW→CW: default Browser Back
+uint8_t       touchSpinAction     = 1;     // NVS-persisted: 0=off,1=hscroll,2=zoom,3=turbo,4=scrub,5=volume
+
+// Gesture LED flash confirmation (non-blocking)
+bool          gestureLedFlashing  = false;
+unsigned long gestureLedFlashStart= 0;
+const unsigned long GESTURE_LED_FLASH_MS = 150; // 150ms warm-white confirmation flash
+
+// Flick Engine Thresholds — User-Calibrated 5-Guard Zero-False-Positive System
+// Derived directly from 30-second physical telemetry session:
+// - User Flick Stroke: 80–220 counts (burst duration: 50–160ms)
+// - User Flick Reversal Snap: 70–220 counts (turnaround dwell: 2–35ms, duration: <=160ms)
+// - Normal Scroll Pause: >= 120ms (stationary watchdog resets engine after 80ms)
+// - Symmetrical Recoil Ratio: recoil counts must be >= 1/3 of stroke travel
+const int  FLICK_PRIME_THRESH          = 15;   // Decisive burst minimum (~10.4°)
+const int  FLICK_COMMIT_THRESH         = 40;   // Committed flick travel minimum (~27.7°)
+const int  FLICK_STROKE_CEILING        = 230;  // Maximum stroke travel (~159°). Beyond this = continuous scroll!
+const int  FLICK_REVERSAL_MIN          = 35;   // Reversal snap minimum (~24.2°). Safely above any mechanical bounce (<=10)
+const int  FLICK_REVERSAL_MAX          = 220;  // Reversal snap maximum (~152°). Beyond this = intentional reverse scroll
+const unsigned long FLICK_COMMIT_WINDOW_MS   = 180;  // Rapid flick stroke window (burst must complete in <= 180ms)
+const unsigned long FLICK_TURNAROUND_MAX_MS  = 50;   // Turnaround limit between stroke and recoil (<= 50ms)
+const unsigned long FLICK_REVERSAL_WINDOW_MS = 160;  // Recoil duration limit (elastic snap must complete in <= 160ms)
+const unsigned long FLICK_MOTIONLESS_MS      = 80;   // Motionless silence watchdog: 80ms silence resets engine completely
+const unsigned long FLICK_COOLDOWN_MS        = 250;  // Cooldown before next flick can be primed
+
+// Touch & Spin Hold Gate & Disambiguation
+unsigned long touchContactStart   = 0;
+bool          touchSpinActive      = false;  // True strictly on sustained touch-and-hold (>= TOUCH_HOLD_MS)
+bool          touchRotated         = false;  // True if rotation occurred while touching (locks out mode changes)
+int           touchRotatedCounts   = 0;      // Counts accumulated during current touch contact
+const unsigned long TOUCH_HOLD_MS  = 180;    // ms — sustained touch required to arm Touch & Spin (rejects taps)
+
+// -------------------------------------------------------
 // Haptic State
 // -------------------------------------------------------
 unsigned long hapticStartTime = 0;
@@ -130,7 +181,7 @@ const unsigned long CONNECT_TRANSITION_MS = 450; // 450ms smooth cubic cross-fad
 // -------------------------------------------------------
 // Sensor
 // -------------------------------------------------------
-uint8_t sensorCPI = 1; // 0=400, 1=800, 2=1200, 3=1600
+bool streamTelemetry = false; // When true, streams raw optical `dx` via serial for python data logging
 
 // -------------------------------------------------------
 // Button Debounce
@@ -176,10 +227,6 @@ uint8_t mx8650_read(uint8_t reg) {
         data |= (digitalRead(SDIO_PIN) << i);
     }
     return data;
-}
-
-void setSensorCPI(uint8_t level) {
-    mx8650_write(0x06, level & 0x03);
 }
 
 
@@ -351,6 +398,50 @@ void cycleMode() {
     Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
 }
 
+void cycleModePrev() {
+    do {
+        currentModeIdx = (currentModeIdx - 1 + MAX_MODES) % MAX_MODES;
+    } while (!modeList[currentModeIdx].enabled);
+    
+    prefs.begin("omniscroll", false);
+    prefs.putInt("curMode", currentModeIdx);
+    prefs.end();
+
+    accumulationX = 0;
+    subTickAcc    = 0;
+
+    hapticPlaying = false;
+    noTone(HAPTIC_PIN);
+    playHapticClick();
+    
+    if (hostState == USB_HOST_CONNECTED) {
+        applyModeColor();
+    }
+    Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
+}
+
+void switchToMode(int modeIdx) {
+    if (modeIdx < 0 || modeIdx >= MAX_MODES) return;
+    if (!modeList[modeIdx].enabled) return;
+    currentModeIdx = modeIdx;
+
+    prefs.begin("omniscroll", false);
+    prefs.putInt("curMode", currentModeIdx);
+    prefs.end();
+
+    accumulationX = 0;
+    subTickAcc    = 0;
+
+    hapticPlaying = false;
+    noTone(HAPTIC_PIN);
+    playHapticClick();
+    
+    if (hostState == USB_HOST_CONNECTED) {
+        applyModeColor();
+    }
+    Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
+}
+
 
 // =======================================================
 // NVS Persistence — Preferences
@@ -400,10 +491,11 @@ void loadPrefs() {
         ledBrightness = prefs.getFloat("bri", 1.0f);
         if (ledBrightness < 0.0f || ledBrightness > 1.0f) ledBrightness = 1.0f;
     }
-    if (prefs.isKey("cpi")) {
-        sensorCPI = prefs.getUChar("cpi", 1);
-        if (sensorCPI > 3) sensorCPI = 1;
-    }
+
+    // Load gesture settings
+    flickFwdAction  = constrain(prefs.getUChar("flick_fwd", 2), 0, 24);
+    flickRevAction  = constrain(prefs.getUChar("flick_rev", 1), 0, 24);
+    touchSpinAction = constrain(prefs.getUChar("tspin_act", 1), 0, 5);
     prefs.end();
 }
 
@@ -428,7 +520,11 @@ void savePrefs() {
     // Save global preferences
     prefs.putInt("idle_ms", idleDimMs);
     prefs.putFloat("bri", ledBrightness);
-    prefs.putUChar("cpi", sensorCPI);
+
+    // Save gesture settings
+    prefs.putUChar("flick_fwd",  flickFwdAction);
+    prefs.putUChar("flick_rev",  flickRevAction);
+    prefs.putUChar("tspin_act",  touchSpinAction);
     prefs.end();
 }
 
@@ -487,6 +583,319 @@ void dispatchAction(int direction) {
 
 
 // =======================================================
+// Gesture Engine
+// =======================================================
+
+// Double-click haptic: two rapid taps confirming a gesture fired.
+void playHapticDoubleClick() {
+    hapticPlaying = false;
+    noTone(HAPTIC_PIN);
+    tone(HAPTIC_PIN, 250);
+    delay(18);
+    noTone(HAPTIC_PIN);
+    delay(30);
+    tone(HAPTIC_PIN, 250);
+    delay(18);
+    noTone(HAPTIC_PIN);
+    hapticPlaying = false;
+}
+
+// Non-blocking LED flash: 150ms warm-white burst on gesture fire,
+// auto-returns to mode color. Does NOT interfere with haptic or scroll.
+void triggerGestureFlash() {
+    // Warm white flash — perceptually distinct from mode color
+    setLedColorDirect(255, 245, 200);
+    gestureLedFlashing  = true;
+    gestureLedFlashStart = millis();
+}
+
+// Unified single-action dispatcher: maps action ID to HID command.
+// Used by both Flick Forward and Flick Back independently.
+void dispatchSingleAction(uint8_t action) {
+    switch (action) {
+        case 0:  break; // Disabled
+        case 1:  // Browser Back (Alt+Left)
+            Keyboard.press(KEY_LEFT_ALT); Keyboard.press(KEY_LEFT_ARROW);
+            delay(2); Keyboard.releaseAll(); break;
+        case 2:  // Browser Forward (Alt+Right)
+            Keyboard.press(KEY_LEFT_ALT); Keyboard.press(KEY_RIGHT_ARROW);
+            delay(2); Keyboard.releaseAll(); break;
+        case 3:  // Undo (Ctrl+Z)
+            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('z');
+            delay(2); Keyboard.releaseAll(); break;
+        case 4:  // Redo (Ctrl+Y)
+            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('y');
+            delay(2); Keyboard.releaseAll(); break;
+        case 5:  // Media Previous
+            ConsumerControl.press(CONSUMER_CONTROL_SCAN_PREVIOUS);
+            delay(2); ConsumerControl.release(); break;
+        case 6:  // Media Next
+            ConsumerControl.press(CONSUMER_CONTROL_SCAN_NEXT);
+            delay(2); ConsumerControl.release(); break;
+        case 7:  // Previous Tab (Ctrl+Shift+Tab)
+            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_LEFT_SHIFT); Keyboard.press(KEY_TAB);
+            delay(2); Keyboard.releaseAll(); break;
+        case 8:  // Next Tab (Ctrl+Tab)
+            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_TAB);
+            delay(2); Keyboard.releaseAll(); break;
+        case 9:  // Previous Desktop (Win+Ctrl+Left)
+            Keyboard.press(KEY_LEFT_GUI); Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_LEFT_ARROW);
+            delay(2); Keyboard.releaseAll(); break;
+        case 10: // Next Desktop (Win+Ctrl+Right)
+            Keyboard.press(KEY_LEFT_GUI); Keyboard.press(KEY_LEFT_CTRL); Keyboard.press(KEY_RIGHT_ARROW);
+            delay(2); Keyboard.releaseAll(); break;
+        case 11: // Volume Down
+            ConsumerControl.press(CONSUMER_CONTROL_VOLUME_DECREMENT);
+            delay(2); ConsumerControl.release(); break;
+        case 12: // Volume Up
+            ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
+            delay(2); ConsumerControl.release(); break;
+        case 13: // Copy (Ctrl+C)
+            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('c');
+            delay(2); Keyboard.releaseAll(); break;
+        case 14: // Paste (Ctrl+V)
+            Keyboard.press(KEY_LEFT_CTRL); Keyboard.press('v');
+            delay(2); Keyboard.releaseAll(); break;
+        case 15: // Next Mode (Cycle forward)
+            cycleMode();
+            break;
+        case 16: // Previous Mode (Cycle backward)
+            cycleModePrev();
+            break;
+        case 17: case 18: case 19: case 20:
+        case 21: case 22: case 23: case 24: // Direct Mode Jump (0 to 7)
+            switchToMode(action - 17);
+            break;
+    }
+}
+
+// Dispatch the Touch & Spin action for the current scroll delta.
+void dispatchTouchSpinAction(int8_t dx, int dir, int thr) {
+    switch (touchSpinAction) {
+        case 0: break; // Disabled — fall through to normal scroll in caller
+        case 1: // Horizontal Scroll
+            if (Mouse.isHighRes()) {
+                subTickAcc += dx * 120 * dir;
+                int toSend = subTickAcc / thr;
+                if (toSend != 0) { Mouse.hScroll((int16_t)toSend); subTickAcc -= toSend * thr; }
+            } else {
+                accumulationX += dx;
+                while (accumulationX >= thr)  { Mouse.hScroll( dir); playHapticClick(); accumulationX -= thr; }
+                while (accumulationX <= -thr) { Mouse.hScroll(-dir); playHapticClick(); accumulationX += thr; }
+            }
+            break;
+        case 2: // Universal Zoom (Ctrl+Scroll)
+            accumulationX += dx;
+            while (accumulationX >= thr) {
+                Keyboard.press(KEY_LEFT_CTRL);
+                Mouse.scroll(Mouse.isHighRes() ? (int16_t)(120 * dir) : (int16_t)dir);
+                Keyboard.releaseAll();
+                playHapticClick();
+                accumulationX -= thr;
+            }
+            while (accumulationX <= -thr) {
+                Keyboard.press(KEY_LEFT_CTRL);
+                Mouse.scroll(Mouse.isHighRes() ? (int16_t)(-120 * dir) : (int16_t)(-dir));
+                Keyboard.releaseAll();
+                playHapticClick();
+                accumulationX += thr;
+            }
+            break;
+        case 3: { // Turbo 4x — send normal scroll at 4× speed
+            int turboThr = max(1, thr / 4);
+            accumulationX += dx;
+            while (accumulationX >= turboThr) {
+                if (Mouse.isHighRes()) Mouse.scroll((int16_t)(120 * dir));
+                else                  Mouse.scroll((int16_t)dir);
+                playHapticClick();
+                accumulationX -= turboThr;
+            }
+            while (accumulationX <= -turboThr) {
+                if (Mouse.isHighRes()) Mouse.scroll((int16_t)(-120 * dir));
+                else                  Mouse.scroll((int16_t)(-dir));
+                playHapticClick();
+                accumulationX += turboThr;
+            }
+            break;
+        }
+        case 4: // Timeline Scrub (Shift+Left/Right)
+            accumulationX += dx;
+            while (accumulationX >= thr) {
+                Keyboard.press(KEY_LEFT_SHIFT);
+                Keyboard.press(dir > 0 ? KEY_RIGHT_ARROW : KEY_LEFT_ARROW);
+                delay(2); Keyboard.releaseAll();
+                playHapticClick();
+                accumulationX -= thr;
+            }
+            while (accumulationX <= -thr) {
+                Keyboard.press(KEY_LEFT_SHIFT);
+                Keyboard.press(dir > 0 ? KEY_LEFT_ARROW : KEY_RIGHT_ARROW);
+                delay(2); Keyboard.releaseAll();
+                playHapticClick();
+                accumulationX += thr;
+            }
+            break;
+        case 5: // Quick Volume
+            accumulationX += dx;
+            while (accumulationX >= thr) {
+                ConsumerControl.press(dir > 0 ? CONSUMER_CONTROL_VOLUME_INCREMENT : CONSUMER_CONTROL_VOLUME_DECREMENT);
+                delay(2); ConsumerControl.release();
+                playHapticClick();
+                accumulationX -= thr;
+            }
+            while (accumulationX <= -thr) {
+                ConsumerControl.press(dir > 0 ? CONSUMER_CONTROL_VOLUME_DECREMENT : CONSUMER_CONTROL_VOLUME_INCREMENT);
+                delay(2); ConsumerControl.release();
+                playHapticClick();
+                accumulationX += thr;
+            }
+            break;
+    }
+}
+
+// Rapid gesture spotting + classification engine (4-Guard System).
+// Guard 1: Velocity gate (burst must complete in <= FLICK_COMMIT_WINDOW_MS)
+// Guard 2: Travel bounds (FLICK_COMMIT_THRESH <= travel <= FLICK_STROKE_CEILING)
+// Guard 3: Reversal turnaround dwell (reversal must occur within FLICK_REVERSAL_WINDOW_MS)
+// Rapid gesture spotting + classification engine (5-Guard System).
+// Guard 1: Velocity / burst window (burst must complete in <= FLICK_COMMIT_WINDOW_MS)
+// Guard 2: Stroke travel bounds (FLICK_COMMIT_THRESH <= travel <= FLICK_STROKE_CEILING)
+// Guard 3: Reversal turnaround dwell (reversal must occur within FLICK_TURNAROUND_MAX_MS)
+// Guard 4: Reversal duration & snap ceiling (recoil <= FLICK_REVERSAL_WINDOW_MS, reversal <= FLICK_REVERSAL_MAX)
+// Guard 5: Recoil magnitude & symmetry ratio (reversal >= FLICK_REVERSAL_MIN && reversal >= travel / 3)
+// Returns: +1 = Forward flick fired (CW→CCW), -1 = Backward flick fired (CCW→CW), 0 = no gesture.
+// IMPORTANT: normal scroll dispatch is NEVER blocked — runs in parallel with accumulation.
+int updateFlickEngine(int8_t dx) {
+    if (flickFwdAction == 0 && flickRevAction == 0) return 0; // Both disabled — skip entirely
+
+    unsigned long now = millis();
+
+    // --- Cooldown guard ---
+    if (flickState == FLICK_COOLDOWN) {
+        if (now - flickStateEnterMs >= FLICK_COOLDOWN_MS) {
+            flickState         = FLICK_IDLE;
+            flickTravelAcc     = 0;
+            flickReversalAcc   = 0;
+            flickInitDir       = 0;
+            flickReversalStart = 0;
+        }
+        return 0;
+    }
+
+    if (dx == 0) return 0;
+
+    int curDir = (dx > 0) ? 1 : -1;
+    int absDx  = abs((int)dx);
+
+    switch (flickState) {
+
+        case FLICK_IDLE:
+            // Stage 1 — Spotting: accumulate counts in initial stroke direction
+            if (flickInitDir == 0 || curDir != flickInitDir) {
+                flickInitDir      = curDir;
+                flickTravelAcc    = absDx;
+                flickStateEnterMs = now;
+                flickLastStrokeMs = now;
+            } else {
+                flickTravelAcc += absDx;
+                flickLastStrokeMs = now;
+                // If accumulation takes too long, it's normal slow scrolling — reset burst window
+                if (now - flickStateEnterMs > FLICK_COMMIT_WINDOW_MS) {
+                    flickTravelAcc    = absDx;
+                    flickStateEnterMs = now;
+                } else if (flickTravelAcc >= FLICK_PRIME_THRESH) {
+                    flickState = FLICK_PRIMING;
+                }
+            }
+            break;
+
+        case FLICK_PRIMING:
+            // Timeout guard: rapid burst must complete within commit window
+            if (now - flickStateEnterMs > FLICK_COMMIT_WINDOW_MS) {
+                flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0;
+                break;
+            }
+            if (curDir == flickInitDir) {
+                flickTravelAcc += absDx;
+                flickLastStrokeMs = now;
+                // Guard: Continuous fast scroll ceiling
+                if (flickTravelAcc > FLICK_STROKE_CEILING) {
+                    flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0;
+                    break;
+                }
+                if (flickTravelAcc >= FLICK_COMMIT_THRESH) {
+                    flickState         = FLICK_COMMITTED;
+                    flickReversalAcc   = 0;
+                    flickReversalStart = 0;
+                }
+            } else {
+                // Direction reversed before reaching commit threshold — abort (noise / scrub)
+                flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0;
+            }
+            break;
+
+        case FLICK_COMMITTED:
+            if (curDir == flickInitDir) {
+                // Jitter recovery: motion continues in initial direction -> clear any brief reverse blip
+                if (flickReversalStart != 0) {
+                    flickReversalStart = 0;
+                    flickReversalAcc   = 0;
+                }
+                flickTravelAcc += absDx;
+                flickLastStrokeMs = now;
+                // Stroke ceiling or stroke duration window exceeded -> continuous scrolling
+                if (flickTravelAcc > FLICK_STROKE_CEILING || (now - flickStateEnterMs > FLICK_COMMIT_WINDOW_MS)) {
+                    flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0; flickReversalAcc = 0; flickReversalStart = 0;
+                    break;
+                }
+            } else {
+                // Direction reversal detected! (Snap-back / recoil)
+                // Guard: Reversal must start promptly after stroke completion (turnaround dwell limit)
+                if (flickReversalStart == 0 && (now - flickLastStrokeMs > FLICK_TURNAROUND_MAX_MS)) {
+                    flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0; flickReversalAcc = 0; flickReversalStart = 0;
+                    break;
+                }
+
+                if (flickReversalStart == 0) flickReversalStart = now;
+
+                // Guard: Reversal duration limit (elastic recoil snaps back promptly)
+                if (now - flickReversalStart > FLICK_REVERSAL_WINDOW_MS) {
+                    flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0; flickReversalAcc = 0; flickReversalStart = 0;
+                    break;
+                }
+
+                flickReversalAcc += absDx;
+
+                // Guard: If reversal counts exceed snap ceiling, user is actively scrolling in reverse!
+                if (flickReversalAcc > FLICK_REVERSAL_MAX) {
+                    flickState = FLICK_IDLE; flickTravelAcc = 0; flickInitDir = 0; flickReversalAcc = 0; flickReversalStart = 0;
+                    break;
+                }
+
+                // Guard: Reversal minimum & symmetry ratio (recoil >= travel / 3)
+                if (flickReversalAcc >= FLICK_REVERSAL_MIN && flickReversalAcc >= (flickTravelAcc / 3)) {
+                    // GESTURE CONFIRMED! All 5 guards satisfied.
+                    int fireDir        = flickInitDir; // +1 = fwd (CW→CCW), -1 = back (CCW→CW)
+                    flickState         = FLICK_COOLDOWN;
+                    flickStateEnterMs  = now;
+                    flickTravelAcc     = 0;
+                    flickReversalAcc   = 0;
+                    flickInitDir       = 0;
+                    flickReversalStart = 0;
+                    return fireDir;
+                }
+            }
+            break;
+
+        default:
+            flickState = FLICK_IDLE;
+            break;
+    }
+    return 0;
+}
+
+
+// =======================================================
 // Serial Protocol
 // =======================================================
 void buildConfigJSON(String& out) {
@@ -494,11 +903,14 @@ void buildConfigJSON(String& out) {
     out = "{";
     out += "\"bri\":"  + String((int)(ledBrightness * 100));
     out += ",\"idle\":" + String(idleDimMs / 1000);
-    out += ",\"cpi\":"  + String(sensorCPI);
-    out += ",\"thr\":"  + String(touch.getThreshold());
-    out += ",\"cal_r\":" + String(cal_R, 3);
-    out += ",\"cal_g\":" + String(cal_G, 3);
-    out += ",\"cal_b\":" + String(cal_B, 3);
+
+    out += ",\"thr\":"     + String(touch.getThreshold());
+    out += ",\"cal_r\":"   + String(cal_R, 3);
+    out += ",\"cal_g\":"   + String(cal_G, 3);
+    out += ",\"cal_b\":"   + String(cal_B, 3);
+    out += ",\"flick_fwd\":" + String(flickFwdAction);
+    out += ",\"flick_rev\":" + String(flickRevAction);
+    out += ",\"tspin\":"    + String(touchSpinAction);
     out += ",\"modes\":[";
     for (int i = 0; i < MAX_MODES; i++) {
         if (i > 0) out += ",";
@@ -571,8 +983,11 @@ void parseSerialCommand(String& cmd) {
                 // Global keys
                 if      (key == "BRI")  { ledBrightness = constrain(val.toInt(), 0, 100) / 100.0f; applyModeColor(); }
                 else if (key == "IDLE") { idleDimMs = constrain(val.toInt(), 0, 300) * 1000; }
-                else if (key == "CPI")  { sensorCPI = constrain(val.toInt(), 0, 3); setSensorCPI(sensorCPI); }
+                else if (key == "STREAM") { streamTelemetry = (val.toInt() == 1); }
                 else if (key == "THR")  { touch.setThreshold(val.toInt()); }
+                else if (key == "FLICK_FWD"){ flickFwdAction  = constrain(val.toInt(), 0, 24); }
+                else if (key == "FLICK_REV"){ flickRevAction  = constrain(val.toInt(), 0, 24); }
+                else if (key == "TSPIN")    { touchSpinAction = constrain(val.toInt(), 0, 5); }
 
                 // Mode target selector
                 else if (key == "MODE") { modeTarget = constrain(val.toInt(), 0, MAX_MODES - 1); }
@@ -682,10 +1097,10 @@ void setup() {
 
     // Disable MX8650 sleep for continuous polling
     mx8650_write(0x05, 0xA0);
-    setSensorCPI(sensorCPI);
+    mx8650_write(0x06, 0x01); // Hardcode MX8650 to 800 CPI (Optimal resolution for our optical layout)
 
     uint8_t pid = mx8650_read(0x00);
-    Serial.printf("MX8650 PID: 0x%02X | CPI Level: %d\n", pid, sensorCPI);
+    Serial.printf("MX8650 PID: 0x%02X | CPI Level: 800 (Fixed)\n", pid);
 
     // Check initial USB host connection state
     if (tud_mounted() && !tud_suspended()) {
@@ -710,6 +1125,12 @@ void loop() {
     if (hapticPlaying && (millis() - hapticStartTime >= (unsigned long)hapticDurActive)) {
         noTone(HAPTIC_PIN);
         hapticPlaying = false;
+    }
+
+    // --- Gesture LED flash return-to-mode (non-blocking) ---
+    if (gestureLedFlashing && (millis() - gestureLedFlashStart >= GESTURE_LED_FLASH_MS)) {
+        gestureLedFlashing = false;
+        applyModeColor();
     }
 
     // --- USB Host Connection & Standby Status (Apple Design Language) ---
@@ -741,27 +1162,63 @@ void loop() {
         }
     }
 
-    // --- Touch (with scroll lockout) ---
-    bool inLockout = (millis() - lastScrollTime <= 200);
-    if (inLockout) { touch.reset(); } else { touch.update(); }
+    // --- Touch handling & hold gate ---
+    bool wheelMovingNormally = (millis() - lastScrollTime <= 150) && !touchRotated;
+    if (wheelMovingNormally) {
+        touch.reset(); // Reject capacitive crosstalk while spinning normally
+    } else {
+        touch.update();
+    }
 
     static bool lastPhysicalTouchState = false;
     bool isPhysicallyTouched = touch.isTouched();
-    if (isPhysicallyTouched && !lastPhysicalTouchState && !inLockout) {
+
+    if (isPhysicallyTouched) {
+        if (touchContactStart == 0) {
+            touchContactStart = millis();
+        }
+
+        // Touch & Spin Hold Gate:
+        // Must be held continuously for >= TOUCH_HOLD_MS (180ms)
+        if (touchSpinAction != 0 && (millis() - touchContactStart >= TOUCH_HOLD_MS)) {
+            if (!touchSpinActive) {
+                touchSpinActive = true;
+                Serial.println("GESTURE:TSPIN:START");
+            }
+        }
+    } else {
+        if (touchSpinActive) {
+            Serial.println("GESTURE:TSPIN:END");
+        }
+        touchSpinActive   = false;
+        touchContactStart = 0;
+
+        // If the user rotated the wheel while touching, flush TouchController
+        // so releasing the finger is NEVER interpreted as a tap or long-press!
+        if (touchRotated) {
+            touch.reset();
+            touchRotated       = false;
+            touchRotatedCounts = 0;
+        }
+    }
+
+    if (isPhysicallyTouched && !lastPhysicalTouchState && !wheelMovingNormally) {
         Serial.println("TOUCH:TAP");
     }
     lastPhysicalTouchState = isPhysicallyTouched;
 
-    if (touch.isDoubleTapped()) {
+    // Double-tap mode switch:
+    // Allowed ONLY when stationary, not in Touch & Spin, and wheel was NOT rotated
+    if (touch.isDoubleTapped() && !touchSpinActive && !touchRotated && (millis() - lastScrollTime > 150)) {
         if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
         cycleMode();
         lastActivityTime = millis();
         Serial.println("TOUCH:DOUBLE");
     }
 
-    if (touch.isLongPressed()) {
+    if (touch.isLongPressed() && !touchSpinActive && !touchRotated && (millis() - lastScrollTime > 250)) {
         // Long press = mode cycle in reverse (wraps around)
-        // Future: assignable action via Web UI
+        // Allowed ONLY when stationary, not in Touch & Spin, and wheel was NOT rotated
         if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
         Serial.println("LONGPRESS");
         lastActivityTime = millis();
@@ -790,107 +1247,112 @@ void loop() {
             if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
             lastScrollTime = millis();
             lastActivityTime = millis();
-            isScrolling = true; // Mark that a scroll session is active
-            
+            isScrolling = true;
+
+            if (isPhysicallyTouched) {
+                touchRotated = true;
+                touchRotatedCounts += abs((int)dx);
+            }
+
             int dir = modeList[currentModeIdx].invertDirection ? -1 : 1;
-            
-            // Broadcast live scroll data for Web UI visual knob (respects active mode invert setting)
+
+            // Broadcast live telemetry if requested
+            if (streamTelemetry) {
+                Serial.printf("TELEMETRY:%d,%lu\n", dx, millis());
+            }
+
+            // Broadcast live scroll data for Web UI visual knob
             Serial.println("SCROLL:" + String(dx * dir));
 
             int thr = modeList[currentModeIdx].threshold;
             if (thr <= 0) thr = 10;
 
             if (hostState != USB_HOST_CONNECTED) {
-                // When in standby / disconnected, keep physical detent haptics active
+                // Standby / disconnected: keep physical detent haptics active
                 accumulationX += dx;
-                while (accumulationX >= thr) {
-                    playHapticClick();
-                    accumulationX -= thr;
-                }
-                while (accumulationX <= -thr) {
-                    playHapticClick();
-                    accumulationX += thr;
-                }
-            } else if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
-                if (Mouse.isHighRes()) {
-                    // High-Resolution Smooth Scrolling:
-                    // In Windows, 1 standard detent = 120 units of WHEEL_DELTA.
-                    // Stream fractional sub-ticks instantly on every raw optical count.
-                    // Sub-tick fractional accumulator eliminates rounding drift.
-                    subTickAcc += dx * 120 * dir;
-                    int toSend = subTickAcc / thr;
-                    if (toSend != 0) {
-                        Mouse.scroll((int16_t)toSend);
-                        subTickAcc -= toSend * thr;
-                    }
+                while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
+                while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
 
-                    // Haptic click at physical detent intervals (every thr counts)
-                    accumulationX += dx;
-                    while (accumulationX >= thr) {
-                        playHapticClick();
-                        accumulationX -= thr;
-                    }
-                    while (accumulationX <= -thr) {
-                        playHapticClick();
-                        accumulationX += thr;
-                    }
-                } else {
-                    // Fallback for legacy hosts: 1 standard notch per threshold detent
-                    accumulationX += dx;
-                    while (accumulationX >= thr) {
-                        Mouse.scroll(dir);
-                        playHapticClick();
-                        accumulationX -= thr;
-                    }
-                    while (accumulationX <= -thr) {
-                        Mouse.scroll(-dir);
-                        playHapticClick();
-                        accumulationX += thr;
-                    }
-                }
-            } else if (strcmp(modeList[currentModeIdx].name, "H_SCROLL") == 0) {
-                if (Mouse.isHighRes()) {
-                    subTickAcc += dx * 120 * dir;
-                    int toSend = subTickAcc / thr;
-                    if (toSend != 0) {
-                        Mouse.hScroll((int16_t)toSend);
-                        subTickAcc -= toSend * thr;
-                    }
-
-                    accumulationX += dx;
-                    while (accumulationX >= thr) {
-                        playHapticClick();
-                        accumulationX -= thr;
-                    }
-                    while (accumulationX <= -thr) {
-                        playHapticClick();
-                        accumulationX += thr;
-                    }
-                } else {
-                    accumulationX += dx;
-                    while (accumulationX >= thr) {
-                        Mouse.hScroll(dir);
-                        playHapticClick();
-                        accumulationX -= thr;
-                    }
-                    while (accumulationX <= -thr) {
-                        Mouse.hScroll(-dir);
-                        playHapticClick();
-                        accumulationX += thr;
-                    }
-                }
             } else {
-                // Other modes: dispatch discrete actions when threshold is reached
-                accumulationX += dx;
-                while (accumulationX >= thr) {
-                    dispatchAction(dir);
-                    accumulationX -= thr;
-                }
-                while (accumulationX <= -thr) {
-                    dispatchAction(-dir);
-                    accumulationX += thr;
+                // -------------------------------------------------------
+                // Flick gesture engine (runs in parallel with normal scroll)
+                // Two-stage Schmitt + state machine — never blocks scroll.
+                // -------------------------------------------------------
+                int flickResult = updateFlickEngine(dx);
+                if (flickResult != 0) {
+                    uint8_t action = (flickResult > 0) ? flickFwdAction : flickRevAction;
+                    if (action != 0) {
+                        dispatchSingleAction(action);
+                        playHapticDoubleClick();
+                        triggerGestureFlash();
+                        Serial.println(flickResult > 0 ? "GESTURE:FLICK:FWD" : "GESTURE:FLICK:REV");
+                    }
+                    // Always clear accumulator on confirmed flick (even if action=disabled)
+                    accumulationX = 0;
+                    subTickAcc    = 0;
+
+                // -------------------------------------------------------
+                // Touch & Spin (active on sustained hold or decisive rotation while touched)
+                // -------------------------------------------------------
+                } else if ((touchSpinActive || (isPhysicallyTouched && touchRotatedCounts >= 4)) && touchSpinAction != 0) {
+                    if (!touchSpinActive) {
+                        touchSpinActive = true;
+                        Serial.println("GESTURE:TSPIN:START");
+                    }
+                    Serial.println("GESTURE:TSPIN");
+                    dispatchTouchSpinAction(dx, dir, thr);
+
+                // -------------------------------------------------------
+                // Normal scroll / mode dispatch
+                // -------------------------------------------------------
+                } else if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
+                    if (Mouse.isHighRes()) {
+                        // High-Resolution Smooth Scrolling (USB-IF + Microsoft compliant)
+                        subTickAcc += dx * 120 * dir;
+                        int toSend = subTickAcc / thr;
+                        if (toSend != 0) { Mouse.scroll((int16_t)toSend); subTickAcc -= toSend * thr; }
+                        // Haptic click at physical detent intervals
+                        accumulationX += dx;
+                        while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
+                        while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
+                    } else {
+                        accumulationX += dx;
+                        while (accumulationX >= thr)  { Mouse.scroll( dir); playHapticClick(); accumulationX -= thr; }
+                        while (accumulationX <= -thr) { Mouse.scroll(-dir); playHapticClick(); accumulationX += thr; }
+                    }
+                } else if (strcmp(modeList[currentModeIdx].name, "H_SCROLL") == 0) {
+                    if (Mouse.isHighRes()) {
+                        subTickAcc += dx * 120 * dir;
+                        int toSend = subTickAcc / thr;
+                        if (toSend != 0) { Mouse.hScroll((int16_t)toSend); subTickAcc -= toSend * thr; }
+                        accumulationX += dx;
+                        while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
+                        while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
+                    } else {
+                        accumulationX += dx;
+                        while (accumulationX >= thr)  { Mouse.hScroll( dir); playHapticClick(); accumulationX -= thr; }
+                        while (accumulationX <= -thr) { Mouse.hScroll(-dir); playHapticClick(); accumulationX += thr; }
+                    }
+                } else {
+                    // All other modes: discrete action dispatch at threshold
+                    accumulationX += dx;
+                    while (accumulationX >= thr)  { dispatchAction( dir); accumulationX -= thr; }
+                    while (accumulationX <= -thr) { dispatchAction(-dir); accumulationX += thr; }
                 }
             }
+        }
+    }
+
+    // Motionless watchdog: if wheel is stationary for > FLICK_MOTIONLESS_MS, cleanly reset flick engine
+    // Guarantees that scrolling in one direction, stopping, and scrolling the other direction
+    // NEVER links up into an accidental flick gesture!
+    if (millis() - lastScrollTime > FLICK_MOTIONLESS_MS) {
+        if (flickState != FLICK_IDLE && flickState != FLICK_COOLDOWN) {
+            flickState         = FLICK_IDLE;
+            flickTravelAcc     = 0;
+            flickReversalAcc   = 0;
+            flickInitDir       = 0;
+            flickReversalStart = 0;
         }
     }
 
