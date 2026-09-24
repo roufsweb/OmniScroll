@@ -3,8 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniScroll Control</title>
-    <meta name="description" content="Browser-based control panel for OmniScroll. No app required — configure over USB.">
+    <title>OmniScroll (Omni Scroll) — Open-Source Haptic Rotary Dial &amp; Optical Scroll Wheel</title>
+    <meta name="description" content="OmniScroll (Omni Scroll) is an open-source custom haptic rotary dial and precision optical scroll wheel controller built with an ESP32-S2 and MX8650 sensor. Configure haptics, modes, and gestures over Web Serial.">
+    <meta name="keywords" content="omni scroll, omniscroll, omni scroll dial, haptic rotary dial, haptic knob, optical scroll wheel, esp32-s2 dial, usb hid knob, web serial controller, mx8650, DIY haptic controller, smooth scrolling, macos dial, windows scroll wheel">
+    <meta name="author" content="Rouf">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="https://roufsweb.github.io/OmniScroll/">
+
+    <!-- Open Graph / Facebook / Discord -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="OmniScroll (Omni Scroll)">
+    <meta property="og:url" content="https://roufsweb.github.io/OmniScroll/">
+    <meta property="og:title" content="OmniScroll (Omni Scroll) — Open-Source Haptic Rotary Dial">
+    <meta property="og:description" content="Custom haptic rotary dial with MX8650 optical tracking, Apple-style LRA detents, native high-res USB HID scrolling, and browser-based Web Serial configuration.">
+    <meta property="og:image" content="https://roufsweb.github.io/OmniScroll/omniscroll_neutral.png">
+    <meta property="og:image:secure_url" content="https://roufsweb.github.io/OmniScroll/omniscroll_neutral.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="OmniScroll Hardware — Haptic Rotary Dial">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://roufsweb.github.io/OmniScroll/">
+    <meta name="twitter:title" content="OmniScroll (Omni Scroll) — Open-Source Haptic Rotary Dial">
+    <meta name="twitter:description" content="Custom haptic rotary dial with MX8650 optical tracking, Apple-style LRA detents, and Web Serial configuration.">
+    <meta name="twitter:image" content="https://roufsweb.github.io/OmniScroll/omniscroll_neutral.png">
+    <meta name="twitter:image:alt" content="OmniScroll Hardware — Haptic Rotary Dial">
+
+    <!-- Structured Data (JSON-LD) for Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://roufsweb.github.io/OmniScroll/#website",
+          "url": "https://roufsweb.github.io/OmniScroll/",
+          "name": "OmniScroll",
+          "alternateName": ["Omni Scroll", "OmniScroll Dial", "Omni-Scroll"],
+          "description": "Browser-based Web Serial control panel and configurator for the OmniScroll haptic rotary dial hardware.",
+          "inLanguage": "en-US"
+        },
+        {
+          "@type": "Product",
+          "@id": "https://roufsweb.github.io/OmniScroll/#product",
+          "name": "OmniScroll (Omni Scroll) Haptic Rotary Dial",
+          "alternateName": ["Omni Scroll", "OmniScroll Dial", "Omni-Scroll Controller"],
+          "image": "https://roufsweb.github.io/OmniScroll/omniscroll_neutral.png",
+          "description": "An open-source custom haptic rotary dial built with a freely spinning ball bearing, MX8650 optical sensor, iPhone 6 LRA haptic motor, and ESP32-S2 microcontroller. Features native high-resolution smooth scrolling and on-device adaptive gesture recognition.",
+          "brand": {
+            "@type": "Brand",
+            "name": "OmniScroll"
+          },
+          "category": "Computer Peripherals & Hardware",
+          "offers": {
+            "@type": "Offer",
+            "price": "0.00",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock",
+            "url": "https://github.com/roufsweb/OmniScroll"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://roufsweb.github.io/OmniScroll/#software",
+          "name": "OmniScroll Control Panel",
+          "alternateName": "Omni Scroll Configurator",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Windows, macOS, Linux, ChromeOS",
+          "url": "https://roufsweb.github.io/OmniScroll/",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+      ]
+    }
+    </script>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="shortcut icon" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -195,7 +272,7 @@
             gap: 16px;
         }
 
-        .logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+        .logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
         .logo em { color: var(--accent); font-style: normal; }
         .logo-badge {
             font-size: 10px;
@@ -2020,13 +2097,91 @@
             border-top: 1.5px solid var(--muted);
             border-bottom: 1.5px solid var(--muted);
         }
+
+        /* ---- SEO & Project Overview Card ---- */
+        .seo-overview-card {
+            margin-top: 10px;
+            padding: 24px;
+        }
+
+        .seo-overview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .seo-github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text);
+            background: var(--raised);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .seo-github-link:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .seo-overview-desc {
+            font-size: 13.5px;
+            line-height: 1.65;
+            color: var(--text-secondary);
+            margin: 0 0 18px 0;
+        }
+
+        .seo-overview-desc strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .seo-specs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+        }
+
+        .seo-spec-item {
+            background: var(--raised);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .seo-spec-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+        }
+
+        .seo-spec-val {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text);
+        }
     </style>
 </head>
 <body>
 
 <!-- Header -->
 <header>
-    <div class="logo">Omni<em>Scroll</em> <span class="logo-badge">Control</span></div>
+    <h1 class="logo">Omni<em>Scroll</em> <span class="logo-badge">Control</span></h1>
 
     <!-- Apple-style Segmented Theme Switcher -->
     <div class="apple-theme-segmented" id="themeSegmented" role="radiogroup" aria-label="Appearance Theme">
@@ -2385,6 +2540,43 @@
         </div>
         <div id="modeList" class="apple-mode-grid">
             <!-- Dynamically populated into Apple Mode Cards by JS -->
+        </div>
+    </div>
+
+    <!-- Project Overview & SEO Semantic Card -->
+    <div class="card full seo-overview-card">
+        <div class="seo-overview-header">
+            <div>
+                <h2 class="card-title-clean" style="font-size:16px; margin-bottom:4px;">About OmniScroll (Omni Scroll)</h2>
+                <div class="card-sub-clean">Open-source DIY haptic rotary dial &amp; high-resolution optical controller</div>
+            </div>
+            <a href="https://github.com/roufsweb/OmniScroll" target="_blank" rel="noopener noreferrer" class="seo-github-link" title="View Source on GitHub">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                <span>GitHub Repository</span>
+            </a>
+        </div>
+        <p class="seo-overview-desc">
+            <strong>OmniScroll</strong> (often searched as <strong>Omni Scroll</strong>) is a zero-contact haptic computer controller engineered around a freely spinning industrial steel ball bearing and an MX8650 optical sensor. Powered by an ESP32-S2 microcontroller, OmniScroll delivers native Windows &amp; macOS sub-pixel smooth scrolling, customizable iPhone 6 LRA tactile detents, and real-time on-device adaptive flick gesture recognition (TinyOL).
+        </p>
+        <div class="seo-specs-grid">
+            <div class="seo-spec-item">
+                <span class="seo-spec-label">Tracking</span>
+                <span class="seo-spec-val">MX8650 Optical Sensor (Up to 1600 CPI)</span>
+            </div>
+            <div class="seo-spec-item">
+                <span class="seo-spec-label">Haptics</span>
+                <span class="seo-spec-val">iPhone LRA + PAM8403 Amplifier</span>
+            </div>
+            <div class="seo-spec-item">
+                <span class="seo-spec-label">Controller</span>
+                <span class="seo-spec-val">ESP32-S2 (Native USB HID + Web Serial)</span>
+            </div>
+            <div class="seo-spec-item">
+                <span class="seo-spec-label">Configurator</span>
+                <span class="seo-spec-val">100% In-Browser Web Serial (No App Required)</span>
+            </div>
         </div>
     </div>
 

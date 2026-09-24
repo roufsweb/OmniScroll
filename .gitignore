@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 *.pyo
+.env
+*.env
 
 # Development tools (not for public repo)
 upload.py
@@ -18,6 +20,7 @@ scratch/
 
 # Serial/debug logs
 *.txt
+!docs/robots.txt
 *.log
 *.csv
 

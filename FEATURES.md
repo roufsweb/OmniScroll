@@ -65,3 +65,8 @@
   - **Hero Device Stage**: Real-time interactive hardware visualizer with 1:1 rotation, live active mode island, and watchOS Digital Crown haptic feel selector.
   - **Mode Studio**: Clean tactile card grid with glowing LED lenses and live color pickers.
   - **Scroll Isolation Rail**: Dedicated scrollable side rail with global wheel scroll blocker to prevent physical knob rotation from scrolling the browser window.
+  - **Full Search Engine Optimization (SEO) & Web Discoverability**:
+    - Complete OpenGraph and Twitter card metadata for rich previews on social and developer platforms (GitHub, Reddit, Discord, X, Hackaday).
+    - Schema.org JSON-LD structured data (`WebSite`, `Product` / `HardwareApplication`, `SoftwareApplication`) with multi-keyword identity (`OmniScroll`, `Omni Scroll`, `Omni-Scroll`).
+    - Dedicated XML Sitemap (`docs/sitemap.xml`) and Web Crawler configuration (`docs/robots.txt`).
+    - Accessible crawlable semantic headings (`<h1>`, `<h2>`) and project overview card for instant keyword recognition by Googlebot and Bingbot.
