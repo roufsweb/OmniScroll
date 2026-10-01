@@ -116,6 +116,7 @@ unsigned long flickLastStrokeMs   = 0;     // Timestamp of last count in stroke 
 uint8_t       flickFwdAction      = 2;     // CW→CCW: default Browser Forward
 uint8_t       flickRevAction      = 1;     // CCW→CW: default Browser Back
 uint8_t       touchSpinAction     = 1;     // NVS-persisted: 0=off,1=hscroll,2=zoom,3=turbo,4=scrub,5=volume
+uint8_t       singleTapAction     = 99;    // NVS-persisted: 99=Neural Reject (default), 0=off, 1..25=Action
 
 // Gesture LED flash confirmation (non-blocking)
 bool          gestureLedFlashing  = false;
@@ -517,6 +518,7 @@ void loadPrefs() {
     flickFwdAction  = constrain(prefs.getUChar("flick_fwd", 2), 0, 25);
     flickRevAction  = constrain(prefs.getUChar("flick_rev", 1), 0, 25);
     touchSpinAction = constrain(prefs.getUChar("tspin_act", 1), 0, 5);
+    singleTapAction = prefs.getUChar("stap_act", 99);
 
     // Load adaptive gesture prototype centroids (TinyOL)
     if (prefs.isKey("g_mu_s")) {
@@ -553,6 +555,7 @@ void savePrefs() {
     prefs.putUChar("flick_fwd",  flickFwdAction);
     prefs.putUChar("flick_rev",  flickRevAction);
     prefs.putUChar("tspin_act",  touchSpinAction);
+    prefs.putUChar("stap_act",   singleTapAction);
 
     // Save adaptive gesture prototype centroids
     prefs.putFloat("g_mu_s", gestureMuS);
@@ -1023,6 +1026,7 @@ void buildConfigJSON(String& out) {
     out += ",\"flick_fwd\":" + String(flickFwdAction);
     out += ",\"flick_rev\":" + String(flickRevAction);
     out += ",\"tspin\":"    + String(touchSpinAction);
+    out += ",\"single_tap\":"+ String(singleTapAction);
     out += ",\"g_mu_s\":"   + String(gestureMuS, 1);
     out += ",\"g_mu_r\":"   + String(gestureMuR, 1);
     out += ",\"g_mu_t\":"   + String(gestureMuT, 1);
@@ -1125,6 +1129,7 @@ void parseSerialCommand(String& cmd) {
                 else if (key == "FLICK_FWD"){ flickFwdAction  = constrain(val.toInt(), 0, 25); }
                 else if (key == "FLICK_REV"){ flickRevAction  = constrain(val.toInt(), 0, 25); }
                 else if (key == "TSPIN")    { touchSpinAction = constrain(val.toInt(), 0, 5); }
+                else if (key == "SINGLE_TAP"){ singleTapAction = (val.toInt() == 99) ? 99 : constrain(val.toInt(), 0, 25); }
 
                 // Mode target selector
                 else if (key == "MODE") { modeTarget = constrain(val.toInt(), 0, MAX_MODES - 1); }
@@ -1362,12 +1367,18 @@ void loop() {
         lastActivityTime = millis();
     }
 
-    // Single-tap feedback & mis-trigger rejection:
-    // If a flick fired within the last 2.5 seconds, a single tap immediately rolls back the gesture!
+    // Single-tap feedback & mis-trigger rejection / custom shortcut:
     if (touch.isSingleTapped() && !touchSpinActive && !touchRotated) {
-        if (millis() - lastFlickFireMs < GESTURE_FEEDBACK_WINDOW_MS) {
-            rejectLastGesture();
+        if (singleTapAction == 99) {
+            // Default: If a flick fired within the last 2.5 seconds, a single tap immediately rolls back the gesture!
+            if (millis() - lastFlickFireMs < GESTURE_FEEDBACK_WINDOW_MS) {
+                rejectLastGesture();
+            }
+        } else if (singleTapAction != 0) {
+            dispatchSingleAction(singleTapAction);
+            playHapticClick();
         }
+        lastActivityTime = millis();
     }
 
     // --- Physical button ---

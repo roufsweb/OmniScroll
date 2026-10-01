@@ -32,6 +32,9 @@
   - Quick finger taps (< 180ms) are 100% immune from triggering Touch & Spin, resolving any conflict with double-tap mode switching.
   - The instant the wheel is rotated while touching (`dx != 0`), double-tap and long-press mode switches are locked out for the entire touch session.
   - Lifting the finger instantly deactivates Touch & Spin and flushes pending touch states so finger release never accidentally triggers a mode change.
+- **Configurable Single Tap Dial Cap Shortcut**:
+  - By default assigned to the TinyOL neural engine active rollback / mis-trigger rejection (rolling back centroids if tapped within the 2.5s feedback window).
+  - Fully rebindable via Web UI and Serial API (`SET:SINGLE_TAP:<0-25, 99>`) to 25 system actions (Play/Pause, Next/Prev Mode, Direct Mode jumps, Browser Navigation, Undo/Redo) with NVS persistence (`stap_act`).
 - **Phase-Energy Gated Adaptive Prototype Engine (TinyOL Self-Learning)**:
   - **Kinematic Phase-Energy Gate ($E_{\text{snap}} = R^2 / (T_{\text{dwell}} + 1)$)**: Differentiates ballistic thumb flick recoil from continuous scrolling with a $950\times$ mathematical margin in $< 2\mu\text{s}$.
   - **Ultra-Sensitive Adaptive Spotting**: High sensitivity parameters (commit threshold 25 counts / ~17.3°, commit window 260ms, turnaround dwell limit 75ms, minimum recoil 20 counts / ~13.8°) allowing light, moderate, and fast flicks to register with 100% reliability.
@@ -48,15 +51,15 @@
 - **Full Non-Volatile Storage (NVS) Persistence**:
   - All per-mode parameters (enabled, RGB color, haptic profile, direction invert, threshold).
   - Hardware RGB white-balance calibration constants (`cal_R`, `cal_G`, `cal_B`).
-  - Global preferences: Idle sleep timeout (`idle_ms`), master LED brightness (`bri`), Touch & Spin action (`tspin_act`), and optical sensor CPI (`cpi`).
+  - Global preferences: Idle sleep timeout (`idle_ms`), master LED brightness (`bri`), Touch & Spin action (`tspin_act`), Single Tap shortcut (`stap_act`), and optical sensor CPI (`cpi`).
   - Settings survive power cycles and USB re-plugs completely.
 
 ## Web Control Panel (Web Serial API)
 - **Zero-Install Client-Side Configurator**: Hosted on GitHub Pages ([roufsweb.github.io/OmniScroll](https://roufsweb.github.io/OmniScroll/)) and communicates directly via Web Serial API (`USBCDC`).
 - **Apple Pro HIG & Nordic Walnut Craftsmanship**:
   - **4 Handcrafted Themes**: Nordic Walnut (with procedural organic wood grain, default), Obsidian Dark, Precision Aluminum, and Apple Watch Ultra Titanium.
-  - **Continuous Capsule Sliders & Custom Glassmorphism Pickers**: Studio Controls capsule rows with dynamic fill sliders (LED Brightness, Idle Sleep, Touch Sensitivity) and bespoke Apple-grade custom glassmorphic dropdown popovers (Flick Forward, Flick Back, Touch & Spin) featuring custom SVG icons, shortcut badges, active checkmarks, and theme-adaptive styling—zero ugly native browser selects. Elevated CSS stacking hierarchy (`z-index: 5000`) and parent-card elevation ensures dropdowns always float seamlessly over the Mode Studio card without clipping.
-  - **Apple Neural Engine Studio Card**: Live on-device TinyOL dashboard showing neural adaptation state, real-time Stroke ($\mu_S$), Recoil ($\mu_R$), and Dwell ($\mu_T$) centroids, a "Reject Mis-trigger" rollback trigger, and "Reset Baseline" factory restore button.
+  - **Continuous Capsule Sliders & Custom Glassmorphism Pickers**: Studio Controls capsule rows with dynamic fill sliders (LED Brightness, Idle Sleep, Touch Sensitivity) and bespoke Apple-grade custom glassmorphic dropdown popovers (Flick Forward, Flick Back, Touch & Spin, and Single Tap) featuring custom SVG icons, shortcut badges, active checkmarks, and theme-adaptive styling—zero ugly native browser selects. Elevated CSS stacking hierarchy (`z-index: 5000`) and parent-card elevation ensures dropdowns always float seamlessly over the Mode Studio card without clipping.
+  - **Unified Advanced Settings Disclosure**: Collapsible progressive disclosure container unifying the Apple Neural Engine Studio Card (live TinyOL adaptation telemetry, real-time centroid metrics, manual reject trigger, baseline reset) and Hardware RGB Calibration channel limits with live test buttons.
   - **Interactive Toast & Rejection HUD**: Gesture notification badge with glowing cyan neural indicator, rollback confirmation, and interactive inline "✕ Reject" quick button.
   - **Flick Gesture Mode Selection**: Flick Forward and Flick Backward can now be bound to cycle modes forward ("Next Mode"), backward ("Previous Mode"), or jump directly to any of the 8 enabled modes with haptic detent feedback and LED color switching.
   - **Custom Mode Studio Haptic Detent Pickers**: Every mode card features an interactive haptic detent chip with custom waveform glyphs and animated popovers.

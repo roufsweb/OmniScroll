@@ -18,6 +18,7 @@ Used to apply settings dynamically and save them to NVS (Non-Volatile Storage). 
 * `SET:FLICK_FWD:<0-25>` - Set Flick Forward action (0=Off, 1=BrowBack, 2=BrowFwd, 3=Undo, 4=Redo [Ctrl+Shift+Z], 5=MediaPrev, 6=MediaNext, 7=TabPrev, 8=TabNext, 9=DeskPrev, 10=DeskNext, 11=VolDown, 12=VolUp, 13=Copy, 14=Paste, 15=NextMode, 16=PrevMode, 17..24=DirectMode, 25=PlayPause).
 * `SET:FLICK_REV:<0-25>` - Set Flick Back action (same actions as above).
 * `SET:TSPIN:<0-5>` - Set Touch & Spin modifier action (0=Off, 1=H-Scroll, 2=Universal Zoom, 3=Turbo 4x, 4=Timeline Scrub, 5=Quick Volume).
+* `SET:SINGLE_TAP:<0-25, 99>` - Set Single Tap shortcut (99=Reject Neural Mis-Trigger [Default], 0=Off, 1..25=Standard actions e.g. Play/Pause, Browser Back/Forward, Next/Prev Mode, Direct Modes, Undo/Redo).
 * `SET:GESTURE_PROFILE:<S>,<R>,<T>` - Sets the initial adaptive gesture centroid parameters (Stroke, Recoil, Dwell).
 * `SET:GESTURE_REJECT` - Human-in-the-loop mis-trigger rejection. Rolls back TinyOL neural prototype centroids in volatile SRAM to the exact state before the last flick, suppresses NVS write (`gestureLearnedDirty = false`), triggers an 80Hz haptic rejection buzz, and flashes the LED amber/red.
 * `SET:GESTURE_RESET` - Resets on-device TinyOL centroids back to the factory calibrated mathematical baseline (`S=85, R=52, T=24`) and commits to NVS.
@@ -71,6 +72,10 @@ CONFIG:{
   "cal_r": 1.000,
   "cal_g": 1.000,
   "cal_b": 1.000,
+  "flick_fwd": 2,
+  "flick_rev": 1,
+  "tspin": 1,
+  "single_tap": 99,
   "modes": [
     {"name":"SCROLL","en":1,"c":"0000ff","hp":0,"inv":0,"thr":10},
     {"name":"VOLUME","en":1,"c":"00ff00","hp":3,"inv":0,"thr":25}

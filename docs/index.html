@@ -2438,69 +2438,87 @@
                         <span class="trigger-label" id="tspinTriggerLabel"></span>
                         <svg class="dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <div class="custom-dropdown-menu" id="tspinMenu"></div>
-                    <input type="hidden" id="tspinSelect" value="1">
+            <!-- Single Tap Capsule -->
+            <div class="apple-capsule-row" title="Single Tap (Dial Cap Tap)">
+                <div class="capsule-content">
+                    <span class="capsule-icon">
+                        <svg class="sf-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                        </svg>
+                    </span>
+                    <span class="capsule-name">Single Tap</span>
                 </div>
-            </div>
-
-            <!-- Adaptive TinyOL Neural Engine Telemetry & Feedback -->
-            <div class="apple-neural-card" id="neuralCard">
-                <div class="neural-card-header">
-                    <div class="neural-header-left">
-                        <span class="neural-icon">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5V11a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.5c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4z"/>
-                                <path d="M9 18a3 3 0 0 0 6 0v-2H9v2z"/>
-                                <line x1="12" y1="13" x2="12" y2="16"/>
-                            </svg>
-                        </span>
-                        <span class="neural-title">TinyOL Neural Engine</span>
-                    </div>
-                    <div class="neural-badge-status" id="neuralBadgeStatus">
-                        <span class="neural-pulse-dot"></span>
-                        <span>Learning Active</span>
-                    </div>
-                </div>
-                <div class="neural-metrics-grid">
-                    <div class="neural-metric-item">
-                        <span class="neural-metric-label">Stroke Travel</span>
-                        <span class="neural-metric-val" id="tinyolMuS">110.0</span>
-                        <span class="neural-metric-sub">counts (~76°)</span>
-                    </div>
-                    <div class="neural-metric-item">
-                        <span class="neural-metric-label">Snap Recoil</span>
-                        <span class="neural-metric-val" id="tinyolMuR">85.0</span>
-                        <span class="neural-metric-sub">counts (~59°)</span>
-                    </div>
-                    <div class="neural-metric-item">
-                        <span class="neural-metric-label">Turnaround</span>
-                        <span class="neural-metric-val" id="tinyolMuT">25.0</span>
-                        <span class="neural-metric-sub">milliseconds</span>
-                    </div>
-                </div>
-                <div class="neural-card-actions">
-                    <button type="button" class="apple-subtle-btn" onclick="rejectLastGestureWeb(event)" id="webRejectBtn" title="Reject last gesture if it mis-triggered">
-                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                        Reject Mis-trigger
+                <div class="apple-custom-dropdown capsule-dropdown" id="singleTapDropdown">
+                    <button type="button" class="dropdown-trigger capsule-trigger" onclick="toggleCustomDropdown('singleTapDropdown')">
+                        <span class="trigger-icon" id="singleTapTriggerIcon"></span>
+                        <span class="trigger-label" id="singleTapTriggerLabel"></span>
+                        <svg class="dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <button type="button" class="apple-subtle-btn" onclick="resetTinyOLBaseline()" title="Reset centroids to factory golden baseline">
-                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
-                        Reset Baseline
-                    </button>
+                    <div class="custom-dropdown-menu" id="singleTapMenu"></div>
+                    <input type="hidden" id="singleTapSelect" value="99">
                 </div>
             </div>
         </div>
 
-        <!-- Advanced Hardware RGB Calibration & Diagnostics (Progressive Disclosure) -->
+        <!-- Advanced Settings (Progressive Disclosure) -->
         <details class="apple-disclosure" id="hardwareCalDisclosure">
             <summary class="disclosure-header">
                 <div class="disclosure-title-wrap">
                     <span class="disclosure-chevron">›</span>
-                    <span class="disclosure-title">Hardware RGB Calibration</span>
+                    <span class="disclosure-title">Advanced Settings</span>
                 </div>
-                <span class="disclosure-badge">Advanced</span>
             </summary>
             <div class="disclosure-body">
+                <!-- Adaptive TinyOL Neural Engine Telemetry & Feedback -->
+                <div class="section-micro-label" style="margin-top: 2px; margin-bottom: 8px;">TINYOL ADAPTIVE NEURAL ENGINE</div>
+                <div class="apple-neural-card" id="neuralCard" style="margin-top: 0; margin-bottom: 18px;">
+                    <div class="neural-card-header">
+                        <div class="neural-header-left">
+                            <span class="neural-icon">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5V11a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.5c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4z"/>
+                                    <path d="M9 18a3 3 0 0 0 6 0v-2H9v2z"/>
+                                    <line x1="12" y1="13" x2="12" y2="16"/>
+                                </svg>
+                            </span>
+                            <span class="neural-title">TinyOL Neural Engine</span>
+                        </div>
+                        <div class="neural-badge-status" id="neuralBadgeStatus">
+                            <span class="neural-pulse-dot"></span>
+                            <span>Learning Active</span>
+                        </div>
+                    </div>
+                    <div class="neural-metrics-grid">
+                        <div class="neural-metric-item">
+                            <span class="neural-metric-label">Stroke Travel</span>
+                            <span class="neural-metric-val" id="tinyolMuS">110.0</span>
+                            <span class="neural-metric-sub">counts (~76°)</span>
+                        </div>
+                        <div class="neural-metric-item">
+                            <span class="neural-metric-label">Snap Recoil</span>
+                            <span class="neural-metric-val" id="tinyolMuR">85.0</span>
+                            <span class="neural-metric-sub">counts (~59°)</span>
+                        </div>
+                        <div class="neural-metric-item">
+                            <span class="neural-metric-label">Turnaround</span>
+                            <span class="neural-metric-val" id="tinyolMuT">25.0</span>
+                            <span class="neural-metric-sub">milliseconds</span>
+                        </div>
+                    </div>
+                    <div class="neural-card-actions">
+                        <button type="button" class="apple-subtle-btn" onclick="rejectLastGestureWeb(event)" id="webRejectBtn" title="Reject last gesture if it mis-triggered">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            Reject Mis-trigger
+                        </button>
+                        <button type="button" class="apple-subtle-btn" onclick="resetTinyOLBaseline()" title="Reset centroids to factory golden baseline">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+                            Reset Baseline
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section-micro-label" style="margin-top: 14px; margin-bottom: 6px;">HARDWARE RGB CALIBRATION</div>
                 <div class="disclosure-sub">Fine-tune individual hardware channel limits to calibrate color accuracy and run diagnostic tests.</div>
 
                 <div class="cal-channel-row">
@@ -2647,6 +2665,7 @@ const MODE_DESCRIPTIONS = {
 
 let config = {
     bri: 100, idle: 30, thr: 800,
+    flick_fwd: 2, flick_rev: 1, tspin: 1, single_tap: 99,
     modes: []
 };
 
@@ -3086,9 +3105,12 @@ function sendGestureAction(type, idx) {
     } else if (type === 'FLICK_REV') {
         config.flick_rev = idx;
         sendCommand(`SET:FLICK_REV:${idx}`);
-    } else { // TSPIN
+    } else if (type === 'TSPIN') {
         config.tspin = idx;
         sendCommand(`SET:TSPIN:${idx}`);
+    } else if (type === 'SINGLE_TAP') {
+        config.single_tap = idx;
+        sendCommand(`SET:SINGLE_TAP:${idx}`);
     }
     playWebTapticClick(false);
 }
@@ -3256,9 +3278,11 @@ function applyConfigToUI() {
     const fwdVal   = (config.flick_fwd !== undefined) ? config.flick_fwd : 2;
     const revVal   = (config.flick_rev !== undefined) ? config.flick_rev : 1;
     const tspinVal = (config.tspin     !== undefined) ? config.tspin     : 1;
+    const stapVal  = (config.single_tap !== undefined) ? config.single_tap : 99;
     updateGestureDropdownUI('FLICK_FWD', fwdVal);
     updateGestureDropdownUI('FLICK_REV', revVal);
     updateGestureDropdownUI('TSPIN', tspinVal);
+    updateGestureDropdownUI('SINGLE_TAP', stapVal);
 
     // Restore TinyOL centroids if available
     if (config.g_mu_s !== undefined) {
@@ -3314,6 +3338,35 @@ const TSPIN_MENU_ITEMS = [
     { value: 3, label: "Turbo 4x Speed", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>` },
     { value: 4, label: "Timeline Scrub", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg>` },
     { value: 5, label: "Quick Volume", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>` }
+];
+
+const SINGLE_TAP_MENU_ITEMS = [
+    { group: "Neural Engine" },
+    { value: 99, label: "Reject Mis-trigger", badge: "Neural Engine", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5V11a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.5c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4z"/><path d="M9 18a3 3 0 0 0 6 0v-2H9v2z"/><line x1="12" y1="13" x2="12" y2="16"/></svg>` },
+    { value: 0, label: "Disabled / No Action", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>` },
+    { group: "Media" },
+    { value: 25, label: "Play / Pause", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="5" x2="19" y2="19"/></svg>` },
+    { value: 5, label: "Media Previous", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>` },
+    { value: 6, label: "Media Next", badge: "", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>` },
+    { group: "Mode Selection" },
+    { value: 15, label: "Next Mode", badge: "Cycle", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 12 8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>` },
+    { value: 16, label: "Previous Mode", badge: "Cycle Rev", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 8 12 12 16"/><line x1="16" y1="12" x2="8" y2="12"/></svg>` },
+    { value: 17, label: "Scroll Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><polyline points="8 12 12 8 16 12"/></svg>` },
+    { value: 18, label: "Volume Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>` },
+    { value: 19, label: "Timeline Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg>` },
+    { value: 20, label: "Zoom Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>` },
+    { value: 21, label: "H-Scroll Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="2" y1="12" x2="22" y2="12"/></svg>` },
+    { value: 22, label: "Brightness Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2"/></svg>` },
+    { value: 23, label: "Tabbing Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>` },
+    { value: 24, label: "Undo/Redo Mode", badge: "Direct", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>` },
+    { group: "Navigation" },
+    { value: 1, label: "Browser Back", badge: "Alt+←", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>` },
+    { value: 2, label: "Browser Forward", badge: "Alt+→", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>` },
+    { group: "Editing" },
+    { value: 3, label: "Undo", badge: "Ctrl+Z", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>` },
+    { value: 4, label: "Redo", badge: "Ctrl+Shift+Z", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>` },
+    { value: 13, label: "Copy", badge: "Ctrl+C", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>` },
+    { value: 14, label: "Paste", badge: "Ctrl+V", icon: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>` }
 ];
 
 function toggleCustomDropdown(dropdownId) {
@@ -3396,12 +3449,18 @@ function updateGestureDropdownUI(type, value) {
         triggerLabelId = 'flickRevTriggerLabel';
         menuId = 'flickRevMenu';
         inputId = 'flickRevSelect';
-    } else { // TSPIN
+    } else if (type === 'TSPIN') {
         items = TSPIN_MENU_ITEMS;
         triggerIconId = 'tspinTriggerIcon';
         triggerLabelId = 'tspinTriggerLabel';
         menuId = 'tspinMenu';
         inputId = 'tspinSelect';
+    } else if (type === 'SINGLE_TAP') {
+        items = SINGLE_TAP_MENU_ITEMS;
+        triggerIconId = 'singleTapTriggerIcon';
+        triggerLabelId = 'singleTapTriggerLabel';
+        menuId = 'singleTapMenu';
+        inputId = 'singleTapSelect';
     }
 
     const item = items.find(x => x.value === value) || items[0];
@@ -3412,7 +3471,7 @@ function updateGestureDropdownUI(type, value) {
     if (labelEl) labelEl.textContent = item.label;
     if (inputEl) inputEl.value = item.value;
 
-    const cbName = (type === 'FLICK_FWD') ? "selectGestureFwd" : (type === 'FLICK_REV') ? "selectGestureRev" : "selectGestureTSpin";
+    const cbName = (type === 'FLICK_FWD') ? "selectGestureFwd" : (type === 'FLICK_REV') ? "selectGestureRev" : (type === 'TSPIN') ? "selectGestureTSpin" : "selectGestureSingleTap";
     renderCustomDropdownMenu(menuId, items, value, cbName);
 }
 
@@ -3432,6 +3491,12 @@ function selectGestureTSpin(val) {
     updateGestureDropdownUI('TSPIN', val);
     closeAllCustomDropdowns();
     sendGestureAction('TSPIN', val);
+}
+
+function selectGestureSingleTap(val) {
+    updateGestureDropdownUI('SINGLE_TAP', val);
+    closeAllCustomDropdowns();
+    sendGestureAction('SINGLE_TAP', val);
 }
 
 function selectModeHP(modeIdx, hpVal) {
@@ -3886,6 +3951,7 @@ updateActiveModeUI('SCROLL');
 updateGestureDropdownUI('FLICK_FWD', 2);
 updateGestureDropdownUI('FLICK_REV', 1);
 updateGestureDropdownUI('TSPIN', 1);
+updateGestureDropdownUI('SINGLE_TAP', 99);
 
 // --- Initialize Visualizer & Precision Dial Ticks ---
 initDialTicks();
