@@ -85,7 +85,7 @@ All settings are stored in the ESP32's NVS flash and survive power cycles:
 - **Sensor Resolution** — 400 / 800 / 1200 / 1600 CPI.
 - **Touch Sensitivity Slider** — Continuous 0% to 100% threshold calibration for your hand.
 - **LED Brightness & Standby** — Master dimmer (0–100%) and organic MagSafe amber breathing when host is asleep.
-- **Flick Gestures** — Configurable ballistic actions (Forward / Back navigation, Play/Pause, Next/Prev Mode).
+- **Flick Gestures & Single Tap** — Configurable ballistic actions (Forward / Back navigation, Play/Pause, Next/Prev Mode, Single Tap on dial cap).
 - **Direction Invert** — Reverse rotation direction per mode.
 
 ---
@@ -106,17 +106,29 @@ Requires the [Arduino IDE](https://www.arduino.cc/en/software) with the ESP32 bo
 1. Hold the `BOOT` button on the board.
 2. Press and release `RST`.
 3. Release `BOOT` (enters Download Mode).
-4. Run `python upload.py` or flash directly from the Arduino IDE.
+4. Flash directly from the Arduino IDE or via `arduino-cli`.
 
 ---
 
 ## Frequently Asked Questions (FAQ)
 
 ### What is OmniScroll (Omni Scroll)?
-OmniScroll is a custom DIY haptic rotary dial and smart optical wheel controller designed for creators, developers, audio/video editors, and power users. Instead of traditional notched mechanical encoders, it uses an optical sensor reading an industrial bearing, giving it virtually infinite lifespan and completely customizable digital haptic feedback.
+OmniScroll (also searched as **Omni Scroll** or **Omni-Scroll**) is an open-source DIY haptic computer rotary dial and precision optical scroll wheel controller engineered around a freely spinning steel ball bearing and an MX8650 optical mouse sensor, powered by an ESP32-S2 microcontroller. It functions as a native USB HID peripheral without requiring any drivers.
 
 ### How do I configure my Omni Scroll wheel?
-Simply connect the device to your computer via USB, open [roufsweb.github.io/OmniScroll](https://roufsweb.github.io/OmniScroll/) in Chrome or Edge, and click **Connect Device**. The Web Serial API handles all communication directly inside the browser without installing any companion software.
+Simply connect the device to your computer via USB, open [roufsweb.github.io/OmniScroll](https://roufsweb.github.io/OmniScroll/) in Chrome or Edge, and click **Connect Device**. The Web Serial API handles all communication directly inside the browser without installing any companion software or background services.
+
+### How does the optical bearing mechanism work?
+Instead of using traditional notched mechanical encoders that suffer from wear, contact chatter, and fixed click notches, OmniScroll places an MX8650 optical mouse sensor directly beneath the outer race of an industrial steel ball bearing. As the bearing spins freely, the optical sensor tracks surface micro-textures at ~520 counts per 360-degree revolution (0.6923 degrees per count) with limitless rotational life and zero friction.
+
+### Does OmniScroll require companion software or driver installation?
+No. OmniScroll operates as a standard USB HID input device on Windows, macOS, Linux, and ChromeOS. Configuration is handled 100% in-browser over the Web Serial API via the official web control panel with zero drivers or background software needed.
+
+### What gestures and shortcut actions are supported by OmniScroll?
+OmniScroll features ballistic **Flick Forward** and **Flick Backward** gestures, a **Touch & Spin** hold-to-scroll modifier, and **Single Tap** on the dial cap. Supported actions include Browser Back/Forward, Play/Pause, Media Previous/Next, Volume Up/Down, Tab switching, Virtual Desktop navigation, Undo/Redo, and direct mode switching.
+
+### How does the TinyOL adaptive neural gesture engine work?
+OmniScroll features an on-device machine learning recognizer (TinyOL) running in SRAM that measures kinematic phase-energy and normalized Mahalanobis distance. It separates ballistic flick recoil from deliberate scrolling in under 2 microseconds and adapts to individual hand ergonomics without flash wear.
 
 ---
 

@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OmniScroll (Omni Scroll) — Open-Source Haptic Rotary Dial &amp; Optical Scroll Wheel</title>
     <meta name="description" content="OmniScroll (Omni Scroll) is an open-source custom haptic rotary dial and precision optical scroll wheel controller built with an ESP32-S2 and MX8650 sensor. Configure haptics, modes, and gestures over Web Serial.">
-    <meta name="keywords" content="omni scroll, omniscroll, omni scroll dial, haptic rotary dial, haptic knob, optical scroll wheel, esp32-s2 dial, usb hid knob, web serial controller, mx8650, DIY haptic controller, smooth scrolling, macos dial, windows scroll wheel">
-    <meta name="author" content="Rouf">
+    <meta name="keywords" content="omni scroll, omniscroll, omni scroll dial, haptic rotary dial, haptic knob, optical scroll wheel, esp32-s2 dial, usb hid knob, web serial controller, mx8650, DIY haptic controller, smooth scrolling, macos dial, windows scroll wheel, omni-scroll, omniscroll github, omniscroll haptic, tinyol gesture, roufsweb omniscroll, omniscroll control panel">
+    <meta name="author" content="Abdur Rouf">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <meta name="google-site-verification" content="google8053f4376383a70d">
     <link rel="canonical" href="https://roufsweb.github.io/OmniScroll/">
@@ -42,15 +42,20 @@
           "@id": "https://roufsweb.github.io/OmniScroll/#website",
           "url": "https://roufsweb.github.io/OmniScroll/",
           "name": "OmniScroll",
-          "alternateName": ["Omni Scroll", "OmniScroll Dial", "Omni-Scroll"],
+          "alternateName": ["Omni Scroll", "OmniScroll Dial", "Omni-Scroll", "OmniScroll Haptic Dial", "Omni Scroll Knob"],
           "description": "Browser-based Web Serial control panel and configurator for the OmniScroll haptic rotary dial hardware.",
-          "inLanguage": "en-US"
+          "inLanguage": "en-US",
+          "author": {
+            "@type": "Person",
+            "name": "Abdur Rouf",
+            "url": "https://github.com/roufsweb"
+          }
         },
         {
           "@type": "Product",
           "@id": "https://roufsweb.github.io/OmniScroll/#product",
           "name": "OmniScroll (Omni Scroll) Haptic Rotary Dial",
-          "alternateName": ["Omni Scroll", "OmniScroll Dial", "Omni-Scroll Controller"],
+          "alternateName": ["Omni Scroll", "OmniScroll Dial", "Omni-Scroll Controller", "OmniScroll Haptic Knob"],
           "image": "https://roufsweb.github.io/OmniScroll/omniscroll_neutral.png",
           "description": "An open-source custom haptic rotary dial built with a freely spinning ball bearing, MX8650 optical sensor, iPhone 6 LRA haptic motor, and ESP32-S2 microcontroller. Features native high-resolution smooth scrolling and on-device adaptive gesture recognition.",
           "brand": {
@@ -79,6 +84,52 @@
             "price": "0",
             "priceCurrency": "USD"
           }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://roufsweb.github.io/OmniScroll/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is OmniScroll (Omni Scroll)?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "OmniScroll (also searched as Omni Scroll or Omni-Scroll) is an open-source DIY haptic computer rotary dial and precision optical scroll wheel controller engineered around a freely spinning ball bearing and an MX8650 optical mouse sensor, powered by an ESP32-S2."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does the OmniScroll optical bearing mechanism work?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Instead of using traditional notched mechanical encoders that wear out, OmniScroll uses an MX8650 optical mouse sensor positioned under an industrial steel ball bearing. As the bearing spins freely, the optical sensor tracks surface micro-textures at ~520 counts per 360-degree revolution (0.6923 degrees per count) with limitless rotational life and zero friction."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Does OmniScroll require companion software or driver installation?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. OmniScroll operates as a standard USB HID input device on Windows, macOS, Linux, and ChromeOS. Configuration is handled 100% in-browser over the Web Serial API via the official web control panel with zero drivers or background software needed."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What gestures and shortcut actions are supported by OmniScroll?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "OmniScroll features ballistic Flick Forward and Flick Backward gestures, a Touch & Spin hold-to-scroll modifier, and Single Tap on the dial cap. Supported actions include Browser Back/Forward, Play/Pause, Media Prev/Next, Volume Up/Down, Tab switching, Virtual Desktop navigation, Undo/Redo, and direct mode switching."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does the TinyOL adaptive neural gesture engine work?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "OmniScroll features an on-device machine learning recognizer (TinyOL) running in SRAM that measures kinematic phase-energy and normalized Mahalanobis distance. It separates ballistic flick recoil from deliberate scrolling in under 2 microseconds and adapts to individual hand ergonomics without flash wear."
+              }
+            }
+          ]
         }
       ]
     }
@@ -2176,6 +2227,71 @@
             font-weight: 600;
             color: var(--text);
         }
+
+        /* FAQ Accordion Section for Rich Snippets */
+        .seo-faq-section {
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .seo-faq-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .seo-faq-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--raised);
+            overflow: hidden;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .seo-faq-item[open] {
+            border-color: var(--border-hover);
+            background: var(--surface-glass);
+        }
+
+        .seo-faq-summary {
+            padding: 13px 16px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            list-style: none;
+        }
+
+        .seo-faq-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .seo-faq-chevron {
+            font-size: 13px;
+            color: var(--muted);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-block;
+        }
+
+        .seo-faq-item[open] .seo-faq-chevron {
+            transform: rotate(90deg);
+        }
+
+        .seo-faq-body {
+            padding: 0 16px 14px 16px;
+            font-size: 12.5px;
+            line-height: 1.65;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -2596,6 +2712,61 @@
                 <span class="seo-spec-label">Configurator</span>
                 <span class="seo-spec-val">100% In-Browser Web Serial (No App Required)</span>
             </div>
+        </div>
+
+        <!-- Search Engine Frequently Asked Questions Accordion -->
+        <div class="seo-faq-section">
+            <div class="seo-faq-title">Frequently Asked Questions</div>
+            
+            <details class="seo-faq-item">
+                <summary class="seo-faq-summary">
+                    <span>What is OmniScroll (also searched as Omni Scroll)?</span>
+                    <span class="seo-faq-chevron">›</span>
+                </summary>
+                <div class="seo-faq-body">
+                    <strong>OmniScroll</strong> (often written as <strong>Omni Scroll</strong> or <strong>Omni-Scroll</strong>) is an open-source DIY haptic computer rotary dial and precision optical scroll wheel controller engineered around a freely spinning steel ball bearing and an MX8650 optical mouse sensor, powered by an ESP32-S2 microcontroller. It functions as a native USB HID peripheral without requiring any drivers.
+                </div>
+            </details>
+
+            <details class="seo-faq-item">
+                <summary class="seo-faq-summary">
+                    <span>How does the optical bearing mechanism work?</span>
+                    <span class="seo-faq-chevron">›</span>
+                </summary>
+                <div class="seo-faq-body">
+                    Instead of using traditional mechanical rotary encoders that suffer from wear, contact chatter, and fixed click notches, OmniScroll places an MX8650 optical sensor directly beneath the outer race of a ball bearing. It reads microscopic surface texture as it spins, yielding ~520 raw counts per 360° revolution (0.6923° per count) with infinite lifespan and frictionless rotation.
+                </div>
+            </details>
+
+            <details class="seo-faq-item">
+                <summary class="seo-faq-summary">
+                    <span>Does OmniScroll require companion software or driver installation?</span>
+                    <span class="seo-faq-chevron">›</span>
+                </summary>
+                <div class="seo-faq-body">
+                    No. OmniScroll operates as a standard USB HID input device on Windows, macOS, Linux, and ChromeOS. Configuration is handled 100% in-browser over the Web Serial API via this control panel with zero background software or driver installations needed.
+                </div>
+            </details>
+
+            <details class="seo-faq-item">
+                <summary class="seo-faq-summary">
+                    <span>What gestures and shortcut actions are supported?</span>
+                    <span class="seo-faq-chevron">›</span>
+                </summary>
+                <div class="seo-faq-body">
+                    OmniScroll features ballistic <strong>Flick Forward</strong> and <strong>Flick Backward</strong> gestures, a <strong>Touch &amp; Spin</strong> hold-to-scroll modifier, and <strong>Single Tap</strong> on the dial cap. Supported actions include Browser Back/Forward, Play/Pause, Media Previous/Next, Volume Up/Down, Tab switching, Virtual Desktop navigation, Undo/Redo, and direct mode switching.
+                </div>
+            </details>
+
+            <details class="seo-faq-item">
+                <summary class="seo-faq-summary">
+                    <span>How does the TinyOL adaptive neural gesture engine work?</span>
+                    <span class="seo-faq-chevron">›</span>
+                </summary>
+                <div class="seo-faq-body">
+                    OmniScroll features an on-device machine learning recognizer (TinyOL) running in SRAM that measures kinematic phase-energy and normalized Mahalanobis distance. It separates ballistic flick recoil from deliberate scrolling in under 2 microseconds and adapts to individual hand ergonomics without flash wear.
+                </div>
+            </details>
         </div>
     </div>
 
