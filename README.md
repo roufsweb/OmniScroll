@@ -1,6 +1,6 @@
 # OmniScroll (Omni Scroll) — DIY Haptic Rotary Dial & Optical Scroll Wheel
 
-[![Web Configurator](https://img.shields.io/badge/Web%20Configurator-Live%20Demo-orange?style=flat-square&logo=googlechrome)](https://roufsweb.github.io/OmniScroll/)
+[![Web Configurator](https://img.shields.io/badge/Web%20Configurator-Live%20Demo-orange?style=flat-square&logo=googlechrome)](https://omniscroll.roufsweb.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Platform: ESP32-S2](https://img.shields.io/badge/Hardware-ESP32--S2-red?style=flat-square&logo=espressif)](HARDWARE.md)
 [![USB: Native HID](https://img.shields.io/badge/USB-Native%20HID%20%2B%20CDC-green?style=flat-square)](COMMUNICATION.md)
@@ -17,7 +17,7 @@
 
 Plug in your OmniScroll device via USB, then open the zero-install control panel:
 
-👉 **[roufsweb.github.io/OmniScroll](https://roufsweb.github.io/OmniScroll/)**
+👉 **[omniscroll.roufsweb.com](https://omniscroll.roufsweb.com/)**
 
 *No drivers, companion apps, or background processes required. Runs 100% in-browser over the Web Serial API.*
 
@@ -116,7 +116,7 @@ Requires the [Arduino IDE](https://www.arduino.cc/en/software) with the ESP32 bo
 OmniScroll (also searched as **Omni Scroll** or **Omni-Scroll**) is an open-source DIY haptic computer rotary dial and precision optical scroll wheel controller engineered around a freely spinning steel ball bearing and an MX8650 optical mouse sensor, powered by an ESP32-S2 microcontroller. It functions as a native USB HID peripheral without requiring any drivers.
 
 ### How do I configure my Omni Scroll wheel?
-Simply connect the device to your computer via USB, open [roufsweb.github.io/OmniScroll](https://roufsweb.github.io/OmniScroll/) in Chrome or Edge, and click **Connect Device**. The Web Serial API handles all communication directly inside the browser without installing any companion software or background services.
+Simply connect the device to your computer via USB, open [omniscroll.roufsweb.com](https://omniscroll.roufsweb.com/) in Chrome or Edge, and click **Connect Device**. The Web Serial API handles all communication directly inside the browser without installing any companion software or background services.
 
 ### How does the optical bearing mechanism work?
 Instead of using traditional notched mechanical encoders that suffer from wear, contact chatter, and fixed click notches, OmniScroll places an MX8650 optical mouse sensor directly beneath the outer race of an industrial steel ball bearing. As the bearing spins freely, the optical sensor tracks surface micro-textures at ~520 counts per 360-degree revolution (0.6923 degrees per count) with limitless rotational life and zero friction.
