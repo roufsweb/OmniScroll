@@ -71,7 +71,7 @@ TSPIN_ACTIONS = [
     (3, "Turbo 4x Speed"),
     (4, "Timeline Scrub"),
     (5, "Volume"),
-    (6, "App Switcher (Alt+Tab)")
+    (6, "App Switcher")
 ]
 
 # Discrete shortcut actions for Single Tap
