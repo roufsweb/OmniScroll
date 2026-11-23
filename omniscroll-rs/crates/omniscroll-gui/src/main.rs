@@ -10,6 +10,8 @@ use omniscroll_bridge::{OmniEvent, TransportManager, UdpBridge, WifiScanner};
 use omniscroll_core::config::DeviceConfig;
 use omniscroll_core::modes::DEFAULT_MODES;
 
+mod hud;
+
 slint::include_modules!();
 
 fn mode_color(idx: usize) -> slint::Color {
@@ -125,6 +127,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = Arc::new(Mutex::new(DeviceConfig::load_from_disk()));
     let initial_cfg = config.lock().unwrap().clone();
 
+    // Spawn Win32 Dynamic Glassmorphic HUD Overlay
+    let hud_ctrl = hud::spawn_hud_overlay(event_tx.subscribe(), config.clone());
+
+    // Dial angle state for crown visualizer
+    let dial_angle_state = Arc::new(Mutex::new(0.0f32));
+
     // Initialize UI properties
     ui.set_active_mode_idx(0);
     ui.set_active_mode_name(DEFAULT_MODES[0].name.into());
@@ -145,6 +153,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui.set_wifi_input_ssid(initial_cfg.last_wifi_ssid.into());
     ui.set_start_on_boot(is_autostart_enabled());
 
+    ui.set_hud_enabled(initial_cfg.hud_enabled);
+    ui.set_hud_position(initial_cfg.hud_position.clone().into());
+    ui.set_hud_timeout(initial_cfg.hud_timeout_ms as i32);
+    ui.set_dial_angle(0.0);
+    ui.set_dial_dot_x(59.0);
+    ui.set_dial_dot_y(12.0);
+    ui.set_dial_angle_text("0°".into());
+
     // Query hardware configuration and gesture baseline on startup
     let transport_startup = transport.clone();
     tokio::spawn(async move {
@@ -157,9 +173,73 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Hardware Event Dispatcher Thread
     let ui_thread_weak = ui_weak.clone();
     let config_event = config.clone();
+    let dial_angle_event = dial_angle_state.clone();
+    let transport_event = transport.clone();
     std::thread::spawn(move || {
         while let Ok(event) = event_rx.blocking_recv() {
             match event {
+                OmniEvent::PortBusy(port) => {
+                    let ui_handle = ui_thread_weak.clone();
+                    slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_handle.upgrade() {
+                            ui.set_is_connected(false);
+                            ui.set_is_busy(true);
+                            ui.set_connection_status(format!("{} In Use", port).into());
+                            ui.set_port_name(port.into());
+                        }
+                    }).ok();
+                }
+
+                OmniEvent::PortConnected(port) => {
+                    let ui_handle = ui_thread_weak.clone();
+                    slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_handle.upgrade() {
+                            ui.set_is_connected(true);
+                            ui.set_is_busy(false);
+                            ui.set_connection_status("Cable".into());
+                            ui.set_port_name(port.into());
+                        }
+                    }).ok();
+                }
+
+                OmniEvent::WifiPeer(peer) => {
+                    transport_event.set_wifi_target(peer);
+                    let ui_handle = ui_thread_weak.clone();
+                    slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_handle.upgrade() {
+                            if !ui.get_is_connected() {
+                                ui.set_is_connected(true);
+                                ui.set_is_busy(false);
+                                ui.set_connection_status("Wireless".into());
+                            }
+                        }
+                    }).ok();
+                }
+
+                OmniEvent::Motion { delta, .. } => {
+                    let angle = {
+                        let mut a = dial_angle_event.lock().unwrap();
+                        *a = (*a + (delta as f32) * 0.6923).rem_euclid(360.0);
+                        *a
+                    };
+                    let rad = (angle - 90.0).to_radians();
+                    let cx = 65.0;
+                    let cy = 65.0;
+                    let radius = 48.0;
+                    let dot_x = cx + radius * rad.cos() - 6.0;
+                    let dot_y = cy + radius * rad.sin() - 6.0;
+                    let angle_text = format!("{}°", angle.round() as i32);
+
+                    let ui_handle = ui_thread_weak.clone();
+                    slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = ui_handle.upgrade() {
+                            ui.set_dial_angle(angle);
+                            ui.set_dial_dot_x(dot_x);
+                            ui.set_dial_dot_y(dot_y);
+                            ui.set_dial_angle_text(angle_text.into());
+                        }
+                    }).ok();
+                }
                 OmniEvent::Status { mode, usb_mounted } => {
                     let mode_idx = mode as usize;
                     let mode_name = DEFAULT_MODES.get(mode_idx)
@@ -503,6 +583,55 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(ui) = ui_boot_weak.upgrade() {
             ui.set_start_on_boot(val);
         }
+    });
+
+    // 13. HUD Enabled Changed
+    let hud_ctrl_en = hud_ctrl.clone();
+    let config_hud_en = config.clone();
+    let ui_hud_en_weak = ui_weak.clone();
+    ui.on_hud_enabled_changed(move |val| {
+        hud_ctrl_en.set_enabled(val);
+        if let Some(ui) = ui_hud_en_weak.upgrade() {
+            ui.set_hud_enabled(val);
+        }
+        let mut cfg = config_hud_en.lock().unwrap();
+        cfg.hud_enabled = val;
+        let _ = cfg.save_to_disk();
+    });
+
+    // 14. HUD Position Changed
+    let hud_ctrl_pos = hud_ctrl.clone();
+    let config_hud_pos = config.clone();
+    let ui_hud_pos_weak = ui_weak.clone();
+    ui.on_hud_position_changed(move |pos| {
+        let pos_str = pos.to_string();
+        hud_ctrl_pos.set_position(&pos_str);
+        if let Some(ui) = ui_hud_pos_weak.upgrade() {
+            ui.set_hud_position(pos);
+        }
+        let mut cfg = config_hud_pos.lock().unwrap();
+        cfg.hud_position = pos_str;
+        let _ = cfg.save_to_disk();
+    });
+
+    // 15. HUD Timeout Changed
+    let hud_ctrl_to = hud_ctrl.clone();
+    let config_hud_to = config.clone();
+    let ui_hud_to_weak = ui_weak.clone();
+    ui.on_hud_timeout_changed(move |ms| {
+        hud_ctrl_to.set_timeout_ms(ms as u64);
+        if let Some(ui) = ui_hud_to_weak.upgrade() {
+            ui.set_hud_timeout(ms);
+        }
+        let mut cfg = config_hud_to.lock().unwrap();
+        cfg.hud_timeout_ms = ms as u64;
+        let _ = cfg.save_to_disk();
+    });
+
+    // 16. HUD Test Clicked
+    let hud_ctrl_test = hud_ctrl.clone();
+    ui.on_hud_test_clicked(move || {
+        hud_ctrl_test.trigger_test();
     });
 
     ui.run()?;

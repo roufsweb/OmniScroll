@@ -11,6 +11,8 @@ export component MainWindow inherits Window {
 
     in property <string> connection-status: "Cable";
     in property <bool> is-connected: true;
+    in property <bool> is-busy: false;
+    in property <string> port-name: "";
     in property <string> connection-ip: "";
     in property <int> active-mode-idx: 0;
     in property <string> active-mode-name: "SCROLL";
@@ -39,6 +41,13 @@ export component MainWindow inherits Window {
 
     in property <bool> start-on-boot: false;
     in property <float> dial-angle: 0.0;
+    in property <float> dial-dot-x: 59.0;
+    in property <float> dial-dot-y: 12.0;
+    in property <string> dial-angle-text: "0°";
+
+    in property <bool> hud-enabled: true;
+    in property <string> hud-position: "right";
+    in property <int> hud-timeout: 2500;
 
     callback select-mode(int);
     callback threshold-changed(int);
@@ -54,6 +63,11 @@ export component MainWindow inherits Window {
     callback cal-g-changed(float);
     callback cal-b-changed(float);
     callback start-on-boot-toggled(bool);
+
+    callback hud-enabled-changed(bool);
+    callback hud-position-changed(string);
+    callback hud-timeout-changed(int);
+    callback hud-test-clicked();
 
     VerticalLayout {
         padding: 20px;
@@ -105,9 +119,9 @@ export component MainWindow inherits Window {
                 width: 148px;
                 height: 34px;
                 border-radius: 17px;
-                background: root.is-connected ? rgba(48, 209, 88, 0.16) : rgba(255, 69, 58, 0.16);
+                background: root.is-connected ? rgba(48, 209, 88, 0.16) : (root.is-busy ? rgba(255, 160, 0, 0.16) : rgba(255, 69, 58, 0.16));
                 border-width: 1px;
-                border-color: root.is-connected ? rgba(48, 209, 88, 0.40) : rgba(255, 69, 58, 0.40);
+                border-color: root.is-connected ? rgba(48, 209, 88, 0.40) : (root.is-busy ? rgba(255, 160, 0, 0.40) : rgba(255, 69, 58, 0.40));
 
                 HorizontalLayout {
                     alignment: center;
@@ -117,14 +131,14 @@ export component MainWindow inherits Window {
                         width: 8px;
                         height: 8px;
                         border-radius: 4px;
-                        background: root.is-connected ? #30D158 : #FF453A;
+                        background: root.is-connected ? #30D158 : (root.is-busy ? #FFA000 : #FF453A);
                     }
 
                     Text {
                         text: root.connection-status;
                         font-size: 13px;
                         font-weight: 600;
-                        color: root.is-connected ? #30D158 : #FF453A;
+                        color: root.is-connected ? #30D158 : (root.is-busy ? #FFA000 : #FF453A);
                         vertical-alignment: center;
                     }
                 }
@@ -299,20 +313,31 @@ export component MainWindow inherits Window {
                                 border-width: 3px;
                                 border-color: rgba(255, 160, 0, 0.4);
 
+                                // Orbiting detent indicator dot
+                                Rectangle {
+                                    x: root.dial-dot-x * 1px;
+                                    y: root.dial-dot-y * 1px;
+                                    width: 12px;
+                                    height: 12px;
+                                    border-radius: 6px;
+                                    background: #FFA000; // MagSafe Amber dot
+                                }
+
                                 VerticalLayout {
                                     alignment: center;
-                                    spacing: 4px;
-                                    Rectangle {
-                                        width: 12px;
-                                        height: 12px;
-                                        border-radius: 6px;
-                                        background: #FFA000; // MagSafe dot
-                                    }
+                                    spacing: 3px;
                                     Text {
                                         text: root.active-mode-name;
                                         font-size: 11px;
                                         font-weight: 700;
                                         color: #FFFFFF;
+                                        horizontal-alignment: center;
+                                    }
+                                    Text {
+                                        text: root.dial-angle-text;
+                                        font-size: 10px;
+                                        font-weight: 600;
+                                        color: #FFA000;
                                         horizontal-alignment: center;
                                     }
                                 }
@@ -468,6 +493,174 @@ export component MainWindow inherits Window {
                             font-size: 16px;
                             font-weight: 700;
                             color: #FFFFFF;
+                        }
+
+                        // =====================================================
+                        // Windows Dynamic Glassmorphic HUD Studio Card
+                        // =====================================================
+                        Rectangle {
+                            background: rgba(255, 160, 0, 0.05);
+                            border-radius: 14px;
+                            border-width: 1px;
+                            border-color: rgba(255, 160, 0, 0.20);
+
+                            VerticalLayout {
+                                padding: 14px;
+                                spacing: 10px;
+
+                                HorizontalLayout {
+                                    alignment: space-between;
+                                    Text {
+                                        text: "Windows Dynamic Glassmorphic HUD";
+                                        font-size: 13px;
+                                        font-weight: 700;
+                                        color: #FFA000;
+                                    }
+
+                                    // HUD ON / OFF Toggle Pill
+                                    Rectangle {
+                                        width: 58px;
+                                        height: 24px;
+                                        border-radius: 12px;
+                                        background: root.hud-enabled ? rgba(48, 209, 88, 0.25) : rgba(255, 255, 255, 0.08);
+                                        border-width: 1px;
+                                        border-color: root.hud-enabled ? #30D158 : rgba(255, 255, 255, 0.15);
+
+                                        hud_ta := TouchArea {
+                                            clicked => { root.hud-enabled-changed(!root.hud-enabled); }
+                                        }
+
+                                        Text {
+                                            text: root.hud-enabled ? "ACTIVE" : "OFF";
+                                            font-size: 10px;
+                                            font-weight: 700;
+                                            color: root.hud-enabled ? #30D158 : #807060;
+                                            horizontal-alignment: center;
+                                            vertical-alignment: center;
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: "Apple-inspired acrylic overlay pops up on screen whenever you turn the dial or switch modes. Auto-hides when idle.";
+                                    font-size: 11px;
+                                    color: #A09080;
+                                    wrap: word-wrap;
+                                }
+
+                                // Overlay Screen Placement
+                                VerticalLayout {
+                                    spacing: 4px;
+                                    Text {
+                                        text: "Screen Placement Position";
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        color: #D0C0B0;
+                                    }
+
+                                    HorizontalLayout {
+                                        spacing: 6px;
+
+                                        Rectangle {
+                                            horizontal-stretch: 1;
+                                            height: 28px;
+                                            border-radius: 6px;
+                                            background: root.hud-position == "right" ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                            border-width: 1px;
+                                            border-color: root.hud-position == "right" ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                            TouchArea { clicked => { root.hud-position-changed("right"); } }
+                                            Text { text: "Right Sidebar"; font-size: 11px; font-weight: 600; color: root.hud-position == "right" ? #FFA000 : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+
+                                        Rectangle {
+                                            horizontal-stretch: 1;
+                                            height: 28px;
+                                            border-radius: 6px;
+                                            background: root.hud-position == "left" ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                            border-width: 1px;
+                                            border-color: root.hud-position == "left" ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                            TouchArea { clicked => { root.hud-position-changed("left"); } }
+                                            Text { text: "Left Sidebar"; font-size: 11px; font-weight: 600; color: root.hud-position == "left" ? #FFA000 : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+
+                                        Rectangle {
+                                            horizontal-stretch: 1;
+                                            height: 28px;
+                                            border-radius: 6px;
+                                            background: root.hud-position == "top_right" ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                            border-width: 1px;
+                                            border-color: root.hud-position == "top_right" ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                            TouchArea { clicked => { root.hud-position-changed("top_right"); } }
+                                            Text { text: "Top-Right"; font-size: 11px; font-weight: 600; color: root.hud-position == "top_right" ? #FFA000 : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+
+                                        Rectangle {
+                                            horizontal-stretch: 1;
+                                            height: 28px;
+                                            border-radius: 6px;
+                                            background: root.hud-position == "center" ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                            border-width: 1px;
+                                            border-color: root.hud-position == "center" ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                            TouchArea { clicked => { root.hud-position-changed("center"); } }
+                                            Text { text: "Dynamic Island"; font-size: 11px; font-weight: 600; color: root.hud-position == "center" ? #FFA000 : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+                                    }
+                                }
+
+                                // Auto-Hide Timeout & Test Preview Button
+                                HorizontalLayout {
+                                    spacing: 8px;
+
+                                    HorizontalLayout {
+                                        spacing: 6px;
+                                        horizontal-stretch: 2;
+
+                                        Rectangle {
+                                            horizontal-stretch: 1;
+                                            height: 28px;
+                                            border-radius: 6px;
+                                            background: root.hud-timeout == 1500 ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                            border-width: 1px;
+                                            border-color: root.hud-timeout == 1500 ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                            TouchArea { clicked => { root.hud-timeout-changed(1500); } }
+                                            Text { text: "1.5s Fast"; font-size: 11px; font-weight: 600; color: root.hud-timeout == 1500 ? #FFA000 : #A09080; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+
+                                        Rectangle {
+                                            horizontal-stretch: 1;
+                                            height: 28px;
+                                            border-radius: 6px;
+                                            background: root.hud-timeout == 2500 ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                            border-width: 1px;
+                                            border-color: root.hud-timeout == 2500 ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                            TouchArea { clicked => { root.hud-timeout-changed(2500); } }
+                                            Text { text: "2.5s Default"; font-size: 11px; font-weight: 600; color: root.hud-timeout == 2500 ? #FFA000 : #A09080; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+
+                                        Rectangle {
+                                            horizontal-stretch: 1;
+                                            height: 28px;
+                                            border-radius: 6px;
+                                            background: root.hud-timeout == 4000 ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                            border-width: 1px;
+                                            border-color: root.hud-timeout == 4000 ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                            TouchArea { clicked => { root.hud-timeout-changed(4000); } }
+                                            Text { text: "4.0s Relaxed"; font-size: 11px; font-weight: 600; color: root.hud-timeout == 4000 ? #FFA000 : #A09080; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 28px;
+                                        border-radius: 6px;
+                                        background: rgba(0, 240, 220, 0.18);
+                                        border-width: 1px;
+                                        border-color: rgba(0, 240, 220, 0.40);
+                                        TouchArea { clicked => { root.hud-test-clicked(); } }
+                                        Text { text: "✨ Test HUD"; font-size: 11px; font-weight: 700; color: #00F0DC; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+                                }
+                            }
                         }
 
                         // Touch & Spin Card (With Action 6: App Switcher Clutch!)

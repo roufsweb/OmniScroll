@@ -49,6 +49,9 @@ pub enum OmniEvent {
         ssid: String,
         ip: String,
     },
+    PortBusy(String),
+    PortConnected(String),
+    WifiPeer(SocketAddr),
     RawLine(String),
 }
 
@@ -63,13 +66,26 @@ impl UdpBridge {
     pub async fn bind(event_tx: broadcast::Sender<OmniEvent>) -> Result<Self, std::io::Error> {
         let addr: SocketAddr = format!("0.0.0.0:{}", UDP_STREAM_PORT).parse().unwrap();
         let socket = UdpSocket::bind(addr).await?;
+        let _ = socket.set_broadcast(true);
         info!("OmniScroll UDP Stream listening on {}", addr);
 
-        Ok(Self {
+        let bridge = Self {
             stream_socket: Arc::new(socket),
             event_tx,
             win32_input: Arc::new(Mutex::new(Win32Input::new())),
-        })
+        };
+
+        // Proactive background auto-discovery prober (dispatches every 3.5s to locate dial on Wi-Fi)
+        let sock_clone = bridge.stream_socket.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_millis(3500)).await;
+                let broadcast_addr: SocketAddr = "255.255.255.255:4210".parse().unwrap();
+                let _ = sock_clone.send_to(b"GET:STATUS\n", broadcast_addr).await;
+            }
+        });
+
+        Ok(bridge)
     }
 
     /// Sends a command string (`SET:...`, `GET:CONFIG`, etc.) to a target Wi-Fi device address over UDP.
@@ -97,6 +113,9 @@ impl UdpBridge {
             if len == 0 {
                 continue;
             }
+
+            // Lock in peer as active Wi-Fi device address
+            let _ = self.event_tx.send(OmniEvent::WifiPeer(peer));
 
             // Check if packet is string command (e.g. "PING" keepalive or "OMNISCROLL:WAKE")
             if let Ok(text) = std::str::from_utf8(&buf[..len]) {

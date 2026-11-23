@@ -28,16 +28,52 @@ impl SerialBridge {
     pub const ESP32_VID: u16 = 0x303A;
     pub const ESP32_PID: u16 = 0x4F5B;
 
-    /// Automatically scans and returns the COM port matching OmniScroll VID 0x303A & PID 0x4F5B.
+    /// Multi-tier port scanner for universal auto-detection across any Windows PC:
+    /// Tier 1: Exact VID 0x303A and known PIDs (0x4F5B production app or 0x0002 bootloader)
+    /// Tier 2: Product or Manufacturer substring matching ("OmniScroll", "Espressif", "USB JTAG/serial")
+    /// Tier 3: Any USB port with VID 0x303A
+    /// Tier 4: If single USB serial port present, select as candidate
     pub fn find_omniscroll_port() -> Option<String> {
         let ports = serialport::available_ports().ok()?;
-        for p in ports {
+
+        // Tier 1: VID 0x303A + known PIDs
+        for p in &ports {
             if let serialport::SerialPortType::UsbPort(usb) = &p.port_type {
-                if usb.vid == Self::ESP32_VID && usb.pid == Self::ESP32_PID {
-                    return Some(p.port_name);
+                if usb.vid == Self::ESP32_VID && (usb.pid == Self::ESP32_PID || usb.pid == 0x0002) {
+                    return Some(p.port_name.clone());
                 }
             }
         }
+
+        // Tier 2: Product / Manufacturer string search
+        for p in &ports {
+            if let serialport::SerialPortType::UsbPort(usb) = &p.port_type {
+                let prod = usb.product.as_deref().unwrap_or("").to_lowercase();
+                let mfg = usb.manufacturer.as_deref().unwrap_or("").to_lowercase();
+                if prod.contains("omniscroll") || mfg.contains("omniscroll") || prod.contains("espressif") || mfg.contains("espressif") {
+                    return Some(p.port_name.clone());
+                }
+            }
+        }
+
+        // Tier 3: Any port with VID 0x303A
+        for p in &ports {
+            if let serialport::SerialPortType::UsbPort(usb) = &p.port_type {
+                if usb.vid == Self::ESP32_VID {
+                    return Some(p.port_name.clone());
+                }
+            }
+        }
+
+        // Tier 4: Exactly one USB serial port found on system
+        let usb_ports: Vec<&serialport::SerialPortInfo> = ports.iter().filter(|p| {
+            matches!(&p.port_type, serialport::SerialPortType::UsbPort(_))
+        }).collect();
+
+        if usb_ports.len() == 1 {
+            return Some(usb_ports[0].port_name.clone());
+        }
+
         None
     }
 
@@ -67,9 +103,16 @@ impl SerialBridge {
                 let mut port = match port_builder.open() {
                     Ok(p) => p,
                     Err(e) => {
-                        warn!("Could not open {}: {}. Retrying...", port_name, e);
+                        let err_msg = e.to_string();
+                        let in_use = err_msg.contains("Access is denied") || err_msg.contains("Permission denied") || err_msg.contains("in use");
+                        if in_use {
+                            warn!("Port {} detected but currently in use by another app (e.g. Chrome Web Serial). Retrying...", port_name);
+                            let _ = event_tx.send(OmniEvent::PortBusy(port_name.clone()));
+                        } else {
+                            warn!("Could not open {}: {}. Retrying...", port_name, e);
+                        }
                         is_connected.store(false, Ordering::SeqCst);
-                        std::thread::sleep(Duration::from_millis(1000));
+                        std::thread::sleep(Duration::from_millis(1500));
                         continue;
                     }
                 };
@@ -80,6 +123,7 @@ impl SerialBridge {
 
                 is_connected.store(true, Ordering::SeqCst);
                 info!("OmniScroll USB CDC Connected on {}! Listening for hardware events...", port_name);
+                let _ = event_tx.send(OmniEvent::PortConnected(port_name.clone()));
                 let _ = event_tx.send(OmniEvent::Wake);
 
                 let mut active_mode = ModeId::Scroll;

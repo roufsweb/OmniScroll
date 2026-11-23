@@ -14,6 +14,13 @@ omniscroll-core = { path = "../omniscroll-core" }
 omniscroll-bridge = { path = "../omniscroll-bridge" }
 slint = "1.19.0"
 tokio = { version = "1.43", features = ["rt-multi-thread", "macros", "time", "sync"] }
+parking_lot = "0.12"
+windows = { version = "0.60", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 

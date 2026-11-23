@@ -45,6 +45,14 @@ pub struct DeviceConfig {
     pub start_on_boot: bool,
     #[serde(default = "default_theme")]
     pub theme: String,
+
+    // Windows On-Screen Glassmorphic HUD overlay preferences
+    #[serde(default = "default_hud_enabled")]
+    pub hud_enabled: bool,
+    #[serde(default = "default_hud_position")]
+    pub hud_position: String,
+    #[serde(default = "default_hud_timeout")]
+    pub hud_timeout_ms: u64,
 }
 
 fn default_bri() -> u8 { 100 }
@@ -59,6 +67,9 @@ fn default_mu_s() -> f32 { 110.0 }
 fn default_mu_r() -> f32 { 85.0 }
 fn default_mu_t() -> f32 { 25.0 }
 fn default_theme() -> String { "walnut".to_string() }
+fn default_hud_enabled() -> bool { true }
+fn default_hud_position() -> String { "right".to_string() }
+fn default_hud_timeout() -> u64 { 2500 }
 
 fn default_modes_vec() -> Vec<ModeConfig> {
     DEFAULT_MODES.iter().map(|m| ModeConfig {
@@ -103,6 +114,9 @@ impl Default for DeviceConfig {
             last_wifi_ssid: String::new(),
             start_on_boot: false,
             theme: default_theme(),
+            hud_enabled: default_hud_enabled(),
+            hud_position: default_hud_position(),
+            hud_timeout_ms: default_hud_timeout(),
         }
     }
 }

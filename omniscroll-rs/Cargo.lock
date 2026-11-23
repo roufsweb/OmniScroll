@@ -3312,11 +3312,13 @@ version = "0.1.0"
 dependencies = [
  "omniscroll-bridge",
  "omniscroll-core",
+ "parking_lot",
  "slint",
  "slint-build",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "windows 0.60.0",
  "winres",
 ]
 
