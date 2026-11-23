@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Platform: ESP32-S2](https://img.shields.io/badge/Hardware-ESP32--S2-red?style=flat-square&logo=espressif)](HARDWARE.md)
 [![USB: Native HID](https://img.shields.io/badge/USB-Native%20HID%20%2B%20CDC-green?style=flat-square)](COMMUNICATION.md)
+[![Donate ETH](https://img.shields.io/badge/Support-Tip%20via%20ETH-627EEA?style=flat-square&logo=ethereum&logoColor=white)](#support--donate-)
 
 **OmniScroll** (also commonly searched as **Omni Scroll**) is an open-source, custom haptic rotary dial and computer input controller built around a freely spinning steel ball bearing and an MX8650 optical mouse sensor. It connects to any PC or Mac as a standard USB HID device with zero drivers or companion software required. Configure haptic detents, modes, RGB calibration, and flick gestures directly from any Chromium browser (Chrome, Edge, Brave, Opera) over the same USB cable using the Web Serial API.
 
@@ -27,11 +28,30 @@ Plug in your OmniScroll device via USB, then open the zero-install control panel
 
 - **Zero-Contact Optical Sensing**: An MX8650 optical sensor tracks the microscopic surface texture of an industrial steel ball bearing. No mechanical encoder contacts, zero friction wear, and limitless rotational lifespan.
 - **Native High-Resolution Smooth Scrolling**: Implements Microsoft & USB-IF compliant Generic Desktop Usage `0x48` (Resolution Multiplier) for fluid, sub-pixel continuous scrolling on Windows and macOS.
+- **Wireless Multi-Transport & Desktop Bridge**: Stream high-resolution rotary events wirelessly over 2.4 GHz Wi-Fi using the low-latency OmniScroll Multi-Transport Protocol (OMP) and the standalone Windows desktop companion app.
 - **Apple-Grade LRA Haptic Detents**: An iPhone 6 Linear Resonant Actuator (LRA) driven by a PAM8403 amplifier produces crisp, virtual tactile clicks with tunable frequency, duration, and sharpness.
 - **TinyOL On-Device Gesture Engine**: Adaptive prototype recognition detects rapid ballistic flick gestures (back/forward navigation, tab switching, undo/redo) and dynamically adapts to your personal ergonomics without flash wear.
 - **Touch & Spin Gated Modifier**: Hold the top capacitive disk while rotating to trigger secondary modifier actions (horizontal pan, universal zoom, 4x turbo scroll).
 - **8 Workflow Modes**: Seamlessly switch between dedicated modes with customized detent feel and RGB LED backlighting.
 - **Full NVS Persistence**: All settings, calibrations, and learned gesture centroids persist directly in ESP32 flash across reboots.
+
+---
+
+## Standalone Desktop Studio & Wireless Bridge (`OmniScroll-Studio.exe`)
+
+For wireless untethered setups (e.g. powering OmniScroll from a USB wall charger or battery bank), OmniScroll includes a high-performance native Rust desktop application (`OmniScroll-Studio.exe` in `omniscroll-rs/target/release/`):
+- **Native Rust & Slint 1.19**: Lightweight, single-file native executable (`11.8 MB`) with Direct2D hardware acceleration, $<15$ MB RAM usage, and instant $<400$ms startup (replacing the legacy Python PyInstaller bundle).
+- **Zero-Config Discovery & Handover**: Automatically discovers OmniScroll on local Wi-Fi via UDP broadcasts and smoothly fails over between wired USB (`Cable`) and wireless (`Wireless`) modes.
+- **Low-Latency Virtual Bridge**: Injects sub-pixel high-resolution wheel scrolling, horizontal panning, media controls, and keyboard shortcuts via Win32 `SendInput` with sub-microsecond latency.
+- **Full Studio Controls**:
+  - 8-mode selector bar with dynamic color indicators and descriptions.
+  - Continuous capsule sliders for detent sensitivity threshold, LED brightness, and standby sleep timeout.
+  - Invert rotation direction toggle for each active mode.
+  - Touch & Spin Modifier studio card with full support for Action 6 (**App Switcher Alt+Tab clutch**), H-Scroll, and Zoom.
+  - Apple Neural Engine TinyOL Studio Card displaying on-device centroids with 1-click mis-trigger rollback and baseline reset.
+  - Hardware white-balance RGB calibration sliders.
+  - Background Wi-Fi scanner and one-click wireless provisioning over USB.
+  - Windows auto-start on boot (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
 
 ---
 
@@ -129,6 +149,21 @@ OmniScroll features ballistic **Flick Forward** and **Flick Backward** gestures,
 
 ### How does the TinyOL adaptive neural gesture engine work?
 OmniScroll features an on-device machine learning recognizer (TinyOL) running in SRAM that measures kinematic phase-energy and normalized Mahalanobis distance. It separates ballistic flick recoil from deliberate scrolling in under 2 microseconds and adapts to individual hand ergonomics without flash wear.
+
+---
+
+## Support & Donate ☕
+
+OmniScroll is free, open-source hardware and software built with passion. If you love this project and it has helped, inspired, or improved your desk workflow, you can buy me a coffee / tip via Ethereum!
+
+> [!NOTE]
+> Donations are completely voluntary with no promises or obligations attached — purely creator appreciation to help support ongoing open-source hardware research and development. Thank you!
+
+| Network | Ethereum (ETH / ERC-20) |
+|---|---|
+| **Supported Wallet** | MetaMask & Any Web3 / Ethereum Wallet |
+| **Explorer** | [View on Etherscan](https://etherscan.io/address/0x609e0AB78d5174F72fF8709564f8337DebEa5BD7) |
+| **Wallet Address** | `0x609e0AB78d5174F72fF8709564f8337DebEa5BD7` |
 
 ---
 

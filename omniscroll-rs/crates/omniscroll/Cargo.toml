@@ -1,0 +1,25 @@
+[package]
+name = "omniscroll"
+version = "0.1.0"
+edition = "2021"
+authors = ["roufsweb"]
+description = "OmniScroll - Native Windows Glassmorphic Companion & HUD"
+
+[[bin]]
+name = "OmniScroll"
+path = "src/main.rs"
+
+[dependencies]
+omniscroll-core = { path = "../omniscroll-core" }
+omniscroll-bridge = { path = "../omniscroll-bridge" }
+tokio = { version = "1.43", features = ["rt-multi-thread", "macros", "time", "sync"] }
+parking_lot = "0.12"
+windows = { version = "0.60", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dwm",
+    "Win32_System_LibraryLoader",
+] }
+tracing = "0.1"
+tracing-subscriber = "0.3"

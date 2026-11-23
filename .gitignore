@@ -32,6 +32,15 @@ scratch/
 .DS_Store
 Thumbs.db
 
+# Rust build artifacts
+target/
+**/target/
+
+# Executables and distribution builds
+dist/
+**/dist/
+*.exe
+
 # Arduino Build files
 build/
 *.elf

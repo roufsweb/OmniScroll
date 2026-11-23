@@ -1,0 +1,843 @@
+import { Button, Slider, ScrollView, LineEdit, CheckBox } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    title: "OmniScroll Studio";
+    min-width: 1080px;
+    min-height: 760px;
+    preferred-width: 1120px;
+    preferred-height: 800px;
+    background: #181514; // Nordic Walnut Deep Base
+    default-font-family: "Segoe UI";
+
+    in property <string> connection-status: "Cable";
+    in property <bool> is-connected: true;
+    in property <string> connection-ip: "";
+    in property <int> active-mode-idx: 0;
+    in property <string> active-mode-name: "SCROLL";
+    in property <string> active-mode-desc: "Vertical page scroll";
+    in property <color> active-mode-color: #007AFF;
+    in property <int> active-threshold: 10;
+    in property <bool> active-invert: false;
+
+    in property <int> master-brightness: 100;
+    in property <int> idle-timeout: 30;
+    in property <int> tspin-action: 6;
+
+    in property <string> wifi-ssid: "";
+    in-out property <string> wifi-input-ssid: "";
+    in-out property <string> wifi-input-pass: "";
+    in property <bool> wifi-connected: false;
+    in property <string> wifi-status-text: "Standby / USB Preferred";
+
+    in property <float> g-mu-s: 110.0;
+    in property <float> g-mu-r: 85.0;
+    in property <float> g-mu-t: 25.0;
+
+    in property <float> cal-r: 1.0;
+    in property <float> cal-g: 1.0;
+    in property <float> cal-b: 1.0;
+
+    in property <bool> start-on-boot: false;
+    in property <float> dial-angle: 0.0;
+
+    callback select-mode(int);
+    callback threshold-changed(int);
+    callback invert-toggled(bool);
+    callback brightness-changed(int);
+    callback idle-changed(int);
+    callback tspin-changed(int);
+    callback scan-wifi();
+    callback connect-wifi(string, string);
+    callback reject-gesture();
+    callback reset-centroids();
+    callback cal-r-changed(float);
+    callback cal-g-changed(float);
+    callback cal-b-changed(float);
+    callback start-on-boot-toggled(bool);
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+
+        // =============================================================
+        // Top Header Bar
+        // =============================================================
+        HorizontalLayout {
+            alignment: space-between;
+            height: 38px;
+
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: start;
+
+                Text {
+                    text: "OmniScroll";
+                    font-size: 22px;
+                    font-weight: 800;
+                    color: #FFFFFF;
+                    vertical-alignment: center;
+                }
+                Rectangle {
+                    height: 24px;
+                    border-radius: 12px;
+                    background: rgba(255, 160, 0, 0.15);
+                    border-width: 1px;
+                    border-color: rgba(255, 160, 0, 0.35);
+
+                    HorizontalLayout {
+                        padding-left: 9px;
+                        padding-right: 9px;
+                        padding-top: 3px;
+                        padding-bottom: 3px;
+                        Text {
+                            text: "from roufsweb";
+                            font-size: 11px;
+                            font-weight: 600;
+                            color: #FFA000;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            // Connection Status Fixed Capsule
+            Rectangle {
+                width: 148px;
+                height: 34px;
+                border-radius: 17px;
+                background: root.is-connected ? rgba(48, 209, 88, 0.16) : rgba(255, 69, 58, 0.16);
+                border-width: 1px;
+                border-color: root.is-connected ? rgba(48, 209, 88, 0.40) : rgba(255, 69, 58, 0.40);
+
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 8px;
+
+                    Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: root.is-connected ? #30D158 : #FF453A;
+                    }
+
+                    Text {
+                        text: root.connection-status;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: root.is-connected ? #30D158 : #FF453A;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // =============================================================
+        // 8-Mode Horizontal Selection Strip
+        // =============================================================
+        Rectangle {
+            height: 48px;
+            background: #201C1A;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.08);
+
+            HorizontalLayout {
+                padding: 6px;
+                spacing: 6px;
+
+                // Mode 0: SCROLL
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 0 ? rgba(0, 122, 255, 0.25) : (m0_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 0 ? 1.5px : 0px;
+                    border-color: #007AFF;
+                    m0_ta := TouchArea { clicked => { root.select-mode(0); } }
+                    Text { text: "SCROLL"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 0 ? #007AFF : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                // Mode 1: VOLUME
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 1 ? rgba(52, 199, 89, 0.25) : (m1_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 1 ? 1.5px : 0px;
+                    border-color: #34C759;
+                    m1_ta := TouchArea { clicked => { root.select-mode(1); } }
+                    Text { text: "VOLUME"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 1 ? #34C759 : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                // Mode 2: TIMELINE
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 2 ? rgba(255, 149, 0, 0.25) : (m2_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 2 ? 1.5px : 0px;
+                    border-color: #FF9500;
+                    m2_ta := TouchArea { clicked => { root.select-mode(2); } }
+                    Text { text: "TIMELINE"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 2 ? #FF9500 : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                // Mode 3: ZOOM
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 3 ? rgba(175, 82, 222, 0.25) : (m3_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 3 ? 1.5px : 0px;
+                    border-color: #AF52DE;
+                    m3_ta := TouchArea { clicked => { root.select-mode(3); } }
+                    Text { text: "ZOOM"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 3 ? #AF52DE : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                // Mode 4: H_SCROLL
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 4 ? rgba(88, 86, 214, 0.25) : (m4_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 4 ? 1.5px : 0px;
+                    border-color: #5856D6;
+                    m4_ta := TouchArea { clicked => { root.select-mode(4); } }
+                    Text { text: "H_SCROLL"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 4 ? #5856D6 : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                // Mode 5: BRIGHTNESS
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 5 ? rgba(255, 204, 0, 0.25) : (m5_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 5 ? 1.5px : 0px;
+                    border-color: #FFCC00;
+                    m5_ta := TouchArea { clicked => { root.select-mode(5); } }
+                    Text { text: "BRIGHTNESS"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 5 ? #FFCC00 : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                // Mode 6: TABBING
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 6 ? rgba(255, 45, 85, 0.25) : (m6_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 6 ? 1.5px : 0px;
+                    border-color: #FF2D55;
+                    m6_ta := TouchArea { clicked => { root.select-mode(6); } }
+                    Text { text: "TABBING"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 6 ? #FF2D55 : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                // Mode 7: UNDO_REDO
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 8px;
+                    background: root.active-mode-idx == 7 ? rgba(0, 199, 190, 0.25) : (m7_ta.has-hover ? rgba(255, 255, 255, 0.08) : transparent);
+                    border-width: root.active-mode-idx == 7 ? 1.5px : 0px;
+                    border-color: #00C7BE;
+                    m7_ta := TouchArea { clicked => { root.select-mode(7); } }
+                    Text { text: "UNDO_REDO"; font-size: 11px; font-weight: 700; color: root.active-mode-idx == 7 ? #00C7BE : #B0A090; horizontal-alignment: center; vertical-alignment: center; }
+                }
+            }
+        }
+
+        // =============================================================
+        // Main Two-Column Layout
+        // =============================================================
+        HorizontalLayout {
+            spacing: 16px;
+
+            // ---------------------------------------------------------
+            // Left Column: Dial Visualizer Stage & Mode Hardware Settings
+            // ---------------------------------------------------------
+            Rectangle {
+                width: 440px;
+                background: #201C1A;
+                border-radius: 20px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.08);
+
+                VerticalLayout {
+                    padding: 20px;
+                    spacing: 16px;
+
+                    // Active Mode Header
+                    HorizontalLayout {
+                        alignment: space-between;
+                        VerticalLayout {
+                            spacing: 2px;
+                            Text {
+                                text: root.active-mode-name;
+                                font-size: 24px;
+                                font-weight: 800;
+                                color: root.active-mode-color;
+                            }
+                            Text {
+                                text: root.active-mode-desc;
+                                font-size: 12px;
+                                color: #A09080;
+                            }
+                        }
+
+                        Rectangle {
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 10px;
+                            background: root.active-mode-color;
+                        }
+                    }
+
+                    // Dial Visual Area
+                    Rectangle {
+                        height: 200px;
+                        background: rgba(0, 0, 0, 0.25);
+                        border-radius: 16px;
+
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 12px;
+
+                            Rectangle {
+                                width: 130px;
+                                height: 130px;
+                                border-radius: 65px;
+                                background: #2E2622;
+                                border-width: 3px;
+                                border-color: rgba(255, 160, 0, 0.4);
+
+                                VerticalLayout {
+                                    alignment: center;
+                                    spacing: 4px;
+                                    Rectangle {
+                                        width: 12px;
+                                        height: 12px;
+                                        border-radius: 6px;
+                                        background: #FFA000; // MagSafe dot
+                                    }
+                                    Text {
+                                        text: root.active-mode-name;
+                                        font-size: 11px;
+                                        font-weight: 700;
+                                        color: #FFFFFF;
+                                        horizontal-alignment: center;
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: "360° Physical Optical Tracking (520 counts/rev)";
+                                font-size: 11px;
+                                color: #8A7A6E;
+                                horizontal-alignment: center;
+                            }
+                        }
+                    }
+
+                    // Detent Sensitivity Threshold
+                    VerticalLayout {
+                        spacing: 6px;
+                        HorizontalLayout {
+                            alignment: space-between;
+                            Text {
+                                text: "Detent Sensitivity Threshold";
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: #D0C0B0;
+                            }
+                            Text {
+                                text: root.active-threshold + " counts";
+                                font-size: 12px;
+                                font-weight: 700;
+                                color: #FFA000;
+                            }
+                        }
+
+                        Slider {
+                            minimum: 5;
+                            maximum: 60;
+                            value: root.active-threshold;
+                            changed(val) => {
+                                root.threshold-changed(val);
+                            }
+                        }
+                    }
+
+                    // Invert Direction Toggle
+                    Rectangle {
+                        height: 40px;
+                        background: rgba(255, 255, 255, 0.04);
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: rgba(255, 255, 255, 0.08);
+
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 12px;
+                            alignment: space-between;
+
+                            Text {
+                                text: "Invert Rotation Direction";
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: #D0C0B0;
+                                vertical-alignment: center;
+                            }
+
+                            Rectangle {
+                                width: 72px;
+                                height: 26px;
+                                border-radius: 13px;
+                                background: root.active-invert ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.08);
+                                border-width: 1px;
+                                border-color: root.active-invert ? #FFA000 : rgba(255, 255, 255, 0.15);
+
+                                inv_ta := TouchArea {
+                                    clicked => { root.invert-toggled(!root.active-invert); }
+                                }
+
+                                Text {
+                                    text: root.active-invert ? "Inverted" : "Normal";
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    color: root.active-invert ? #FFA000 : #908070;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+
+                    // Windows Auto-Start
+                    Rectangle {
+                        height: 40px;
+                        background: rgba(255, 255, 255, 0.04);
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: rgba(255, 255, 255, 0.08);
+
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 12px;
+                            alignment: space-between;
+
+                            Text {
+                                text: "Start on Windows Boot";
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: #D0C0B0;
+                                vertical-alignment: center;
+                            }
+
+                            Rectangle {
+                                width: 54px;
+                                height: 26px;
+                                border-radius: 13px;
+                                background: root.start-on-boot ? rgba(48, 209, 88, 0.25) : rgba(255, 255, 255, 0.08);
+                                border-width: 1px;
+                                border-color: root.start-on-boot ? #30D158 : rgba(255, 255, 255, 0.15);
+
+                                boot_ta := TouchArea {
+                                    clicked => { root.start-on-boot-toggled(!root.start-on-boot); }
+                                }
+
+                                Text {
+                                    text: root.start-on-boot ? "ON" : "OFF";
+                                    font-size: 11px;
+                                    font-weight: 700;
+                                    color: root.start-on-boot ? #30D158 : #807060;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------------------------------------------------------
+            // Right Column: Scrollable Studio Controls & Advanced Cards
+            // ---------------------------------------------------------
+            Rectangle {
+                horizontal-stretch: 1;
+                background: #201C1A;
+                border-radius: 20px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.08);
+
+                ScrollView {
+                    VerticalLayout {
+                        padding: 20px;
+                        spacing: 16px;
+
+                        Text {
+                            text: "Studio Controls & Hardware Settings";
+                            font-size: 16px;
+                            font-weight: 700;
+                            color: #FFFFFF;
+                        }
+
+                        // Touch & Spin Card (With Action 6: App Switcher Clutch!)
+                        Rectangle {
+                            background: rgba(255, 160, 0, 0.08);
+                            border-radius: 14px;
+                            border-width: 1px;
+                            border-color: rgba(255, 160, 0, 0.25);
+
+                            VerticalLayout {
+                                padding: 14px;
+                                spacing: 10px;
+
+                                HorizontalLayout {
+                                    alignment: space-between;
+                                    Text {
+                                        text: "Touch & Spin Modifier";
+                                        font-size: 13px;
+                                        font-weight: 700;
+                                        color: #FFA000;
+                                    }
+                                    Text {
+                                        text: root.tspin-action == 6 ? "App Switcher (Alt+Tab)" : (root.tspin-action == 1 ? "Horizontal Scroll" : (root.tspin-action == 2 ? "Universal Zoom" : "Action #" + root.tspin-action));
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        color: #00F0DC;
+                                    }
+                                }
+
+                                Text {
+                                    text: "Rest finger on dial cap and turn to invoke the Windows Alt+Tab switcher with detents; release finger to commit window.";
+                                    font-size: 11px;
+                                    color: #A09080;
+                                    wrap: word-wrap;
+                                }
+
+                                // Quick Selector Buttons for Touch & Spin
+                                HorizontalLayout {
+                                    spacing: 8px;
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 28px;
+                                        border-radius: 6px;
+                                        background: root.tspin-action == 6 ? rgba(0, 240, 220, 0.25) : rgba(255, 255, 255, 0.06);
+                                        border-width: 1px;
+                                        border-color: root.tspin-action == 6 ? #00F0DC : rgba(255, 255, 255, 0.1);
+                                        tspin6_ta := TouchArea { clicked => { root.tspin-changed(6); } }
+                                        Text { text: "App Switcher"; font-size: 11px; font-weight: 600; color: root.tspin-action == 6 ? #00F0DC : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 28px;
+                                        border-radius: 6px;
+                                        background: root.tspin-action == 1 ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                        border-width: 1px;
+                                        border-color: root.tspin-action == 1 ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                        tspin1_ta := TouchArea { clicked => { root.tspin-changed(1); } }
+                                        Text { text: "H-Scroll"; font-size: 11px; font-weight: 600; color: root.tspin-action == 1 ? #FFA000 : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 28px;
+                                        border-radius: 6px;
+                                        background: root.tspin-action == 2 ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                        border-width: 1px;
+                                        border-color: root.tspin-action == 2 ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                        tspin2_ta := TouchArea { clicked => { root.tspin-changed(2); } }
+                                        Text { text: "Zoom"; font-size: 11px; font-weight: 600; color: root.tspin-action == 2 ? #FFA000 : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 28px;
+                                        border-radius: 6px;
+                                        background: root.tspin-action == 0 ? rgba(255, 160, 0, 0.25) : rgba(255, 255, 255, 0.06);
+                                        border-width: 1px;
+                                        border-color: root.tspin-action == 0 ? #FFA000 : rgba(255, 255, 255, 0.1);
+                                        tspin0_ta := TouchArea { clicked => { root.tspin-changed(0); } }
+                                        Text { text: "Disabled"; font-size: 11px; font-weight: 600; color: root.tspin-action == 0 ? #FFA000 : #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Master Brightness Slider
+                        VerticalLayout {
+                            spacing: 6px;
+                            HorizontalLayout {
+                                alignment: space-between;
+                                Text {
+                                    text: "LED Hardware Brightness";
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                    color: #D0C0B0;
+                                }
+                                Text {
+                                    text: root.master-brightness + "%";
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    color: #FFA000;
+                                }
+                            }
+                            Slider {
+                                minimum: 0;
+                                maximum: 100;
+                                value: root.master-brightness;
+                                changed(val) => {
+                                    root.brightness-changed(val);
+                                }
+                            }
+                        }
+
+                        // Standby Sleep Timeout
+                        VerticalLayout {
+                            spacing: 6px;
+                            HorizontalLayout {
+                                alignment: space-between;
+                                Text {
+                                    text: "Standby Sleep Timeout";
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                    color: #D0C0B0;
+                                }
+                                Text {
+                                    text: root.idle-timeout + "s";
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    color: #FFA000;
+                                }
+                            }
+                            Slider {
+                                minimum: 5;
+                                maximum: 120;
+                                value: root.idle-timeout;
+                                changed(val) => {
+                                    root.idle-changed(val);
+                                }
+                            }
+                        }
+
+                        // =====================================================
+                        // Apple Neural Engine TinyOL Studio Card
+                        // =====================================================
+                        Rectangle {
+                            background: rgba(0, 240, 220, 0.05);
+                            border-radius: 14px;
+                            border-width: 1px;
+                            border-color: rgba(0, 240, 220, 0.20);
+
+                            VerticalLayout {
+                                padding: 14px;
+                                spacing: 10px;
+
+                                HorizontalLayout {
+                                    alignment: space-between;
+                                    Text {
+                                        text: "Neural Gesture Engine (TinyOL)";
+                                        font-size: 13px;
+                                        font-weight: 700;
+                                        color: #00F0DC;
+                                    }
+                                    Text {
+                                        text: "On-Device Adaptive Centroids";
+                                        font-size: 11px;
+                                        color: #70A09A;
+                                    }
+                                }
+
+                                // Centroids Display Chips
+                                HorizontalLayout {
+                                    spacing: 8px;
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 36px;
+                                        border-radius: 8px;
+                                        background: rgba(0, 0, 0, 0.3);
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Text { text: "Spotting (μS)"; font-size: 10px; color: #8A9A96; horizontal-alignment: center; }
+                                            Text { text: root.g-mu-s + " cnt"; font-size: 12px; font-weight: 700; color: #00F0DC; horizontal-alignment: center; }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 36px;
+                                        border-radius: 8px;
+                                        background: rgba(0, 0, 0, 0.3);
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Text { text: "Recoil (μR)"; font-size: 10px; color: #8A9A96; horizontal-alignment: center; }
+                                            Text { text: root.g-mu-r + " cnt"; font-size: 12px; font-weight: 700; color: #00F0DC; horizontal-alignment: center; }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 36px;
+                                        border-radius: 8px;
+                                        background: rgba(0, 0, 0, 0.3);
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Text { text: "Dwell (μT)"; font-size: 10px; color: #8A9A96; horizontal-alignment: center; }
+                                            Text { text: root.g-mu-t + " ms"; font-size: 12px; font-weight: 700; color: #00F0DC; horizontal-alignment: center; }
+                                        }
+                                    }
+                                }
+
+                                // Reject / Reset Action Buttons
+                                HorizontalLayout {
+                                    spacing: 8px;
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 30px;
+                                        border-radius: 8px;
+                                        background: rgba(255, 69, 58, 0.18);
+                                        border-width: 1px;
+                                        border-color: rgba(255, 69, 58, 0.4);
+                                        rej_ta := TouchArea { clicked => { root.reject-gesture(); } }
+                                        Text { text: "Reject Mis-trigger"; font-size: 11px; font-weight: 600; color: #FF453A; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 30px;
+                                        border-radius: 8px;
+                                        background: rgba(255, 255, 255, 0.06);
+                                        border-width: 1px;
+                                        border-color: rgba(255, 255, 255, 0.12);
+                                        res_ta := TouchArea { clicked => { root.reset-centroids(); } }
+                                        Text { text: "Reset Baseline"; font-size: 11px; font-weight: 600; color: #C0B0A0; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+                                }
+                            }
+                        }
+
+                        // =====================================================
+                        // Hardware White-Balance RGB Calibration
+                        // =====================================================
+                        Rectangle {
+                            background: rgba(255, 255, 255, 0.03);
+                            border-radius: 14px;
+                            border-width: 1px;
+                            border-color: rgba(255, 255, 255, 0.08);
+
+                            VerticalLayout {
+                                padding: 14px;
+                                spacing: 8px;
+
+                                Text {
+                                    text: "Hardware RGB Calibration (White Balance)";
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                    color: #D0C0B0;
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text { text: "Red (" + root.cal-r + ")"; font-size: 11px; color: #FF453A; width: 80px; vertical-alignment: center; }
+                                    Slider {
+                                        minimum: 50;
+                                        maximum: 150;
+                                        value: root.cal-r * 100;
+                                        changed(val) => { root.cal-r-changed(val / 100.0); }
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text { text: "Green (" + root.cal-g + ")"; font-size: 11px; color: #30D158; width: 80px; vertical-alignment: center; }
+                                    Slider {
+                                        minimum: 50;
+                                        maximum: 150;
+                                        value: root.cal-g * 100;
+                                        changed(val) => { root.cal-g-changed(val / 100.0); }
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text { text: "Blue (" + root.cal-b + ")"; font-size: 11px; color: #0A84FF; width: 80px; vertical-alignment: center; }
+                                    Slider {
+                                        minimum: 50;
+                                        maximum: 150;
+                                        value: root.cal-b * 100;
+                                        changed(val) => { root.cal-b-changed(val / 100.0); }
+                                    }
+                                }
+                            }
+                        }
+
+                        // =====================================================
+                        // Wi-Fi Wireless Studio Card
+                        // =====================================================
+                        Rectangle {
+                            background: rgba(48, 209, 88, 0.04);
+                            border-radius: 14px;
+                            border-width: 1px;
+                            border-color: rgba(48, 209, 88, 0.18);
+
+                            VerticalLayout {
+                                padding: 14px;
+                                spacing: 10px;
+
+                                HorizontalLayout {
+                                    alignment: space-between;
+                                    Text {
+                                        text: "Wi-Fi Wireless (RoufsWeb RWP v2.1)";
+                                        font-size: 13px;
+                                        font-weight: 700;
+                                        color: #30D158;
+                                    }
+                                    Text {
+                                        text: root.wifi-status-text;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        color: root.wifi-connected ? #30D158 : #8A9A8A;
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    LineEdit {
+                                        horizontal-stretch: 1;
+                                        placeholder-text: "Wi-Fi SSID";
+                                        text <=> root.wifi-input-ssid;
+                                    }
+                                    LineEdit {
+                                        horizontal-stretch: 1;
+                                        placeholder-text: "Password";
+                                        input-type: password;
+                                        text <=> root.wifi-input-pass;
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+
+                                    Rectangle {
+                                        width: 110px;
+                                        height: 30px;
+                                        border-radius: 8px;
+                                        background: rgba(255, 255, 255, 0.08);
+                                        border-width: 1px;
+                                        border-color: rgba(255, 255, 255, 0.15);
+                                        scan_ta := TouchArea { clicked => { root.scan-wifi(); } }
+                                        Text { text: "Scan Nearby"; font-size: 11px; font-weight: 600; color: #D0C0B0; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        height: 30px;
+                                        border-radius: 8px;
+                                        background: rgba(48, 209, 88, 0.22);
+                                        border-width: 1px;
+                                        border-color: rgba(48, 209, 88, 0.45);
+                                        conn_ta := TouchArea { clicked => { root.connect-wifi(root.wifi-input-ssid, root.wifi-input-pass); } }
+                                        Text { text: "Configure & Connect Hardware Wi-Fi"; font-size: 11px; font-weight: 700; color: #30D158; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

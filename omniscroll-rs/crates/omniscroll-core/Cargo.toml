@@ -1,0 +1,10 @@
+[package]
+name = "omniscroll-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["roufsweb"]
+description = "Pure Rust, zero-allocation core protocol, math, and state logic for OmniScroll"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

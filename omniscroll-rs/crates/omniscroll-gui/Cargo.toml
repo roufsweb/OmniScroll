@@ -1,0 +1,22 @@
+[package]
+name = "omniscroll-gui"
+version = "0.1.0"
+edition = "2021"
+authors = ["roufsweb"]
+description = "OmniScroll Flagship Studio - Native Nordic Walnut Apple Pro HIG Desktop Control Panel"
+
+[[bin]]
+name = "OmniScroll-Studio"
+path = "src/main.rs"
+
+[dependencies]
+omniscroll-core = { path = "../omniscroll-core" }
+omniscroll-bridge = { path = "../omniscroll-bridge" }
+slint = "1.19.0"
+tokio = { version = "1.43", features = ["rt-multi-thread", "macros", "time", "sync"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[build-dependencies]
+slint-build = "1.19.0"
+winres = "0.1"

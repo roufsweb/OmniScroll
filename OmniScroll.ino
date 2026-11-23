@@ -9,6 +9,9 @@
 #include <USBHIDKeyboard.h>
 #include <Preferences.h>
 #include "TouchController.h"
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <ESPmDNS.h>
 
 // TinyUSB CDC Serial
 #if !ARDUINO_USB_CDC_ON_BOOT
@@ -115,13 +118,62 @@ unsigned long flickLastStrokeMs   = 0;     // Timestamp of last count in stroke 
 //          15=NextMode 16=PrevMode 17..24=DirectMode(0..7)
 uint8_t       flickFwdAction      = 2;     // CW→CCW: default Browser Forward
 uint8_t       flickRevAction      = 1;     // CCW→CW: default Browser Back
-uint8_t       touchSpinAction     = 1;     // NVS-persisted: 0=off,1=hscroll,2=zoom,3=turbo,4=scrub,5=volume
+uint8_t       touchSpinAction     = 1;     // NVS-persisted: 0=off,1=hscroll,2=zoom,3=turbo,4=scrub,5=volume,6=appswitcher
 uint8_t       singleTapAction     = 99;    // NVS-persisted: 99=Neural Reject (default), 0=off, 1..25=Action
 
 // Gesture LED flash confirmation (non-blocking)
 bool          gestureLedFlashing  = false;
 unsigned long gestureLedFlashStart= 0;
 const unsigned long GESTURE_LED_FLASH_MS = 150; // 150ms warm-white confirmation flash
+
+// -------------------------------------------------------
+// RoufsWeb Protocol (RWP v2.1) & Wi-Fi Multi-Transport
+// -------------------------------------------------------
+#define RWP_MAGIC            0x5257    // 'R', 'W' in ASCII
+#define OMP_LEGACY_MAGIC     0xAA55    // Legacy fallback magic
+#define UDP_DISCOVERY_PORT   4210
+#define UDP_STREAM_PORT      4211
+#define RWP_VERSION          "2.1"
+#define RWP_BRAND            "roufsweb"
+
+WiFiUDP       udpDiscovery;
+WiFiUDP       udpStream;
+
+String        wifiSSID           = "";
+String        wifiPass           = "";
+bool          wifiActive         = false;
+bool          mdnsActive         = false;
+IPAddress     bridgeClientIP(0, 0, 0, 0);
+uint16_t      bridgeClientPort   = UDP_STREAM_PORT;
+bool          bridgeClientBound  = false;
+bool          wasBridgeActive    = false;
+IPAddress     lastHostIP(0, 0, 0, 0);
+unsigned long lastBeaconMs       = 0;
+unsigned long lastWiFiRetryMs    = 0;
+unsigned long lastBridgePingMs   = 0;
+uint8_t       rwpSeqCounter      = 0;
+
+#pragma pack(push, 1)
+struct RWP_Packet {
+    uint16_t magic;    // 0x5257 ('RW')
+    uint8_t  type;     // 0x01 = Motion/Scroll, 0x02 = Action/Key, 0x03 = Gesture, 0x04 = Status
+    uint8_t  seq;      // Sequence 0..255
+    int8_t   delta;    // Motion delta (-128..127)
+    uint8_t  mode;     // Active mode index (0..7)
+    uint8_t  action;   // Action code (0..25, 99)
+    uint8_t  flags;    // bit 0: isHighRes, bit 1: touchActive, bit 2: usbMounted
+    uint8_t  checksum; // XOR sum of bytes 0..7
+};
+#pragma pack(pop)
+
+typedef RWP_Packet OMP_Packet;
+
+void sendRWPPacket(uint8_t type, int8_t delta, uint8_t action, uint8_t flags);
+#define sendOMPPacket sendRWPPacket
+void initWiFi();
+void initMDNSService();
+void processWiFi();
+void executeUdpCommand(String& cmd, IPAddress senderIP, uint16_t senderPort);
 
 // -------------------------------------------------------
 // Mathematical Self-Learning Gesture Engine (Phase-Energy TinyOL)
@@ -167,6 +219,7 @@ bool          touchSpinActive      = false;  // True strictly on sustained touch
 bool          touchRotated         = false;  // True if rotation occurred while touching (locks out mode changes)
 int           touchRotatedCounts   = 0;      // Counts accumulated during current touch contact
 const unsigned long TOUCH_HOLD_MS  = 180;    // ms — sustained touch required to arm Touch & Spin (rejects taps)
+bool          altClutchHeld        = false;  // True while Alt is latched down during App Switcher Touch & Spin
 
 // -------------------------------------------------------
 // Haptic State
@@ -414,10 +467,15 @@ void cycleMode() {
     noTone(HAPTIC_PIN);
     playHapticClick();
     
-    if (hostState == USB_HOST_CONNECTED) {
-        applyModeColor();
-    }
+    applyModeColor();
     Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
+    if (WiFi.isConnected() && bridgeClientBound) {
+        String msg = "MODE:" + String(modeList[currentModeIdx].name) + "\n";
+        udpStream.beginPacket(bridgeClientIP, bridgeClientPort);
+        udpStream.write((const uint8_t*)msg.c_str(), msg.length());
+        udpStream.endPacket();
+        sendRWPPacket(0x04, 0, (uint8_t)currentModeIdx, 0);
+    }
 }
 
 void cycleModePrev() {
@@ -436,15 +494,25 @@ void cycleModePrev() {
     noTone(HAPTIC_PIN);
     playHapticClick();
     
-    if (hostState == USB_HOST_CONNECTED) {
-        applyModeColor();
-    }
+    applyModeColor();
     Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
+    if (WiFi.isConnected() && bridgeClientBound) {
+        String msg = "MODE:" + String(modeList[currentModeIdx].name) + "\n";
+        udpStream.beginPacket(bridgeClientIP, bridgeClientPort);
+        udpStream.write((const uint8_t*)msg.c_str(), msg.length());
+        udpStream.endPacket();
+        sendRWPPacket(0x04, 0, (uint8_t)currentModeIdx, 0);
+    }
 }
 
 void switchToMode(int modeIdx) {
     if (modeIdx < 0 || modeIdx >= MAX_MODES) return;
     if (!modeList[modeIdx].enabled) return;
+    if (currentModeIdx == modeIdx) return; // Prevent infinite re-triggering and flash wear
+    if (altClutchHeld) {
+        Keyboard.releaseAll();
+        altClutchHeld = false;
+    }
     currentModeIdx = modeIdx;
 
     prefs.begin("omniscroll", false);
@@ -458,10 +526,15 @@ void switchToMode(int modeIdx) {
     noTone(HAPTIC_PIN);
     playHapticClick();
     
-    if (hostState == USB_HOST_CONNECTED) {
-        applyModeColor();
-    }
+    applyModeColor();
     Serial.printf("MODE:%s\n", modeList[currentModeIdx].name);
+    if (WiFi.isConnected() && bridgeClientBound) {
+        String msg = "MODE:" + String(modeList[currentModeIdx].name) + "\n";
+        udpStream.beginPacket(bridgeClientIP, bridgeClientPort);
+        udpStream.write((const uint8_t*)msg.c_str(), msg.length());
+        udpStream.endPacket();
+        sendRWPPacket(0x04, 0, (uint8_t)currentModeIdx, 0);
+    }
 }
 
 
@@ -517,7 +590,7 @@ void loadPrefs() {
     // Load gesture settings
     flickFwdAction  = constrain(prefs.getUChar("flick_fwd", 2), 0, 25);
     flickRevAction  = constrain(prefs.getUChar("flick_rev", 1), 0, 25);
-    touchSpinAction = constrain(prefs.getUChar("tspin_act", 1), 0, 5);
+    touchSpinAction = constrain(prefs.getUChar("tspin_act", 1), 0, 6);
     singleTapAction = prefs.getUChar("stap_act", 99);
 
     // Load adaptive gesture prototype centroids (TinyOL)
@@ -525,6 +598,18 @@ void loadPrefs() {
         gestureMuS = constrain(prefs.getFloat("g_mu_s", 110.0f), (float)FLICK_COMMIT_THRESH, 240.0f);
         gestureMuR = constrain(prefs.getFloat("g_mu_r", 85.0f),  (float)FLICK_REVERSAL_MIN,  200.0f);
         gestureMuT = constrain(prefs.getFloat("g_mu_t", 25.0f),  10.0f,                       60.0f);
+    }
+
+    // Load Wi-Fi credentials
+    if (prefs.isKey("wifi_ssid")) {
+        wifiSSID = prefs.getString("wifi_ssid", "");
+        wifiPass = prefs.getString("wifi_pass", "");
+    }
+
+    // Load last host IP for reverse push registration
+    if (prefs.isKey("host_ip")) {
+        uint32_t ipVal = prefs.getUInt("host_ip", 0);
+        lastHostIP = IPAddress(ipVal);
     }
     prefs.end();
 }
@@ -561,6 +646,11 @@ void savePrefs() {
     prefs.putFloat("g_mu_s", gestureMuS);
     prefs.putFloat("g_mu_r", gestureMuR);
     prefs.putFloat("g_mu_t", gestureMuT);
+
+    // Save last known PC host IP
+    if (lastHostIP != IPAddress(0, 0, 0, 0)) {
+        prefs.putUInt("host_ip", (uint32_t)lastHostIP);
+    }
     prefs.end();
 }
 
@@ -632,6 +722,15 @@ void playHapticDoubleClick() {
     delay(30);
     tone(HAPTIC_PIN, 250);
     delay(18);
+    noTone(HAPTIC_PIN);
+    hapticPlaying = false;
+}
+
+void playClutchCommitHaptic() {
+    hapticPlaying = false;
+    noTone(HAPTIC_PIN);
+    tone(HAPTIC_PIN, 320);
+    delay(22);
     noTone(HAPTIC_PIN);
     hapticPlaying = false;
 }
@@ -818,6 +917,44 @@ void dispatchTouchSpinAction(int8_t dx, int dir, int thr) {
                 ConsumerControl.press(dir > 0 ? CONSUMER_CONTROL_VOLUME_DECREMENT : CONSUMER_CONTROL_VOLUME_INCREMENT);
                 delay(2); ConsumerControl.release();
                 playHapticClick();
+                accumulationX += thr;
+            }
+            break;
+        case 6: // App Switcher Clutch (Alt + Tab / Shift+Tab)
+            if (!altClutchHeld) {
+                Keyboard.press(KEY_LEFT_ALT);
+                altClutchHeld = true;
+                setLedColorDirect(0, 240, 220); // Electric Cyan visual clutch engagement
+            }
+            accumulationX += dx;
+            while (accumulationX >= thr) {
+                playHapticClick();
+                if (dir > 0) {
+                    Keyboard.press(KEY_TAB);
+                    delay(5);
+                    Keyboard.release(KEY_TAB);
+                } else {
+                    Keyboard.press(KEY_LEFT_SHIFT);
+                    Keyboard.press(KEY_TAB);
+                    delay(5);
+                    Keyboard.release(KEY_TAB);
+                    Keyboard.release(KEY_LEFT_SHIFT);
+                }
+                accumulationX -= thr;
+            }
+            while (accumulationX <= -thr) {
+                playHapticClick();
+                if (dir > 0) {
+                    Keyboard.press(KEY_LEFT_SHIFT);
+                    Keyboard.press(KEY_TAB);
+                    delay(5);
+                    Keyboard.release(KEY_TAB);
+                    Keyboard.release(KEY_LEFT_SHIFT);
+                } else {
+                    Keyboard.press(KEY_TAB);
+                    delay(5);
+                    Keyboard.release(KEY_TAB);
+                }
                 accumulationX += thr;
             }
             break;
@@ -1099,6 +1236,56 @@ void parseSerialCommand(String& cmd) {
         else if (ch == "OFF") setLedColor(0, 0, 0);
         else if (ch == "RESET") applyModeColor();
     }
+    else if (cmd.startsWith("SET:WIFI:")) {
+        // Format: SET:WIFI:<SSID>:<PASS>
+        String creds = cmd.substring(9);
+        int colonIdx = creds.indexOf(':');
+        if (colonIdx != -1) {
+            wifiSSID = creds.substring(0, colonIdx);
+            wifiPass = creds.substring(colonIdx + 1);
+            prefs.begin("omniscroll", false);
+            prefs.putString("wifi_ssid", wifiSSID);
+            prefs.putString("wifi_pass", wifiPass);
+            prefs.end();
+            Serial.println("WIFI:CONFIGURED:" + wifiSSID);
+            initWiFi();
+        } else {
+            Serial.println("WIFI:ERROR:INVALID_FORMAT");
+        }
+    }
+    else if (cmd == "GET:WIFI:STATUS") {
+        String json = "WIFI:STATUS:{";
+        json += "\"connected\":" + String(WiFi.isConnected() ? "true" : "false");
+        json += ",\"ssid\":\"" + wifiSSID + "\"";
+        json += ",\"ip\":\"" + (WiFi.isConnected() ? WiFi.localIP().toString() : "0.0.0.0") + "\"";
+        json += ",\"rssi\":" + String(WiFi.isConnected() ? WiFi.RSSI() : 0);
+        json += "}";
+        Serial.println(json);
+    }
+    else if (cmd == "SCAN:WIFI") {
+        Serial.println("WIFI:SCAN:START");
+        // Scan 2.4 GHz channels with 100ms per channel for fast response
+        int16_t n = WiFi.scanNetworks(false, false, false, 100);
+        for (int i = 0; i < n; ++i) {
+            String s = WiFi.SSID(i);
+            if (s.length() > 0) {
+                Serial.printf("WIFI:NET:%s:%d:%d\n", s.c_str(), WiFi.RSSI(i), (int)WiFi.encryptionType(i));
+            }
+        }
+        WiFi.scanDelete();
+        Serial.println("WIFI:SCAN:END");
+    }
+    else if (cmd == "SET:WIFI:RESET") {
+        wifiSSID = "";
+        wifiPass = "";
+        prefs.begin("omniscroll", false);
+        prefs.remove("wifi_ssid");
+        prefs.remove("wifi_pass");
+        prefs.end();
+        WiFi.disconnect(true);
+        wifiActive = false;
+        Serial.println("WIFI:RESET:OK");
+    }
     else if (cmd.startsWith("SET:CAL:R:")) { cal_R = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
     else if (cmd.startsWith("SET:CAL:G:")) { cal_G = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
     else if (cmd.startsWith("SET:CAL:B:")) { cal_B = cmd.substring(10).toFloat(); savePrefs(); applyModeColor(); }
@@ -1128,13 +1315,23 @@ void parseSerialCommand(String& cmd) {
                 else if (key == "THR")  { touch.setThreshold(val.toInt()); }
                 else if (key == "FLICK_FWD"){ flickFwdAction  = constrain(val.toInt(), 0, 25); }
                 else if (key == "FLICK_REV"){ flickRevAction  = constrain(val.toInt(), 0, 25); }
-                else if (key == "TSPIN")    { touchSpinAction = constrain(val.toInt(), 0, 5); }
+                else if (key == "TSPIN")    { touchSpinAction = constrain(val.toInt(), 0, 6); }
                 else if (key == "SINGLE_TAP"){ singleTapAction = (val.toInt() == 99) ? 99 : constrain(val.toInt(), 0, 25); }
 
                 // Mode target selector
-                else if (key == "MODE") { modeTarget = constrain(val.toInt(), 0, MAX_MODES - 1); }
+                else if (key == "MODE") {
+                    modeTarget = constrain(val.toInt(), 0, MAX_MODES - 1);
+                    if (nextComma == -1 && params.indexOf(',') == -1) {
+                        switchToMode(modeTarget);
+                        return; // Solo mode switch handled cleanly without duplicate clicks/saves
+                    }
+                }
 
-                // Per-mode keys (require MODE: to precede them in the command)
+                // Per-mode keys (defaults to current active mode if MODE: not specified)
+                else if (key == "HP") {
+                    int target = (modeTarget >= 0) ? modeTarget : currentModeIdx;
+                    modeList[target].hapticProfile = constrain(val.toInt(), 0, NUM_PROFILES - 1);
+                }
                 else if (modeTarget >= 0) {
                     if      (key == "EN")  { modeList[modeTarget].enabled = (val == "1"); }
                     else if (key == "CS")  {
@@ -1144,7 +1341,6 @@ void parseSerialCommand(String& cmd) {
                         modeList[modeTarget].color[2] =  c        & 0xFF;
                         if (modeTarget == currentModeIdx) applyModeColor();
                     }
-                    else if (key == "HP")  { modeList[modeTarget].hapticProfile = constrain(val.toInt(), 0, NUM_PROFILES - 1); }
                     else if (key == "INV") { modeList[modeTarget].invertDirection = (val == "1"); }
                     else if (key == "MTHR"){ modeList[modeTarget].threshold = val.toInt(); }
                 }
@@ -1160,6 +1356,259 @@ void parseSerialCommand(String& cmd) {
             noTone(HAPTIC_PIN);
             playHapticClick();
         }
+    }
+}
+
+// =======================================================
+// RoufsWeb Protocol (RWP v2.1) & Wi-Fi Implementation
+// =======================================================
+void sendRWPPacket(uint8_t type, int8_t delta, uint8_t action, uint8_t flags) {
+    if (!WiFi.isConnected() || !bridgeClientBound) return;
+    RWP_Packet pkt;
+    pkt.magic    = RWP_MAGIC; // 0x5257 ('RW')
+    pkt.type     = type;
+    pkt.seq      = rwpSeqCounter++;
+    pkt.delta    = delta;
+    pkt.mode     = (uint8_t)currentModeIdx;
+    pkt.action   = action;
+    pkt.flags    = flags;
+    pkt.checksum = 0;
+
+    uint8_t* p = (uint8_t*)&pkt;
+    for (int i = 0; i < 8; i++) {
+        pkt.checksum ^= p[i];
+    }
+
+    udpStream.beginPacket(bridgeClientIP, bridgeClientPort);
+    udpStream.write(p, sizeof(RWP_Packet));
+    udpStream.endPacket();
+}
+
+void initMDNSService() {
+    if (!mdnsActive) {
+        if (MDNS.begin("omniscroll")) {
+            mdnsActive = true;
+            MDNS.addService("roufsweb", "udp", UDP_STREAM_PORT);
+            MDNS.addServiceTxt("roufsweb", "udp", "version", RWP_VERSION);
+            MDNS.addServiceTxt("roufsweb", "udp", "brand", RWP_BRAND);
+            Serial.println("[RWP] mDNS responder active: omniscroll.local");
+        } else {
+            Serial.println("[RWP] mDNS responder failed to start");
+        }
+    }
+}
+
+void initWiFi() {
+    if (wifiSSID.length() == 0) return;
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false); // Disable modem sleep for ultra-low latency (<2ms)
+    WiFi.begin(wifiSSID.c_str(), wifiPass.c_str());
+    udpDiscovery.begin(UDP_DISCOVERY_PORT);
+    udpStream.begin(UDP_STREAM_PORT);
+    lastWiFiRetryMs = millis();
+    Serial.printf("[RWP] Initializing connection to %s...\n", wifiSSID.c_str());
+}
+
+void executeUdpCommand(String& cmd, IPAddress senderIP, uint16_t senderPort) {
+    if (cmd == "GET:STATUS") {
+        String json = "STATUS:{";
+        json += "\"mode\":\"" + String(modeList[currentModeIdx].name) + "\"";
+        json += ",\"touch\":"  + String(touch.getLastReading());
+        json += ",\"baseline\":0";
+        json += ",\"accX\":"   + String(accumulationX);
+        json += ",\"usb\":"    + String(hostState == USB_HOST_CONNECTED ? 1 : 0);
+        json += ",\"wifi\":1";
+        json += "}";
+        udpStream.beginPacket(senderIP, senderPort);
+        udpStream.write((const uint8_t*)json.c_str(), json.length());
+        udpStream.endPacket();
+    }
+    else if (cmd == "GET:CONFIG") {
+        String json;
+        buildConfigJSON(json);
+        String reply = "CONFIG:" + json;
+        udpStream.beginPacket(senderIP, senderPort);
+        udpStream.write((const uint8_t*)reply.c_str(), reply.length());
+        udpStream.endPacket();
+    }
+    else if (cmd == "GET:WIFI:STATUS") {
+        String json = "WIFI:STATUS:{";
+        json += "\"connected\":" + String(WiFi.isConnected() ? "true" : "false");
+        json += ",\"ssid\":\"" + wifiSSID + "\"";
+        json += ",\"ip\":\"" + (WiFi.isConnected() ? WiFi.localIP().toString() : "0.0.0.0") + "\"";
+        json += ",\"rssi\":" + String(WiFi.isConnected() ? WiFi.RSSI() : 0);
+        json += "}";
+        udpStream.beginPacket(senderIP, senderPort);
+        udpStream.write((const uint8_t*)json.c_str(), json.length());
+        udpStream.endPacket();
+    }
+    else if (cmd == "GET:GESTURE_PROFILE") {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "GESTURE_PROFILE:{\"s\":%.1f,\"r\":%.1f,\"t\":%.1f}", gestureMuS, gestureMuR, gestureMuT);
+        udpStream.beginPacket(senderIP, senderPort);
+        udpStream.write((const uint8_t*)buf, strlen(buf));
+        udpStream.endPacket();
+    }
+    else if (cmd.startsWith("PING")) {
+        String reply = "PONG:" + (cmd.length() > 5 ? cmd.substring(5) : String(millis()));
+        udpStream.beginPacket(senderIP, senderPort);
+        udpStream.write((const uint8_t*)reply.c_str(), reply.length());
+        udpStream.endPacket();
+    }
+    else {
+        // Execute standard configuration command
+        parseSerialCommand(cmd);
+        String ack = "ACK:" + cmd.substring(0, min(16, (int)cmd.length()));
+        udpStream.beginPacket(senderIP, senderPort);
+        udpStream.write((const uint8_t*)ack.c_str(), ack.length());
+        udpStream.endPacket();
+    }
+}
+
+void processWiFi() {
+    if (wifiSSID.length() == 0) return;
+
+    unsigned long now = millis();
+
+    // Auto-reconnect if connection was dropped
+    if (!WiFi.isConnected()) {
+        if (wifiActive) {
+            wifiActive = false;
+            bridgeClientBound = false;
+            wasBridgeActive = false;
+            mdnsActive = false;
+            Serial.println("[RWP] Wi-Fi disconnected");
+        }
+        if (now - lastWiFiRetryMs > 10000) {
+            lastWiFiRetryMs = now;
+            WiFi.reconnect();
+        }
+        return;
+    }
+
+    if (!wifiActive) {
+        wifiActive = true;
+        Serial.printf("[RWP] Connected! IP: %s (RSSI: %d dBm)\n", WiFi.localIP().toString().c_str(), WiFi.RSSI());
+        udpDiscovery.begin(UDP_DISCOVERY_PORT);
+        udpStream.begin(UDP_STREAM_PORT);
+        initMDNSService();
+
+        // Reverse Host Registration: Proactively announce presence to cached host IP
+        if (lastHostIP != IPAddress(0, 0, 0, 0)) {
+            String greeting = "ROUFSWEB:OMNISCROLL:" + WiFi.localIP().toString() + 
+                              ":PORT=" + String(UDP_STREAM_PORT) + 
+                              ":VER=" + String(RWP_VERSION) + 
+                              ":MODE=" + String(modeList[currentModeIdx].name) + 
+                              ":USB=" + String(hostState == USB_HOST_CONNECTED ? 1 : 0) + 
+                              ":BRAND=" + String(RWP_BRAND);
+            udpStream.beginPacket(lastHostIP, UDP_STREAM_PORT);
+            udpStream.write((const uint8_t*)greeting.c_str(), greeting.length());
+            udpStream.endPacket();
+        }
+    }
+
+    // Dynamic Wi-Fi Power Modulation (Wired vs Wireless):
+    // When connected to PC via USB, enable modem sleep to drop power from ~110mA to ~20mA while maintaining AP connection.
+    // When unplugged (wireless), disable modem sleep for ultra-low latency (<2ms).
+    static bool currentWifiSleep = false;
+    bool targetWifiSleep = (hostState == USB_HOST_CONNECTED);
+    if (currentWifiSleep != targetWifiSleep) {
+        WiFi.setSleep(targetWifiSleep);
+        currentWifiSleep = targetWifiSleep;
+        Serial.printf("[RWP] Wi-Fi Power: %s\n", targetWifiSleep ? "Lightweight Standby (Modem Sleep ON)" : "High-Performance Active (Modem Sleep OFF)");
+    }
+
+    // 1. Periodic Broadcast Beacon (every 2.5s)
+    if (now - lastBeaconMs > 2500) {
+        lastBeaconMs = now;
+        String beacon = "ROUFSWEB:OMNISCROLL:" + WiFi.localIP().toString() + 
+                        ":PORT=" + String(UDP_STREAM_PORT) + 
+                        ":VER=" + String(RWP_VERSION) + 
+                        ":MODE=" + String(modeList[currentModeIdx].name) + 
+                        ":USB=" + String(hostState == USB_HOST_CONNECTED ? 1 : 0) + 
+                        ":BRAND=" + String(RWP_BRAND);
+        
+        // Global broadcast (255.255.255.255)
+        udpDiscovery.beginPacket(IPAddress(255, 255, 255, 255), UDP_DISCOVERY_PORT);
+        udpDiscovery.write((const uint8_t*)beacon.c_str(), beacon.length());
+        udpDiscovery.endPacket();
+
+        // Local Subnet broadcast (x.x.x.255) for routers that filter 255.255.255.255 across Ethernet/Wi-Fi bridges
+        IPAddress bcast = WiFi.localIP();
+        bcast[3] = 255;
+        udpDiscovery.beginPacket(bcast, UDP_DISCOVERY_PORT);
+        udpDiscovery.write((const uint8_t*)beacon.c_str(), beacon.length());
+        udpDiscovery.endPacket();
+    }
+
+    // 2. Active Probe on Discovery Port 4210
+    int discSize = udpDiscovery.parsePacket();
+    if (discSize > 0) {
+        uint8_t dBuf[64];
+        int len = udpDiscovery.read(dBuf, sizeof(dBuf) - 1);
+        if (len >= 2) {
+            dBuf[len] = 0;
+            bool isProbe = (dBuf[0] == 0x52 && dBuf[1] == 0x57) || // 'R', 'W' (RWP magic)
+                           (dBuf[0] == 0x4F && dBuf[1] == 0x4D && dBuf[2] == 0x4E && dBuf[3] == 0x49) || // "OMNI"
+                           (dBuf[0] == 0xDE && dBuf[1] == 0xAD && dBuf[2] == 0xBE && dBuf[3] == 0xEF) ||
+                           strstr((char*)dBuf, "ROUFS") ||
+                           strstr((char*)dBuf, "OMNI") ||
+                           strstr((char*)dBuf, "PROBE");
+            if (isProbe) {
+                String reply = "ROUFSWEB:OMNISCROLL:" + WiFi.localIP().toString() + 
+                               ":PORT=" + String(UDP_STREAM_PORT) + 
+                               ":VER=" + String(RWP_VERSION) + 
+                               ":MODE=" + String(modeList[currentModeIdx].name) + 
+                               ":USB=" + String(hostState == USB_HOST_CONNECTED ? 1 : 0) + 
+                               ":BRAND=" + String(RWP_BRAND);
+                udpDiscovery.beginPacket(udpDiscovery.remoteIP(), udpDiscovery.remotePort());
+                udpDiscovery.write((const uint8_t*)reply.c_str(), reply.length());
+                udpDiscovery.endPacket();
+
+                bridgeClientIP = udpDiscovery.remoteIP();
+                bridgeClientPort = UDP_STREAM_PORT;
+                lastHostIP = bridgeClientIP;
+                bridgeClientBound = true;
+                lastBridgePingMs = now;
+                if (!wasBridgeActive && hostState != USB_HOST_CONNECTED) {
+                    wasBridgeActive = true;
+                    applyModeColor();
+                }
+            }
+        }
+    }
+
+    // 3. Bidirectional Control & Streaming on Port 4211
+    int streamSize = udpStream.parsePacket();
+    if (streamSize > 0) {
+        uint8_t sBuf[256];
+        int len = udpStream.read(sBuf, sizeof(sBuf) - 1);
+        if (len > 0) {
+            sBuf[len] = 0;
+            bridgeClientIP = udpStream.remoteIP();
+            bridgeClientPort = udpStream.remotePort();
+            lastHostIP = bridgeClientIP;
+            bridgeClientBound = true;
+            lastBridgePingMs = now;
+            if (!wasBridgeActive && hostState != USB_HOST_CONNECTED) {
+                wasBridgeActive = true;
+                applyModeColor();
+            }
+
+            String cmd = (char*)sBuf;
+            cmd.trim();
+            if (cmd.length() > 0) {
+                executeUdpCommand(cmd, udpStream.remoteIP(), udpStream.remotePort());
+            }
+        }
+    }
+
+    // 4. Inactivity timeout for desktop bridge binding (if no packets received for > 12 seconds)
+    if (bridgeClientBound && (now - lastBridgePingMs > 12000)) {
+        bridgeClientBound = false;
+        wasBridgeActive = false;
+        Serial.println("[RWP] Desktop bridge client unbound (timeout)");
     }
 }
 
@@ -1255,7 +1704,13 @@ void setup() {
     lastActivityTime = millis();
     Serial.printf("Mode: %s\n", modeList[currentModeIdx].name);
 
+    // Initialize Wi-Fi if credentials exist
+    if (wifiSSID.length() > 0) {
+        initWiFi();
+    }
+
     playHapticClick();
+    Serial.println(String("ROUFSWEB:OMNISCROLL:WAKE:VER=2.1:MODE=") + modeList[currentModeIdx].name + ":ID=OMNI-007");
 }
 
 
@@ -1283,24 +1738,40 @@ void loop() {
             connectTransitionStartTime = millis();
             playHapticClick(); // Apple Taptic confirmation click
             Serial.println("USB: Host Connected (Handshake complete)");
+            Serial.println(String("ROUFSWEB:OMNISCROLL:WAKE:VER=2.1:MODE=") + modeList[currentModeIdx].name + ":ID=OMNI-007");
         }
     } else {
         if (hostState != USB_HOST_DISCONNECTED) {
             hostState = USB_HOST_DISCONNECTED;
             isIdleDimmed = false;
+            if (altClutchHeld) {
+                Keyboard.releaseAll();
+                altClutchHeld = false;
+            }
             Serial.println("USB: Host Disconnected / Standby");
         }
     }
 
-    if (hostState == USB_HOST_DISCONNECTED) {
-        renderAppleBreathing();
-    } else if (hostState == USB_HOST_CONNECTING) {
+    bool isWirelessConnected = (WiFi.isConnected() && bridgeClientBound);
+    bool isHostActive = (hostState == USB_HOST_CONNECTED) || isWirelessConnected;
+
+    if (hostState == USB_HOST_CONNECTING) {
         renderConnectingCrossfade();
-    } else {
-        // --- Idle dim (only when host is connected) ---
-        if (idleDimMs > 0 && !isIdleDimmed && (millis() - lastActivityTime >= (unsigned long)idleDimMs)) {
-            isIdleDimmed = true;
+    } else if (isIdleDimmed) {
+        if (!isHostActive) {
+            renderAppleBreathing();
+        } else {
             applyModeColor();
+        }
+    } else {
+        // Active / Awake state: check if idle timeout elapsed
+        if (idleDimMs > 0 && (millis() - lastActivityTime >= (unsigned long)idleDimMs)) {
+            isIdleDimmed = true;
+            if (!isHostActive) {
+                renderAppleBreathing();
+            } else {
+                applyModeColor();
+            }
         }
     }
 
@@ -1329,8 +1800,19 @@ void loop() {
             }
         }
     } else {
-        if (touchSpinActive) {
+        if (touchSpinActive || altClutchHeld) {
             Serial.println("GESTURE:TSPIN:END");
+            if (WiFi.isConnected() && bridgeClientBound) {
+                uint8_t flags = 0x01;
+                if (hostState == USB_HOST_CONNECTED) flags |= 0x04;
+                sendOMPPacket(0x02, 0, touchSpinAction, flags);
+            }
+            if (altClutchHeld) {
+                Keyboard.releaseAll();
+                altClutchHeld = false;
+                playClutchCommitHaptic();
+                applyModeColor();
+            }
         }
         touchSpinActive   = false;
         touchContactStart = 0;
@@ -1345,6 +1827,7 @@ void loop() {
     }
 
     if (isPhysicallyTouched && !lastPhysicalTouchState && !wheelMovingNormally) {
+        if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); Serial.println("OMNISCROLL:WAKE"); }
         Serial.println("TOUCH:TAP");
     }
     lastPhysicalTouchState = isPhysicallyTouched;
@@ -1352,7 +1835,7 @@ void loop() {
     // Double-tap mode switch:
     // Allowed ONLY when stationary, not in Touch & Spin, and wheel was NOT rotated
     if (touch.isDoubleTapped() && !touchSpinActive && !touchRotated && (millis() - lastScrollTime > 150)) {
-        if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
+        if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); Serial.println("OMNISCROLL:WAKE"); }
         cycleMode();
         lastActivityTime = millis();
         Serial.println("TOUCH:DOUBLE");
@@ -1361,7 +1844,7 @@ void loop() {
     if (touch.isLongPressed() && !touchSpinActive && !touchRotated && (millis() - lastScrollTime > 250)) {
         // Long press = mode cycle in reverse (wraps around)
         // Allowed ONLY when stationary, not in Touch & Spin, and wheel was NOT rotated
-        if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
+        if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); Serial.println("OMNISCROLL:WAKE"); }
         cycleModePrev();
         Serial.println("LONGPRESS");
         lastActivityTime = millis();
@@ -1375,10 +1858,22 @@ void loop() {
                 rejectLastGesture();
             }
         } else if (singleTapAction != 0) {
-            dispatchSingleAction(singleTapAction);
+            if (hostState == USB_HOST_CONNECTED) {
+                dispatchSingleAction(singleTapAction);
+                playHapticClick();
+            } else if (WiFi.isConnected() && bridgeClientBound) {
+                uint8_t flags = 0x01;
+                if (isPhysicallyTouched) flags |= 0x02;
+                sendOMPPacket(0x02, 0, singleTapAction, flags);
+                playHapticClick();
+            } else {
+                playHapticClick();
+            }
+        } else {
             playHapticClick();
         }
         lastActivityTime = millis();
+        Serial.println("TOUCH:SINGLE");
     }
 
     // --- Physical button ---
@@ -1388,7 +1883,7 @@ void loop() {
         if (reading != buttonState) {
             buttonState = reading;
             if (buttonState == LOW) {
-                if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
+                if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); Serial.println("OMNISCROLL:WAKE"); }
                 cycleMode();
                 lastActivityTime = millis();
             }
@@ -1399,102 +1894,170 @@ void loop() {
     // --- Optical sensor ---
     uint8_t motion = mx8650_read(0x02);
     if (motion & 0x80) {
-        int8_t dx = -(int8_t)mx8650_read(0x03); // Invert sensor orientation: clockwise rotation = positive
-        if (dx != 0) {
-            if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); }
-            lastScrollTime = millis();
-            lastActivityTime = millis();
-            isScrolling = true;
+        int8_t rawDx = -(int8_t)mx8650_read(0x03); // Invert sensor orientation: clockwise rotation = positive
+        if (rawDx != 0) {
+            // -------------------------------------------------------------
+            // Resting Anti-Jitter Gate (Desk Vibration & Bearing Noise Suppression)
+            // -------------------------------------------------------------
+            // When the knob is resting unattended on the desk (not physically touched,
+            // stationary for > 150ms), optical sensor noise from the shiny steel bearing
+            // and mechanical desk vibrations (typing, bumping desk) produce isolated single
+            // counts (|rawDx| == 1). We require at least 2 counts within an 80ms window
+            // before admitting motion from a cold resting state. Once confirmed, all counts
+            // are released so 0 motion is lost.
+            static int8_t        restingJitterAcc = 0;
+            static unsigned long lastRestingJitterTime = 0;
+            int8_t dx = rawDx;
+            bool validMotion = true;
 
-            if (isPhysicallyTouched) {
-                touchRotated = true;
-                touchRotatedCounts += abs((int)dx);
-            }
+            bool isStationary = (millis() - lastScrollTime > 150);
+            if (!isPhysicallyTouched && isStationary) {
+                if (millis() - lastRestingJitterTime > 80) {
+                    restingJitterAcc = 0;
+                }
+                lastRestingJitterTime = millis();
+                restingJitterAcc += dx;
 
-            int dir = modeList[currentModeIdx].invertDirection ? -1 : 1;
-
-            // Broadcast live telemetry if requested
-            if (streamTelemetry) {
-                Serial.printf("TELEMETRY:%d,%lu\n", dx, millis());
-            }
-
-            // Broadcast live scroll data for Web UI visual knob
-            Serial.println("SCROLL:" + String(dx * dir));
-
-            int thr = modeList[currentModeIdx].threshold;
-            if (thr <= 0) thr = 10;
-
-            if (hostState != USB_HOST_CONNECTED) {
-                // Standby / disconnected: keep physical detent haptics active
-                accumulationX += dx;
-                while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
-                while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
-
+                // Require at least 2 counts within 80ms to confirm deliberate human rotation
+                if (abs((int)restingJitterAcc) < 2) {
+                    validMotion = false; // Filter isolated 1-count desk bump
+                } else {
+                    dx = restingJitterAcc; // Intentional rotation confirmed! Release all accumulated counts
+                    restingJitterAcc = 0;
+                }
             } else {
-                // -------------------------------------------------------
-                // Flick gesture engine (runs in parallel with normal scroll)
-                // Two-stage Schmitt + state machine — never blocks scroll.
-                // -------------------------------------------------------
-                int flickResult = updateFlickEngine(dx);
-                if (flickResult != 0) {
-                    uint8_t action = (flickResult > 0) ? flickFwdAction : flickRevAction;
-                    if (action != 0) {
-                        dispatchSingleAction(action);
-                        playHapticDoubleClick();
-                        triggerGestureFlash(lastFlickAdapted);
-                        Serial.println(flickResult > 0 ? "GESTURE:FLICK:FWD" : "GESTURE:FLICK:REV");
-                    }
-                    // Always clear accumulator on confirmed flick (even if action=disabled)
-                    accumulationX = 0;
-                    subTickAcc    = 0;
+                restingJitterAcc = 0;
+            }
 
-                // -------------------------------------------------------
-                // Touch & Spin (active on sustained hold or decisive rotation while touched)
-                // -------------------------------------------------------
-                } else if ((touchSpinActive || (isPhysicallyTouched && touchRotatedCounts >= 4)) && touchSpinAction != 0) {
-                    if (!touchSpinActive) {
-                        touchSpinActive = true;
-                        Serial.println("GESTURE:TSPIN:START");
-                    }
-                    Serial.println("GESTURE:TSPIN");
-                    dispatchTouchSpinAction(dx, dir, thr);
+            if (validMotion) {
+                if (isIdleDimmed) { isIdleDimmed = false; applyModeColor(); Serial.println("OMNISCROLL:WAKE"); }
+                lastScrollTime = millis();
+                lastActivityTime = millis();
+                isScrolling = true;
 
-                // -------------------------------------------------------
-                // Normal scroll / mode dispatch
-                // -------------------------------------------------------
-                } else if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
-                    if (Mouse.isHighRes()) {
-                        // High-Resolution Smooth Scrolling (USB-IF + Microsoft compliant)
-                        subTickAcc += dx * 120 * dir;
-                        int toSend = subTickAcc / thr;
-                        if (toSend != 0) { Mouse.scroll((int16_t)toSend); subTickAcc -= toSend * thr; }
-                        // Haptic click at physical detent intervals
-                        accumulationX += dx;
-                        while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
-                        while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
-                    } else {
-                        accumulationX += dx;
-                        while (accumulationX >= thr)  { Mouse.scroll( dir); playHapticClick(); accumulationX -= thr; }
-                        while (accumulationX <= -thr) { Mouse.scroll(-dir); playHapticClick(); accumulationX += thr; }
-                    }
-                } else if (strcmp(modeList[currentModeIdx].name, "H_SCROLL") == 0) {
-                    if (Mouse.isHighRes()) {
-                        subTickAcc += dx * 120 * dir;
-                        int toSend = subTickAcc / thr;
-                        if (toSend != 0) { Mouse.hScroll((int16_t)toSend); subTickAcc -= toSend * thr; }
-                        accumulationX += dx;
-                        while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
-                        while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
-                    } else {
-                        accumulationX += dx;
-                        while (accumulationX >= thr)  { Mouse.hScroll( dir); playHapticClick(); accumulationX -= thr; }
-                        while (accumulationX <= -thr) { Mouse.hScroll(-dir); playHapticClick(); accumulationX += thr; }
+                if (isPhysicallyTouched) {
+                    touchRotated = true;
+                    touchRotatedCounts += abs((int)dx);
+                }
+
+                int dir = modeList[currentModeIdx].invertDirection ? -1 : 1;
+
+                // Broadcast live telemetry if requested
+                if (streamTelemetry) {
+                    Serial.printf("TELEMETRY:%d,%lu\n", dx, millis());
+                }
+
+                // Broadcast live scroll data for Web UI visual knob
+                Serial.println("SCROLL:" + String(dx * dir));
+
+                int thr = modeList[currentModeIdx].threshold;
+                if (thr <= 0) thr = 10;
+
+                uint8_t flags = 0x01; // High-Res always supported over RWP Wi-Fi
+                if (isPhysicallyTouched) flags |= 0x02;
+                if (hostState == USB_HOST_CONNECTED) flags |= 0x04;
+
+                // Stream real-time low-latency OMP packet over Wi-Fi only when wireless
+                // (when wired, native USB HID handles input, saving Wi-Fi RF power)
+                if (hostState != USB_HOST_CONNECTED) {
+                    sendOMPPacket(0x01, dx * dir, 0, flags);
+                }
+
+                bool isWirelessActive = WiFi.isConnected() && bridgeClientBound;
+
+                if (hostState != USB_HOST_CONNECTED) {
+                    // Detents always active locally at threshold
+                    accumulationX += dx;
+                    while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
+                    while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; } // Critical fix: add thr
+
+                    // In wireless mode, run the flick gesture engine and touch & spin
+                    int flickResult = updateFlickEngine(dx);
+                    if (flickResult != 0) {
+                        uint8_t action = (flickResult > 0) ? flickFwdAction : flickRevAction;
+                        if (action != 0) {
+                            playHapticDoubleClick();
+                            triggerGestureFlash(lastFlickAdapted);
+                            if (isWirelessActive) {
+                                sendOMPPacket(0x03, 0, action, flags);
+                            }
+                            Serial.println(flickResult > 0 ? "GESTURE:FLICK:FWD" : "GESTURE:FLICK:REV");
+                        }
+                        accumulationX = 0;
+                        subTickAcc    = 0;
+                    } else if ((touchSpinActive || (isPhysicallyTouched && touchRotatedCounts >= 4)) && touchSpinAction != 0) {
+                        if (isWirelessActive) {
+                            sendOMPPacket(0x02, dx * dir, touchSpinAction, flags);
+                        }
                     }
                 } else {
-                    // All other modes: discrete action dispatch at threshold
-                    accumulationX += dx;
-                    while (accumulationX >= thr)  { dispatchAction( dir); accumulationX -= thr; }
-                    while (accumulationX <= -thr) { dispatchAction(-dir); accumulationX += thr; }
+                    // -------------------------------------------------------
+                    // Flick gesture engine (runs in parallel with normal scroll)
+                    // Two-stage Schmitt + state machine — never blocks scroll.
+                    // -------------------------------------------------------
+                    int flickResult = updateFlickEngine(dx);
+                    if (flickResult != 0) {
+                        uint8_t action = (flickResult > 0) ? flickFwdAction : flickRevAction;
+                        if (action != 0) {
+                            dispatchSingleAction(action);
+                            playHapticDoubleClick();
+                            triggerGestureFlash(lastFlickAdapted);
+                            sendOMPPacket(0x03, 0, action, flags);
+                            Serial.println(flickResult > 0 ? "GESTURE:FLICK:FWD" : "GESTURE:FLICK:REV");
+                        }
+                        // Always clear accumulator on confirmed flick (even if action=disabled)
+                        accumulationX = 0;
+                        subTickAcc    = 0;
+
+                    // -------------------------------------------------------
+                    // Touch & Spin (active on sustained hold or decisive rotation while touched)
+                    // -------------------------------------------------------
+                    } else if ((touchSpinActive || (isPhysicallyTouched && touchRotatedCounts >= 4)) && touchSpinAction != 0) {
+                        if (!touchSpinActive) {
+                            touchSpinActive = true;
+                            Serial.println("GESTURE:TSPIN:START");
+                        }
+                        Serial.println("GESTURE:TSPIN");
+                        sendOMPPacket(0x02, dx * dir, touchSpinAction, flags);
+                        dispatchTouchSpinAction(dx, dir, thr);
+
+                    // -------------------------------------------------------
+                    // Normal scroll / mode dispatch
+                    // -------------------------------------------------------
+                    } else if (strcmp(modeList[currentModeIdx].name, "SCROLL") == 0) {
+                        if (Mouse.isHighRes()) {
+                            // High-Resolution Smooth Scrolling (USB-IF + Microsoft compliant)
+                            subTickAcc += dx * 120 * dir;
+                            int toSend = subTickAcc / thr;
+                            if (toSend != 0) { Mouse.scroll((int16_t)toSend); subTickAcc -= toSend * thr; }
+                            // Haptic click at physical detent intervals
+                            accumulationX += dx;
+                            while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
+                            while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
+                        } else {
+                            accumulationX += dx;
+                            while (accumulationX >= thr)  { Mouse.scroll( dir); playHapticClick(); accumulationX -= thr; }
+                            while (accumulationX <= -thr) { Mouse.scroll(-dir); playHapticClick(); accumulationX += thr; }
+                        }
+                    } else if (strcmp(modeList[currentModeIdx].name, "H_SCROLL") == 0) {
+                        if (Mouse.isHighRes()) {
+                            subTickAcc += dx * 120 * dir;
+                            int toSend = subTickAcc / thr;
+                            if (toSend != 0) { Mouse.hScroll((int16_t)toSend); subTickAcc -= toSend * thr; }
+                            accumulationX += dx;
+                            while (accumulationX >= thr)  { playHapticClick(); accumulationX -= thr; }
+                            while (accumulationX <= -thr) { playHapticClick(); accumulationX += thr; }
+                        } else {
+                            accumulationX += dx;
+                            while (accumulationX >= thr)  { Mouse.hScroll( dir); playHapticClick(); accumulationX -= thr; }
+                            while (accumulationX <= -thr) { Mouse.hScroll(-dir); playHapticClick(); accumulationX += thr; }
+                        }
+                    } else {
+                        // All other modes: discrete action dispatch at threshold
+                        accumulationX += dx;
+                        while (accumulationX >= thr)  { dispatchAction( dir); accumulationX -= thr; }
+                        while (accumulationX <= -thr) { dispatchAction(-dir); accumulationX += thr; }
+                    }
                 }
             }
         }
@@ -1513,6 +2076,17 @@ void loop() {
         }
     }
 
+    // Incomplete detent decay: if wheel is stationary for > 200ms, safely flush fractional detent remainders.
+    // Prevents an uncompleted detent (e.g. 8 or 9 counts out of 10) from sitting perpetually in memory,
+    // which would otherwise cause a single desk vibration count to trigger an accidental phantom scroll step!
+    if (millis() - lastScrollTime > 200) {
+        if (accumulationX != 0 || subTickAcc != 0) {
+            accumulationX = 0;
+            subTickAcc    = 0;
+        }
+        isScrolling = false;
+    }
+
     // Auto-save learned gesture centroids to NVS after 10s of quiet (protects flash wear)
     if (gestureLearnedDirty && (millis() - gestureLastLearnedMs > 10000)) {
         gestureLearnedDirty = false;
@@ -1524,11 +2098,20 @@ void loop() {
         Serial.println("NVS:GESTURE_PROFILE_SAVED");
     }
 
+    // --- Wi-Fi handling & discovery ---
+    processWiFi();
+
     // --- Serial command handler ---
     if (Serial.available() > 0) {
-        String cmd = Serial.readStringUntil('\n');
-        cmd.trim();
-        parseSerialCommand(cmd);
+        int peeked = Serial.peek();
+        if (peeked == 0xFE) {
+            Serial.read(); // consume identity probe byte
+            Serial.println("OMNISCROLL-V2");
+        } else {
+            String cmd = Serial.readStringUntil('\n');
+            cmd.trim();
+            parseSerialCommand(cmd);
+        }
     }
 
     delay(1);

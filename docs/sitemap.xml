@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://roufsweb.github.io/OmniScroll/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-11-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://roufsweb.github.io/OmniScroll/omniscroll_neutral.png</image:loc>
+      <image:title>OmniScroll — Precision Haptic Rotary Dial &amp; Optical Controller</image:title>
+      <image:caption>Open-source zero-contact haptic rotary dial engineered with an ESP32-S2 and MX8650 optical sensor.</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://roufsweb.github.io/OmniScroll/omniscroll_neutral.webp</image:loc>
+      <image:title>OmniScroll Hardware Profile</image:title>
+      <image:caption>Precision rotary controller with iPhone 6 LRA haptic tactile detents.</image:caption>
+    </image:image>
   </url>
 </urlset>
