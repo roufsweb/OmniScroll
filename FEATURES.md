@@ -114,13 +114,22 @@ This document catalogs all functional capabilities of the OmniScroll project, tr
   - **Hardware White-Balance RGB Calibration**: Real-time calibration sliders for Red, Green, and Blue LED channels.
   - **Wi-Fi Scanner & Credential Provisioning**: Discovers local 2.4 GHz networks via `WifiScanner`, displays signal strength, and dispatches credentials directly to ESP32 NVS over USB wire.
   - **Resource Embedding**: Embedded Windows application icon (`icon.ico`) and PE metadata (`winres`) with $<15$ MB RAM usage and $<400$ms instant startup.
-- [x] **`OmniScroll` HUD (On-Screen Dial Overlay & Companion)**:
-  - **Visual Dial Presence on Windows**: A sleek, translucent glassmorphic overlay (Windows dark Nordic Walnut / Obsidian aesthetic) that complements the physical knob's single RGB LED.
+- [x] **`OmniScroll` HUD (On-Screen Dial Overlay & Integrated Studio Companion)**:
+  - **Visual Dial Presence on Windows**: A sleek, translucent glassmorphic overlay (Windows dark Nordic Walnut / Obsidian aesthetic, `#161012` 90% acrylic alpha) that complements the physical knob's single RGB LED.
   - **Auto-Summon on Interaction**: Hidden when idle (0% CPU usage); the moment the wheel is spun or touched, it glides smoothly into view on the desktop without stealing window focus (`WS_EX_NOACTIVATE | WS_EX_TOPMOST`).
   - **Live Dynamic Value Feedback**: Displays current mode card, glowing mode LED pip, real-time value meters (volume percentage, zoom factor, scrub offset), and optical speed feedback.
   - **Gesture Toast**: Cyan glowing badge for TinyOL flicks and rollback confirmations.
-  - **Auto-Fade Timer**: Smoothly glides/fades out after configurable idle timeout (1.8s) to remain completely unobtrusive.
-  - **Ultra-Compact Footprint**: 1.8 MB executable (`OmniScroll.exe`), compiled in <3s, <10 MB RAM footprint.
+  - **Multi-Position Switching from Studio UI**:
+    - `Right Sidebar`: Docked smoothly against the right screen rail like macOS volume HUD.
+    - `Left Sidebar`: Docked against the left screen rail.
+    - `Top-Right`: Floating corner glass pill.
+    - `Dynamic Island`: Centered top glass capsule inspired by iPhone / macOS Dynamic Island.
+  - **Configurable Auto-Fade Timer**: Selectable in Studio (`1.5s Fast`, `2.5s Default`, `4.0s Relaxed`) with instant "✨ Test HUD" preview button.
+  - **Integrated Single-Binary Experience**: Spawns directly from `OmniScroll-Studio.exe` on a dedicated Win32 OS thread (60 FPS animation loop), eliminating multi-app confusion.
+- [x] **Universal Port Auto-Detection & Dual Transport**:
+  - **4-Tier Universal Port Detection**: Tier 1 (VID `0x303A` + PIDs `0x4F5B`/`0x0002`), Tier 2 (substring search for "OmniScroll", "Espressif", "USB JTAG/serial"), Tier 3 (any `0x303A`), Tier 4 (single USB serial port fallback). Automatically connects across any clean Windows installation.
+  - **Port-in-Use Advisory Detection**: Detects Win32 Error 5 (`Access is denied`) and informs the user immediately if Chrome Web Serial is locking the port.
+  - **Automatic Wi-Fi Failover & Discovery**: Proactively broadcasts discovery probes (`GET:STATUS`) to `255.255.255.255:4210` every 3.5s and latches dynamic peer IP addresses for seamless wireless failover when unplugged.
 - [x] **`omniscroll-cli` Native Diagnostic & Monitoring CLI**:
   - Standalone binary (`omniscroll-cli.exe`) for instant device scanning (`omniscroll-cli ports`), hardware discovery, and live serial monitoring without Python or pip dependencies.
 - [ ] **`OmniScroll` Advanced Visual Polish**:
